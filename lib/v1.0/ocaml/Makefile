@@ -1,0 +1,91 @@
+# Hey Emacs, this is a -*- makefile -*-
+#
+# Copyright (C) 2003 Pascal Brisset, Antoine Drouin
+# Copyright (C) 2015 Gautier Hattenberger <gautier.hattenberger@enac.fr>
+#
+# This file is part of paparazzi.
+#
+# paparazzi is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# paparazzi is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with paparazzi; see the file COPYING.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+
+# Quiet compilation
+Q=@
+
+OCAMLBUILD=ocamlbuild -use-ocamlfind
+
+#
+# NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
+# see http://caml.inria.fr/mantis/view.php?id=5503
+#
+OCAML_VERSION := $(shell ocamlc -version)
+OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
+ifeq ($(shell test $(OCAML_MAJOR) -lt 4; echo $$?),0)
+# need to use an old buggy ocaml(build) version: build-dir MUST be relative
+BUILDDIR ?= ../../../build/ocaml/pprzlink
+else
+# using a recent ocaml(build) version without THAT particular bug,
+# but build-dir MUST NOT contain ..
+# so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
+PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
+BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
+endif
+
+INSTALL_FLAGS ?=
+DESTDIR ?=
+ifneq ($(DESTDIR),)
+INSTALL_FLAGS += -destdir $(DESTDIR)
+endif
+
+INSTALL_FILES = $(shell ls $(BUILDDIR)/*.so $(BUILDDIR)/*.a $(BUILDDIR)/*.mli $(BUILDDIR)/*.cm*)
+
+
+all: byte native
+
+byte: _tags META
+	@echo Build bytecode lib
+	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cma
+	$(Q)cp META $(BUILDDIR)
+
+# byte with statically linked libs
+static: _tags META
+	@echo Build bytecode lib with static linking
+	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -tag static lib-pprzlink.cma
+	$(Q)cp META $(BUILDDIR)
+
+native: _tags META
+	@echo Build native lib
+	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
+	$(Q)cp META $(BUILDDIR)
+
+install: byte native META
+	@echo INSTALL
+	$(Q)ocamlfind install $(INSTALL_FLAGS) pprzlink META $(INSTALL_FILES)
+
+UNAME = $(shell uname -s)
+ifeq ("$(UNAME)","Darwin")
+	MKTEMP = gmktemp
+else
+	MKTEMP = mktemp
+endif
+
+clean :
+	$(Q)rm -f *.cm* *.out *.opt .depend *.a *.o *.so
+	$(Q)rm -rf $(BUILDDIR)
+	$(Q)ocamlbuild -clean -classic-display -build-dir $(BUILDDIR)
+
+.PHONY: all byte static native install install_local clean
