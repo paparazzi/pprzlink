@@ -15,7 +15,6 @@ except ImportError:
     Enum = object
 
 STX = 0x99
-STX_TS = 0x98
 
 class PprzParserState(Enum):
     WaitSTX = 1

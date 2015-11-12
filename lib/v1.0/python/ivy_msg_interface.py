@@ -6,14 +6,14 @@ import os
 import sys
 import re
 
-# if PAPARAZZI_SRC not set, then assume the tree containing this
+# if PPRZLINK_LIB not set, then assume the tree containing this
 # file is a reasonable substitute
-PPRZ_SRC = os.getenv("PAPARAZZI_SRC", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '../../../../')))
-sys.path.append(PPRZ_SRC + "/sw/lib/python")
+PPRZ_SRC = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                    '../../../')))
+sys.path.append(PPRZ_SRC + "/lib/v1.0/python")
 
-from pprz_msg.message import PprzMessage
-from pprz_msg import messages_xml_map
+from pprzlink.message import PprzMessage
+from pprzlink import messages_xml_map
 
 
 class IvyMessagesInterface(object):

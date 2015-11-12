@@ -5,15 +5,15 @@ import serial
 import os
 import sys
 
-# if PAPARAZZI_SRC not set, then assume the tree containing this
+# if PPRZLINK_LIB not set, then assume the tree containing this
 # file is a reasonable substitute
-PPRZ_SRC = os.getenv("PAPARAZZI_SRC", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '../../../../')))
-sys.path.append(PPRZ_SRC + "/sw/lib/python")
+PPRZ_SRC = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                    '../../../')))
+sys.path.append(PPRZ_SRC + "/lib/v1.0/python")
 
-from pprz_msg.message import PprzMessage
-from pprz_msg.pprz_transport import PprzTransport
-import pprz_msg.messages_xml_map
+from pprzlink.message import PprzMessage
+from pprzlink.pprz_transport import PprzTransport
+import pprzlink.messages_xml_map
 
 
 class SerialMessagesInterface(threading.Thread):
@@ -80,7 +80,7 @@ def test():
     parser.add_argument("-d", "--device", help="device name", dest='dev', default='/dev/ttyUSB0')
     parser.add_argument("-b", "--baudrate", help="baudrate", dest='baud', default=115200, type=int)
     args = parser.parse_args()
-    pprz_msg.messages_xml_map.parse_messages(args.file)
+    pprzlink.messages_xml_map.parse_messages(args.file)
     serial_interface = SerialMessagesInterface(lambda s, m: print("new message from %i: %s" % (s, m)), device=args.dev,
                                                baudrate=args.baud, msg_class=args.msg_class, verbose=True)
 
