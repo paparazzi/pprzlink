@@ -1,5 +1,5 @@
 (*
- * XML preprocessing of messages.xml for downlink protocol
+ * XML preprocessing of messages.xml for PPRZLINK protocol (v1.0)
  *
  * Copyright (C) 2003-2008 ENAC, Pascal Brisset, Antoine Drouin
  * Copyright (C) 2015 Gautier Hattenberger <gautier.hattenberger@enac.fr>
@@ -17,9 +17,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with paparazzi; see the file COPYING.  If not, write to
- * the Free Software Foundation, 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * along with paparazzi; see the file COPYING.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  *)
 
@@ -28,13 +27,13 @@ open Printf
 type format = string
 
 type _type =
-    Basic of string
+  | Basic of string
   | Array of string * string
   | FixedArray of string * string * int
 
 let c_type = fun format ->
   match format with
-      "Float" -> "float"
+    | "Float" -> "float"
     | "Double" -> "double"
     | "Int32" -> "int32_t"
     | "Int16" -> "int16_t"
@@ -47,7 +46,7 @@ let c_type = fun format ->
 
 let dl_type = fun format ->
   match format with
-      "Float" -> "DL_TYPE_FLOAT"
+    | "Float" -> "DL_TYPE_FLOAT"
     | "Double" -> "DL_TYPE_DOUBLE"
     | "Int32" -> "DL_TYPE_INT32"
     | "Int16" -> "DL_TYPE_INT16"
@@ -88,16 +87,16 @@ module Syntax = struct
     try
       List.assoc t PprzLink.types
     with
-        Not_found ->
-          failwith (sprintf "Error: '%s' unknown type" t)
+      Not_found ->
+        failwith (sprintf "Error: '%s' unknown type" t)
 
   let rec sizeof = function
-  Basic t -> string_of_int (assoc_types t).PprzLink.size
+    | Basic t -> string_of_int (assoc_types t).PprzLink.size
     | Array (t, varname) -> sprintf "1+%s*%s" (length_name varname) (sizeof (Basic t))
     | FixedArray (t, varname, len) -> sprintf "0+%d*%s" len (sizeof (Basic t))
 
   let rec nameof = function
-  Basic t -> String.capitalize t
+    | Basic t -> String.capitalize t
     | Array _ -> failwith "nameof"
     | FixedArray _ -> failwith "nameof"
 
@@ -145,7 +144,7 @@ end (* module Suntax *)
 module Gen_onboard = struct
   let print_field = fun h (t, name, (_f: format option)) ->
     match t with
-        Basic _ ->
+      |  Basic _ ->
           fprintf h "\t  trans->put_bytes(trans->impl, dev, %s, DL_FORMAT_SCALAR, %s, (void *) _%s);\n" (dl_type (Syntax.nameof t)) (Syntax.sizeof t) name
       | Array (t, varname) ->
           let _s = Syntax.sizeof (Basic t) in
@@ -156,12 +155,12 @@ module Gen_onboard = struct
           fprintf h "\t  trans->put_bytes(trans->impl, dev, %s, DL_FORMAT_ARRAY, %s * %d, (void *) _%s);\n" (dl_type (Syntax.nameof (Basic t))) (Syntax.sizeof (Basic t)) len name
 
   let print_macro_param h = function
-      (Array _, s, _) -> fprintf h "%s, %s" (Syntax.length_name s) s
+    | (Array _, s, _) -> fprintf h "%s, %s" (Syntax.length_name s) s
     | (FixedArray _, s, _) -> fprintf h "%s" s
     | (_, s, _) -> fprintf h "%s" s
 
   let print_macro_parameters h = function
-      [] -> ()
+    | [] -> ()
     | f::fields ->
       fprintf h ", ";
       print_macro_param h f;
@@ -171,12 +170,12 @@ module Gen_onboard = struct
     if unused then " __attribute__((unused))" else ""
 
   let print_fun_param ?(unused=false) h = function
-      (Array (t, _), s, _) -> fprintf h "uint8_t %s%s, %s *_%s%s" (Syntax.length_name s) (print_unused_param unused) (c_type (Syntax.nameof (Basic t))) s (print_unused_param unused)
+    | (Array (t, _), s, _) -> fprintf h "uint8_t %s%s, %s *_%s%s" (Syntax.length_name s) (print_unused_param unused) (c_type (Syntax.nameof (Basic t))) s (print_unused_param unused)
     | (FixedArray (t, _, _), s, _) -> fprintf h "%s *_%s%s" (c_type (Syntax.nameof (Basic t))) s (print_unused_param unused)
     | (t, s, _) -> fprintf h "%s *_%s%s" (c_type (Syntax.nameof t)) s (print_unused_param unused)
 
   let print_function_parameters ?(unused=false) h = function
-      [] -> ()
+    | [] -> ()
     | f::fields ->
       fprintf h ", ";
       print_fun_param ~unused h f;
@@ -184,7 +183,7 @@ module Gen_onboard = struct
 
   let rec size_fields = fun fields size ->
     match fields with
-        [] -> size
+      | [] -> size
       | (t, _, _)::fields -> size_fields fields (size ^"+"^Syntax.sizeof t)
 
   let size_of_message = fun m -> size_fields m.fields "0"
@@ -290,7 +289,7 @@ module Gen_onboard = struct
           failwith (sprintf "Wrong alignment of field '%s' in message '%s" field_name msg_name);
 
         match size with
-            1 -> sprintf "(%s)(*((uint8_t*)_payload+%d))" pprz_type.PprzLink.inttype o
+          | 1 -> sprintf "(%s)(*((uint8_t*)_payload+%d))" pprz_type.PprzLink.inttype o
           | 2 -> sprintf "(%s)(*((uint8_t*)_payload+%d)|*((uint8_t*)_payload+%d+1)<<8)" pprz_type.PprzLink.inttype o o
           | 4 when pprz_type.PprzLink.inttype = "float" ->
             sprintf "({ union { uint32_t u; float f; } _f; _f.u = (uint32_t)(*((uint8_t*)_payload+%d)|*((uint8_t*)_payload+%d+1)<<8|((uint32_t)*((uint8_t*)_payload+%d+2))<<16|((uint32_t)*((uint8_t*)_payload+%d+3))<<24); _f.f; })" o o o o
@@ -313,7 +312,7 @@ module Gen_onboard = struct
 
       (** To be an array or not to be an array: *)
       match _type with
-          Basic t ->
+        | Basic t ->
             let pprz_type = Syntax.assoc_types t in
             fprintf h "#define DL_%s_%s(_payload) (%s)\n" msg_name field_name (typed !offset pprz_type);
             offset := !offset + pprz_type.PprzLink.size
@@ -351,8 +350,9 @@ end (* module Gen_onboard *)
 
 (********************* Main **************************************************)
 let () =
-  if Array.length Sys.argv <> 3 then begin
-    failwith (sprintf "Usage: %s <.xml file> <class_name>" Sys.argv.(0))
+  let params = Array.length Sys.argv in
+  if params < 3 || params > 4 then begin
+    failwith (sprintf "Usage: %s <.xml file> <class_name> [<output file>]" Sys.executable_name)
   end;
 
   let filename = Sys.argv.(1)
@@ -361,33 +361,48 @@ let () =
   try
     let messages = Syntax.read filename class_name in
 
-    let h = stdout in
+    let (out, tmp, chan) =
+      if params = 3 then ("", "", stdout)
+      else begin
+        let tmp, chan = Filename.open_temp_file "pprzlink" ".h" in
+        Unix.chmod tmp 0o644;
+        (Sys.argv.(3), tmp, chan)
+      end
+    in
 
-    Printf.fprintf h "/* Automatically generated by gen_messages from %s */\n" filename;
-    Printf.fprintf h "/* Please DO NOT EDIT */\n";
+    Printf.fprintf chan "/* Automatically generated by gen_messages from %s */\n" filename;
+    Printf.fprintf chan "/* Please DO NOT EDIT */\n";
 
-    Printf.fprintf h "/* Macros to send and receive messages of class %s */\n" class_name;
-    Printf.fprintf h "#ifndef _VAR_MESSAGES_%s_H_\n" class_name;
-    Printf.fprintf h "#define _VAR_MESSAGES_%s_H_\n" class_name;
-    Printf.fprintf h "#include \"subsystems/datalink/transport.h\"\n";
-    Printf.fprintf h "#include \"mcu_periph/link_device.h\"\n";
+    Printf.fprintf chan "/* Macros to send and receive messages of class %s */\n" class_name;
+    Printf.fprintf chan "#ifndef _VAR_MESSAGES_%s_H_\n" class_name;
+    Printf.fprintf chan "#define _VAR_MESSAGES_%s_H_\n" class_name;
+    Printf.fprintf chan "#include \"pprzlink_transport.h\"\n";
+    Printf.fprintf chan "#include \"pprzlink_device.h\"\n\n";
+    (* Enable messages by default *)
+    Printf.fprintf chan "#ifndef DOWNLINK\n";
+    Printf.fprintf chan "#define DOWNLINK 1\n";
+    Printf.fprintf chan "#endif\n\n";
 
     (** Macros for airborne downlink (sending) *)
     if class_name = "telemetry" then begin (** FIXME *)
-      Printf.fprintf h "#if DOWNLINK\n"
+      Printf.fprintf chan "#if DOWNLINK\n"
     end;
-    Gen_onboard.print_downlink_macros h class_name messages;
+    Gen_onboard.print_downlink_macros chan class_name messages;
     if class_name = "telemetry" then begin
-      Printf.fprintf h "#else // DOWNLINK\n";
-      Gen_onboard.print_null_downlink_macros h messages;
-      Printf.fprintf h "#endif // DOWNLINK\n"
+      Printf.fprintf chan "#else // DOWNLINK\n";
+      Gen_onboard.print_null_downlink_macros chan messages;
+      Printf.fprintf chan "#endif // DOWNLINK\n"
     end;
 
     (** Macros for airborne datalink (receiving) *)
     if class_name = "datalink" then
-      List.iter (Gen_onboard.print_get_macros h true) messages;
+      List.iter (Gen_onboard.print_get_macros chan true) messages;
 
-    Printf.fprintf h "#endif // _VAR_MESSAGES_%s_H_\n" class_name
+    Printf.fprintf chan "#endif // _VAR_MESSAGES_%s_H_\n" class_name;
 
+    if params = 4 then begin
+      if Sys.command (sprintf "mv -f %s %s" tmp out) > 0 then failwith "Unable to move file";
+    end
   with
-      Xml.Error (msg, pos) -> failwith (sprintf "%s:%d : %s\n" filename (Xml.line pos) (Xml.error_msg msg))
+  | Xml.Error (msg, pos) -> failwith (sprintf "%s:%d : %s\n" filename (Xml.line pos) (Xml.error_msg msg))
+  | Sys_error e -> failwith e

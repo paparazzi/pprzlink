@@ -85,7 +85,6 @@ endif
 
 clean :
 	$(Q)rm -f *.cm* *.out *.opt .depend *.a *.o *.so
-	$(Q)rm -rf $(BUILDDIR)
 	$(Q)ocamlbuild -clean -classic-display -build-dir $(BUILDDIR)
 
 .PHONY: all byte static native install install_local clean

@@ -34,24 +34,26 @@ OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
 ifeq ($(shell test $(OCAML_MAJOR) -lt 4; echo $$?),0)
 # need to use an old buggy ocaml(build) version: dir MUST be relative
 OCAML_LIBDIR ?= ../../build/ocaml
+BUILDDIR ?= ../../build/ocaml/gen
 else
 # using a recent ocaml(build) version without THAT particular bug,
 # but dir MUST NOT contain ..
 # so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
 PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 OCAML_LIBDIR ?= $(PPRZLINK_DIR)/build/ocaml
+BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/gen
 endif
 
+# FIXME test if pprzlink is installed in the system or try local build
 export OCAMLPATH=$(OCAML_LIBDIR)
 
-BUILDDIR ?= _build
 INSTALL_FLAGS ?=
-DESTDIR ?=
+DESTDIR ?= $(PPRZLINK_DIR)/bin
 ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
 endif
 
-INSTALL_FILES = $(shell ls $(BUILDDIR)/*.so $(BUILDDIR)/*.a $(BUILDDIR)/*.mli $(BUILDDIR)/*.cm*)
+INSTALL_FILES = $(shell find $(BUILDDIR) -name '*.byte') $(shell find $(BUILDDIR) -name '*.native')
 
 GEN_ML := $(shell ls *.ml)
 GEN_BYTE = $(GEN_ML:.ml=.byte)
@@ -60,21 +62,22 @@ GENS = $(basename $(GEN_ML))
 
 all: byte
 
-#
-# build without creating links, then make symlinks ourselves so they still have .out ending
-#
 byte:
-	@echo ${OCAMLPATH}
 	@echo "Build generators (bytecode)"
-	$(Q)$(OCAMLBUILD) -no-links -lflags "-dllpath-pkg pprzlink" $(GEN_BYTE)
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -no-links -lflags "-dllpath-pkg pprzlink" $(GEN_BYTE)
 
 native:
 	@echo "Build generators (native)"
-	$(Q)$(OCAMLBUILD) -no-links $(GEN_NATIVE)
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -no-links $(GEN_NATIVE)
+
+install: byte
+	@echo "Installing generators in $(DESTDIR)"
+	$(Q)mkdir -p $(DESTDIR)
+	$(Q)cp $(INSTALL_FILES) $(DESTDIR)
 
 clean:
 	$(Q)rm -f *.cm* *.out *~ .depend
-	$(Q)$(OCAMLBUILD) -clean
+	$(Q)$(OCAMLBUILD) -clean -classic-display -build-dir $(BUILDDIR)
 
 .PHONY: all byte native clean
 

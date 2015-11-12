@@ -279,14 +279,14 @@ let xml_attrib = fun x a ->
 let xml_int_attrib = fun xml a ->
   let v = xml_attrib xml a in
   try
-    int_of_string v
+    Pervasives.int_of_string v
   with
       _ -> failwith (Printf.sprintf "Error: integer expected in '%s'" v)
 
 let xml_float_attrib = fun xml a ->
   let v = xml_attrib xml a in
   try
-    float_of_string v
+    Pervasives.float_of_string v
   with
       _ -> failwith (Printf.sprintf "Error: float expected in '%s'" v)
 
@@ -305,7 +305,7 @@ let xml_child xml ?select c =
   in
   let children = Xml.children xml in
   (* Let's try with a numeric index *)
-  try (Array.of_list children).(int_of_string c) with
+  try (Array.of_list children).(Pervasives.int_of_string c) with
     Failure "int_of_string" -> (* Bad luck. Go through the children *)
       find children
 
