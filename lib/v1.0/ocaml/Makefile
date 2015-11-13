@@ -43,6 +43,8 @@ BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
 endif
 
 INSTALL_FLAGS ?=
+# use this option leave ocamlfind ldconf file unchanged
+# INSTALL_FLAGS ?= -ldconf ignore
 DESTDIR ?=
 ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
