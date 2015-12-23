@@ -26,8 +26,9 @@ MAKE = make
 
 MESSAGES_XML ?= message_definitions/v1.0/messages.xml
 UNITS_XML ?= message_definitions/common/units.xml
-MESSAGES_INCLUDE ?= var/include
-MESSAGES_LIB ?= var/lib
+MESSAGES_INSTALL ?= var
+MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include
+MESSAGES_LIB ?= $(MESSAGES_INSTALL)/lib
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 
@@ -47,7 +48,7 @@ messages: generators
 	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) telemetry $(TELEMETRY_H)
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) datalink $(DATALINK_H)
-	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) var
+	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
