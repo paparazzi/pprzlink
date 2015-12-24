@@ -53,6 +53,18 @@ messages: generators
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
 
+pymessages:
+	@echo 'Generate C messages from Python generator'
+	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
+	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
+	$(Q)./tools/generator/gen_messages.py --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
+	$(Q)./tools/generator/gen_messages.py --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
+	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
+	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
+	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
+	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
+
+
 clean :
 	$(Q)$(MAKE) -C tools/generator clean
 	$(Q)$(MAKE) -C lib/v1.0/ocaml clean
