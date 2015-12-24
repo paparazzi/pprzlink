@@ -235,7 +235,10 @@ module Gen_onboard = struct
       if m.id < 0 || m.id > 255 then begin
         fprintf stderr "Error: message %s has id %d but should be between 0 and 255\n" m.name m.id; exit 1;
       end
-      else fprintf h "#define DL_%s %d\n" m.name m.id
+      else begin
+        fprintf h "#define DL_%s %d\n" m.name m.id;
+        fprintf h "#define PPRZ_MSG_ID_%s %d\n" m.name m.id;
+      end
     ) messages;
     fprintf h "#define DL_MSG_%s_NB %d\n\n" class_ (List.length messages)
 
@@ -395,7 +398,7 @@ let () =
     end;
 
     (** Macros for airborne datalink (receiving) *)
-    if class_name = "datalink" then
+    if class_name = "datalink" || class_name = "intermcu" then
       List.iter (Gen_onboard.print_get_macros chan true) messages;
 
     Printf.fprintf chan "#endif // _VAR_MESSAGES_%s_H_\n" class_name;
