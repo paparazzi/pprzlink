@@ -21,7 +21,7 @@
  */
 
 /**
- * @file pprz_transport.h
+ * @file pprzlink/pprz_transport.h
  *
  * Building and parsing Paparazzi frames.
  *
@@ -42,8 +42,8 @@
 #define PPRZ_TRANSPORT_H
 
 #include <inttypes.h>
-#include "pprzlink_transport.h"
-#include "pprzlink_device.h"
+#include "pprzlink/pprzlink_transport.h"
+#include "pprzlink/pprzlink_device.h"
 
 /* PPRZ Transport
  */
@@ -65,7 +65,7 @@ struct pprz_transport {
 extern void pprz_transport_init(struct pprz_transport *t);
 
 // Checking new data and parsing
-extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, uint8_t *msg_available)
+extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, uint8_t *msg_available);
 
 //#define PprzCheckAndParse(_dev, _trans) pprz_check_and_parse(&(_dev).device, &(_trans))
 

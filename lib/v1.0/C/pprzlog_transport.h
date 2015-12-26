@@ -20,7 +20,7 @@
  */
 
 /**
- * @file subsystems/datalink/pprzlog_transport.h
+ * @file pprzlink/pprzlog_transport.h
  *
  * Protocol for on-board data logger with timestamp
  *
@@ -29,7 +29,9 @@
 #ifndef PPRZLOG_TRANSPORT_H
 #define PPRZLOG_TRANSPORT_H
 
-#include "pprzlink_transport.h"
+#include "pprzlink/pprzlink_transport.h"
+
+typedef uint32_t (*get_time_usec_t)(void);
 
 struct pprzlog_transport {
   // generic transmission interface
@@ -37,7 +39,7 @@ struct pprzlog_transport {
   // specific pprz transport_tx variables
   uint8_t ck;
   // get current time function pointer
-  uint32_t (*get_time_usec_t)(void) get_time_usec;
+  get_time_usec_t get_time_usec;
 };
 
 // Init function

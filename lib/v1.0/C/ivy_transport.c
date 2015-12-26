@@ -21,14 +21,13 @@
  */
 
 /**
- * @file subsystems/datalink/ivy_transport.c
+ * @file pprzlink/ivy_transport.c
  *
  * Building Paparazzi frames over IVY.
  *
  */
 
-#include "ivy_transport.h"
-//#include "subsystems/datalink/downlink.h"
+#include "pprzlink/ivy_transport.h"
 
 #include <stdio.h>
 #include <Ivy/ivy.h>
@@ -147,25 +146,23 @@ static void start_message(struct ivy_transport *trans, struct link_device *dev _
   trans->ivy_p = trans->ivy_buf;
 }
 
-static void end_message(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)))
+static void end_message(struct ivy_transport *trans, struct link_device *dev)
 {
   *(--trans->ivy_p) = '\0';
   if (trans->ivy_dl_enabled) {
     IvySendMsg("%s", trans->ivy_buf);
-    downlink.nb_msgs++;
+    dev->nb_msgs++;
   }
 }
 
-static void overrun(struct ivy_transport *trans __attribute__((unused)),
-                    struct link_device *dev __attribute__((unused)))
+static void overrun(struct ivy_transport *trans __attribute__((unused)), struct link_device *dev)
 {
-  //downlink.nb_ovrn++;
+  dev->nb_ovrn++;
 }
 
-static void count_bytes(struct ivy_transport *trans __attribute__((unused)),
-                        struct link_device *dev __attribute__((unused)), uint8_t bytes)
+static void count_bytes(struct ivy_transport *trans __attribute__((unused)), struct link_device *dev, uint8_t bytes)
 {
-  //downlink.nb_bytes += bytes;
+  dev->nb_bytes += bytes;
 }
 
 static int check_available_space(struct ivy_transport *trans __attribute__((unused)),

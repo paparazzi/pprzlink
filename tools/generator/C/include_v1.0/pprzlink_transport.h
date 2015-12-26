@@ -39,7 +39,7 @@
 struct transport_rx {
   uint8_t payload[TRANSPORT_PAYLOAD_LEN]; ///< payload buffer
   volatile uint8_t payload_len;           ///< payload buffer length
-  volatile bool_t msg_received;           ///< message received flag
+  volatile uint8_t msg_received;           ///< message received flag
   uint8_t ovrn, error;                    ///< overrun and error flags
 };
 

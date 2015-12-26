@@ -19,7 +19,7 @@
  */
 
 /**
- * @file print_utils.h
+ * @file pprzlink/print_utils.h
  *
  * Utility functions to print HEX format on pprzlink device
  *
@@ -28,7 +28,7 @@
 #ifndef PRINT_UTILS_H
 #define PRINT_UTILS_H
 
-#include "pprzlink_device.h"
+#include "pprzlink/pprzlink_device.h"
 
 static inline void print_string(struct link_device *dev, char *s)
 {

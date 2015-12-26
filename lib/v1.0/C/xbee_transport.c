@@ -21,12 +21,12 @@
  */
 
 /**
- * @file xbee_transport.c
+ * @file pprzlink/xbee_transport.c
  * Maxstream XBee serial input and output
  */
 
-#include "xbee_transport.h"
-#include "print_utils.h"
+#include "pprzlink/xbee_transport.h"
+#include "pprzlink/print_utils.h"
 
 /** Ground station address */
 #define GROUND_STATION_ADDR 0x100
@@ -47,7 +47,7 @@
 #define XBEE_24_RFDATA_OFFSET 5
 #define XBEE_24_TX_OVERHEAD 4
 #define XBEE_24_TX_HEADER { \
-    XBEE_TX_ID, \
+    XBEE_24_TX_ID, \
     NO_FRAME_ID, \
     (GROUND_STATION_ADDR >> 8), \
     (GROUND_STATION_ADDR & 0xff), \
@@ -60,7 +60,7 @@
 #define XBEE_868_RFDATA_OFFSET 12
 #define XBEE_868_TX_OVERHEAD 13
 #define XBEE_868_TX_HEADER { \
-    XBEE_TX_ID, \
+    XBEE_868_TX_ID, \
     NO_FRAME_ID, \
     0x00, \
     0x00, \
@@ -125,7 +125,7 @@ static uint8_t size_of(struct xbee_transport *trans, uint8_t len)
 
 static void start_message(struct xbee_transport *trans, struct link_device *dev, uint8_t payload_len)
 {
-  downlink.nb_msgs++;
+  dev->nb_msgs++;
   dev->put_byte(dev->periph, XBEE_START);
   const uint16_t len = payload_len + XBEE_API_OVERHEAD;
   dev->put_byte(dev->periph, (len >> 8));
@@ -150,13 +150,13 @@ static void end_message(struct xbee_transport *trans, struct link_device *dev)
 static void overrun(struct xbee_transport *trans __attribute__((unused)),
                     struct link_device *dev __attribute__((unused)))
 {
-  // TODO dev->overrun ?
+  dev->nb_ovrn++;
 }
 
 static void count_bytes(struct xbee_transport *trans __attribute__((unused)),
                         struct link_device *dev __attribute__((unused)), uint8_t bytes)
 {
-  // TODO dev->count_bytes ?
+  dev->nb_bytes += bytes;
 }
 
 static int check_available_space(struct xbee_transport *trans __attribute__((unused)), struct link_device *dev,
@@ -200,6 +200,21 @@ static uint8_t xbee_try_to_enter_api(struct link_device *dev, void (*wait)(uint3
   return xbee_text_reply_is_ok(dev);
 }
 
+#if XBEE_BAUD == B9600
+#undef XBEE_BAUD
+#define XBEE_BAUD 9600
+#define XBEE_BAUD_ALTERNATE 57600
+#define XBEE_ATBD_CODE "ATBD3\rATWR\r"
+#pragma message "Experimental: XBEE-API@9k6 auto-baudrate 57k6 -> 9k6 (stop ground link for correct operation)"
+#elif XBEE_BAUD == B57600
+#undef XBEE_BAUD
+#define XBEE_BAUD 57600
+#define XBEE_BAUD_ALTERNATE 9600
+#define XBEE_ATBD_CODE "ATBD6\rATWR\r"
+#pragma message "Experimental: XBEE-API@57k6 auto-baudrate 9k6 -> 57k6 (stop ground link for correct operation)"
+#else
+#pragma message "XBEE-API Non default baudrate: auto-baud disabled."
+#endif
 
 // Init function
 void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, void (*wait)(uint32_t), char *xbee_init)
@@ -232,9 +247,9 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
     wait(1250000);
 
     if (! xbee_try_to_enter_api(dev, wait)) {
-#if defined XBEE_BAUD && defined XBEE_BAUD
+#if defined XBEE_BAUD && defined XBEE_BAUD_ALTERNATE
       // Badly configured... try the alternate baudrate:
-      dev->set_baudrate(XBEE_BAUD_ALTERNATE); // FIXME add set_baudrate to generic device
+      dev->set_baudrate(dev, XBEE_BAUD_ALTERNATE); // FIXME add set_baudrate to generic device
       if (xbee_try_to_enter_api(dev, wait)) {
         // The alternate baudrate worked,
         print_string(dev, XBEE_ATBD_CODE);
@@ -243,7 +258,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
         // TODO: set LED?
 
         // Set the default baudrate, just in case everything is right
-        dev->set_baudrate(XBEE_BAUD); // FIXME add set_baudrate to generic device
+        dev->set_baudrate(dev, XBEE_BAUD); // FIXME add set_baudrate to generic device
         print_string(dev, "\r");
       }
 
@@ -260,14 +275,14 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
 
     // Extra configuration AT commands
     if (xbee_init != NULL) {
-      print_string(dev, XBEE_INIT);
+      print_string(dev, xbee_init);
     }
 
     /** Switching back to normal mode */
     print_string(dev, AT_EXIT);
 
 #ifdef XBEE_BAUD
-    dev->set_baudrate(XBEE_BAUD); // FIXME add set_baudrate to generic device
+    dev->set_baudrate(dev, XBEE_BAUD); // FIXME add set_baudrate to generic device
 #endif
 
   }
@@ -323,7 +338,7 @@ restart:
 }
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, bool_t *msg_available)
+void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, uint8_t *msg_available)
 {
   uint8_t i;
   if (dev->char_available(dev->periph)) {

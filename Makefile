@@ -27,8 +27,8 @@ MAKE = make
 MESSAGES_XML ?= message_definitions/v1.0/messages.xml
 UNITS_XML ?= message_definitions/common/units.xml
 MESSAGES_INSTALL ?= var
-MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include
-MESSAGES_LIB ?= $(MESSAGES_INSTALL)/lib
+MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
+MESSAGES_LIB ?= $(MESSAGES_INSTALL)/lib/pprzlink
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 

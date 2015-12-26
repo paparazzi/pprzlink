@@ -21,7 +21,7 @@
  */
 
 /**
- * @file ivy_transport.h
+ * @file pprzlink/ivy_transport.h
  *
  * Building Paparazzi frames over IVY.
  *
@@ -30,8 +30,8 @@
 #ifndef IVY_TRANSPORT_H
 #define IVY_TRANSPORT_H
 
-#include "pprzlink_transport.h"
-#include "pprzlink_device.h"
+#include "pprzlink/pprzlink_transport.h"
+#include "pprzlink/pprzlink_device.h"
 
 // IVY transport
 struct ivy_transport {
@@ -45,7 +45,7 @@ struct ivy_transport {
 };
 
 // Init function
-extern void ivy_transport_init(void);
+extern void ivy_transport_init(struct ivy_transport *t);
 
 #endif // IVY_TRANSPORT_H
 

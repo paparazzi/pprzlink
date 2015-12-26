@@ -27,7 +27,15 @@
 #ifndef PPRZLINK_DEVICE_H
 #define PPRZLINK_DEVICE_H
 
+#include <stddef.h>
 #include <inttypes.h>
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 /** Function pointers definition
  *
@@ -39,6 +47,7 @@ typedef void (*put_byte_t)(void *, uint8_t);
 typedef void (*send_message_t)(void *);
 typedef int (*char_available_t)(void *);
 typedef uint8_t (*get_byte_t)(void *);
+typedef void (*set_baudrate_t)(void *, uint32_t baudrate);
 
 /** Device structure
  */
@@ -48,7 +57,13 @@ struct link_device {
   send_message_t send_message;          ///< send completed buffer
   char_available_t char_available;      ///< check if a new character is available
   get_byte_t get_byte;                  ///< get a new char
+  set_baudrate_t set_baudrate;          ///< set device baudrate
   void *periph;                         ///< pointer to parent implementation
+
+  uint16_t nb_msgs;                     ///< The number of messages send
+  uint8_t nb_ovrn;                      ///< The number of overruns
+  uint32_t nb_bytes;                    ///< The number of bytes send
+
 };
 
 #endif // PPRZLINK_DEVICE_H

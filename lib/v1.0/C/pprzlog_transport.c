@@ -20,7 +20,7 @@
  */
 
 /**
- * @file pprzlog_transport.c
+ * @file pprzlink/pprzlog_transport.c
  *
  * Building and Paparazzi frames with timestamp for data logger.
  *
@@ -42,7 +42,7 @@
  */
 
 #include <inttypes.h>
-#include "pprzlog_transport.h"
+#include "pprzlink/pprzlog_transport.h"
 
 #define STX_LOG  0x99
 

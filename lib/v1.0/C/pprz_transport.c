@@ -21,7 +21,7 @@
  */
 
 /**
- * @file pprz_transport.c
+ * @file pprzlink/pprz_transport.c
  *
  * Building and parsing Paparazzi frames.
  *
@@ -39,7 +39,7 @@
  */
 
 #include <inttypes.h>
-#include "pprz_transport.h"
+#include "pprzlink/pprz_transport.h"
 
 // Start byte
 #define STX  0x99
