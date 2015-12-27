@@ -38,8 +38,8 @@ def generate_messages_h(directory, name, xml):
 extern "C" {
 #endif
 
-#include "pprzlink_device.h"
-#include "pprzlink_transport.h"
+#include "pprzlink/pprzlink_device.h"
+#include "pprzlink/pprzlink_transport.h"
 
 #if DOWNLINK
 ${{message:#define DL_${msg_name} ${id}

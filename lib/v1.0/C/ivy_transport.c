@@ -32,8 +32,6 @@
 #include <stdio.h>
 #include <Ivy/ivy.h>
 
-struct ivy_transport ivy_tp;
-
 static void put_bytes(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       uint8_t len, const void *bytes)
@@ -178,7 +176,7 @@ static int null_function(struct ivy_transport *t __attribute__((unused))) { retu
 
 void ivy_transport_init(struct ivy_transport *t)
 {
-  t->ivy_p = ivy_tp.ivy_buf;
+  t->ivy_p = t->ivy_buf;
   t->ivy_dl_enabled = TRUE;
 
   t->trans_tx.size_of = (size_of_t) size_of;
@@ -189,7 +187,7 @@ void ivy_transport_init(struct ivy_transport *t)
   t->trans_tx.end_message = (end_message_t) end_message;
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
-  t->trans_tx.impl = (void *)(&t);
+  t->trans_tx.impl = (void *)(t);
   t->device.check_free_space = (check_free_space_t) check_free_space;
   t->device.put_byte = (put_byte_t) transmit;
   t->device.send_message = (send_message_t) send_message;
