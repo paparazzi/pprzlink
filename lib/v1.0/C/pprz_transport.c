@@ -99,16 +99,14 @@ static void end_message(struct pprz_transport *trans, struct link_device *dev)
   dev->send_message(dev->periph);
 }
 
-static void overrun(struct pprz_transport *trans __attribute__((unused)),
-                    struct link_device *dev __attribute__((unused)))
+static void overrun(struct pprz_transport *trans __attribute__((unused)), struct link_device *dev)
 {
-  // TODO dev->overrun ?
+  dev->nb_ovrn++;
 }
 
-static void count_bytes(struct pprz_transport *trans __attribute__((unused)),
-                        struct link_device *dev __attribute__((unused)), uint8_t bytes)
+static void count_bytes(struct pprz_transport *trans __attribute__((unused)), struct link_device *dev, uint8_t bytes)
 {
-  // TODO dev->count_bytes ?
+  dev->nb_bytes += bytes;
 }
 
 static int check_available_space(struct pprz_transport *trans __attribute__((unused)), struct link_device *dev,
@@ -194,8 +192,8 @@ void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans,
       parse_pprz(trans, dev->get_byte(dev->periph));
     }
     if (trans->trans_rx.msg_received) {
-      for (i = 0; i < t->trans_rx.payload_len; i++) {
-        buf[i] = t->trans_rx.payload[i];
+      for (i = 0; i < trans->trans_rx.payload_len; i++) {
+        buf[i] = trans->trans_rx.payload[i];
       }
       *msg_available = TRUE;
       trans->trans_rx.msg_received = FALSE;
