@@ -29,6 +29,7 @@ class PPRZField(object):
         self.description = description
         self.array_type = None
         self.array_length = ''
+        self.array_extra_length = ''
         lengths = {
         'float'    : '4',
         'double'   : '8',
@@ -49,6 +50,7 @@ class PPRZField(object):
             if type[aidx+1] == ']':
                 self.array_type = 'VariableArray'
                 self.array_length = 'nb_'+name
+                self.array_extra_length = '+1'
             else:
                 self.array_type = 'FixedArray'
                 self.array_length = type[aidx+1:-1]

@@ -50,9 +50,9 @@ ${{message:#define DL_${msg_name} ${id}
 ${{message:
 #define DOWNLINK_SEND_${msg_name}(_trans, _dev${{fields:, ${attrib_macro}}}) pprz_msg_send_${msg_name}(&((_trans).trans_tx), &((_dev).device), AC_ID${{fields:, ${attrib_macro}}})
 static inline void pprz_msg_send_${msg_name}(struct transport_tx *trans, struct link_device *dev, uint8_t ac_id${{fields:, ${attrib_fun}}}) {
-  if (trans->check_available_space(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:+${length}}} +2 /* msg header overhead */))) {
-    trans->count_bytes(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:+${length}}} +2 /* msg header overhead */));
-    trans->start_message(trans->impl, dev, 0${{fields:+${length}}} +2 /* msg header overhead */);
+  if (trans->check_available_space(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */))) {
+    trans->count_bytes(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */));
+    trans->start_message(trans->impl, dev, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */);
     trans->put_bytes(trans->impl, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, 1, &ac_id);
     trans->put_named_byte(trans->impl, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, DL_${msg_name}, "${msg_name}");
     ${{fields:${array_byte}trans->put_bytes(trans->impl, dev, DL_TYPE_${type_upper}, ${dl_format}, ${length}, (void *) _${field_name});
