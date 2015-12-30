@@ -34,7 +34,7 @@ DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 
 all: libs
 
-libs: generators ocaml_lib_v1
+libs: ocaml_lib_v1
 
 generators: ocaml_lib_v1
 	$(Q)$(MAKE) -C tools/generator install
@@ -42,34 +42,36 @@ generators: ocaml_lib_v1
 ocaml_lib_v1:
 	$(Q)$(MAKE) -C lib/v1.0/ocaml
 
-messages: generators
-	@echo 'Generate C messages at default location'
+pre_messages_dir:
 	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
 	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
+
+gen_messages: generators pre_messages_dir
+	@echo 'Generate C messages (OCaml) at location $(MESSAGES_INCLUDE)'
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) telemetry $(TELEMETRY_H)
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) datalink $(DATALINK_H)
-	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
+
+post_messages_install:
+	@echo 'Copy extra lib files'
+	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
 
-pymessages:
-	@echo 'Generate C messages from Python generator'
-	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
-	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
+pygen_messages:
+	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
-	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
-	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
-	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
-	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
 
+messages: gen_messages post_messages_install
+
+pymessages: pygen_messages post_messages_install
 
 clean :
 	$(Q)$(MAKE) -C tools/generator clean
 	$(Q)$(MAKE) -C lib/v1.0/ocaml clean
 
 uninstall: clean
-	$(Q)rm -rf var bin build
+	$(Q)rm -rf var bin build $(MESSAGES_INCLUDE) $(MESSAGES_LIB)
 
-.PHONY: all libs generators ocaml_lib_v1 messages clean uninstall
+.PHONY: all libs generators ocaml_lib_v1 pre_messages_dir post_messages_install gen_messages pygen_messages messages pymessages clean uninstall

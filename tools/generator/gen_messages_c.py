@@ -119,8 +119,7 @@ def copy_fixed_headers(directory, protocol_version):
         dest = os.path.realpath(os.path.join(directory, h))
         if src == dest:
             continue
-        #shutil.copy(src, dest)
-        print(src + ' ' + dest)
+        shutil.copy(src, dest)
 
 def generate(output, xml):
     '''generate complete PPRZLink C implemenation from a XML messages file'''
