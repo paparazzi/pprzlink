@@ -28,7 +28,7 @@ MESSAGES_XML ?= message_definitions/v1.0/messages.xml
 UNITS_XML ?= message_definitions/common/units.xml
 MESSAGES_INSTALL ?= var
 MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
-MESSAGES_LIB ?= $(MESSAGES_INSTALL)/lib/pprzlink
+MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 
@@ -61,7 +61,7 @@ post_messages_install:
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
 
-pygen_messages:
+pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
