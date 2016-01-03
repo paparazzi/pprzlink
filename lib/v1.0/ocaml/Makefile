@@ -44,7 +44,7 @@ endif
 
 INSTALL_FLAGS ?=
 # use this option leave ocamlfind ldconf file unchanged
-# INSTALL_FLAGS ?= -ldconf ignore
+INSTALL_FLAGS += -ldconf ignore
 DESTDIR ?=
 ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
@@ -75,7 +75,9 @@ native: _tags META
 	$(Q)cp META $(BUILDDIR)
 
 install: byte native META
-	@echo INSTALL
+	@echo INSTALL at location $(DESTDIR)
+	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
+	$(Q)ocamlfind remove $(INSTALL_FLAGS) pprzlink
 	$(Q)ocamlfind install $(INSTALL_FLAGS) pprzlink META $(INSTALL_FILES)
 
 UNAME = $(shell uname -s)

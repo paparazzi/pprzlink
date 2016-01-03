@@ -42,6 +42,9 @@ generators: ocaml_lib_v1
 ocaml_lib_v1:
 	$(Q)$(MAKE) -C lib/v1.0/ocaml
 
+libpprzlink-install:
+	$(Q)$(MAKE) -C lib/v1.0/ocaml install
+
 pre_messages_dir:
 	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
 	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
