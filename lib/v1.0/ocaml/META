@@ -1,5 +1,5 @@
 description = "PPRZLINK communication package for Paparazzi UAV System"
-requires = "unix,str,xml-light,ivy"
+requires = "unix,str,xml-light,glibivy"
 version = "1.0"
 directory = ""
 
