@@ -67,15 +67,20 @@ let separator = ","
 let regexp_separator = Str.regexp ","
 let split_array = fun s -> Str.split regexp_separator s
 
+let (//) = Filename.concat
+
 let pprzlink_dir =
   try Sys.getenv "PPRZLINK_DIR"
   with _ ->
-    begin match Sys.os_type with
-    | "Unix" -> "/usr/share/pprzlink"
-    | "Win32" | "Cygwin" | _ -> failwith "MS Windows not supported yet"
+    (* fallback to paparazzi home *)
+    begin try (Sys.getenv "PAPARAZZI_HOME") // "conf" with _ ->
+      (* fallback to system install *)
+      begin match Sys.os_type with
+      | "Unix" -> "/usr/share/pprzlink"
+      | "Win32" | "Cygwin" | _ -> failwith "MS Windows not supported yet"
+      end
     end
 
-let (//) = Filename.concat
 let messages_file = pprzlink_dir // "messages.xml"
 let lazy_messages_xml = lazy (Xml.parse_file messages_file)
 let messages_xml = fun () -> Lazy.force lazy_messages_xml
