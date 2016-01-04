@@ -108,7 +108,7 @@ static int check_available_space(struct pprzlog_transport *trans __attribute__((
   return dev->check_free_space(dev->periph, bytes);
 }
 
-void pprzlog_transport_init(struct pprzlog_transport *t, uint32_t (*get_time_usec_t)(void) get_time_usec)
+void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec_t get_time_usec)
 {
   t->trans_tx.size_of = (size_of_t) size_of;
   t->trans_tx.check_available_space = (check_available_space_t) check_available_space;
