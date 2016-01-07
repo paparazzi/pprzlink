@@ -29,7 +29,7 @@ type message = {
   }
 
 module Transport : Protocol.PROTOCOL
-(** Pprz frame stored by the logger *)
+(** PprzLink frame stored by the logger *)
 
 val parse : Protocol.payload -> message
 

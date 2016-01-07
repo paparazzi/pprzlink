@@ -41,7 +41,7 @@ module PprzTransportBase(SubType:TRANSPORT_TYPE) = struct
     let len = String.length buf - start in
     if len > SubType.offset_length then
       let l = Char.code buf.[start+SubType.offset_length] in
-      DebugPL.call 'T' (fun f -> fprintf f "Pprz len=%d\n" l);
+      DebugPL.call 'T' (fun f -> fprintf f "Pprz_transport len=%d\n" l);
       max l SubType.overhead_length (** if l<4 (4=stx+length+ck_a+ck_b), it's not a valid length *)
     else
       raise Protocol.Not_enough
@@ -59,7 +59,7 @@ module PprzTransportBase(SubType:TRANSPORT_TYPE) = struct
   let checksum = fun msg ->
     let l = String.length msg in
     let ck_a, ck_b = compute_checksum msg in
-    DebugPL.call 'T' (fun f -> fprintf f "Pprz cs: %d %d | %d %d\n" ck_a (Char.code msg.[l-2]) ck_b (Char.code msg.[l-1]));
+    DebugPL.call 'T' (fun f -> fprintf f "Pprz_transport cs: %d %d | %d %d\n" ck_a (Char.code msg.[l-2]) ck_b (Char.code msg.[l-1]));
     ck_a = Char.code msg.[l-2] && ck_b = Char.code msg.[l-1]
 
   let payload = fun msg ->
@@ -73,7 +73,7 @@ module PprzTransportBase(SubType:TRANSPORT_TYPE) = struct
     let n = String.length payload in
     let msg_length = n + SubType.overhead_length in (** + stx, len, ck_a and ck_b *)
     if msg_length >= 256 then
-      invalid_arg "Pprz.Transport.packet";
+      invalid_arg "Pprz_transport.Transport.packet";
     let m = String.create msg_length in
     String.blit payload 0 m SubType.offset_payload n;
     m.[0] <- SubType.stx;

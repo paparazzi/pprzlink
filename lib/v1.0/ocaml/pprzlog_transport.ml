@@ -62,7 +62,7 @@ module Transport = struct
   let checksum = fun msg ->
     let l = String.length msg in
     let ck_a = compute_checksum msg in
-    DebugPL.call 'T' (fun f -> fprintf f "LogPprz cs: %d %d\n" ck_a (Char.code msg.[l-1]));
+    DebugPL.call 'T' (fun f -> fprintf f "Pprzlog_transport cs: %d %d\n" ck_a (Char.code msg.[l-1]));
     ck_a = Char.code msg.[l-1]
 
   let payload = fun msg ->
@@ -75,7 +75,7 @@ module Transport = struct
     let n = String.length payload in
     let msg_length = n + 3 in (** + stx, len, ck_a *)
     if msg_length >= 256 then
-      invalid_arg "Pprz.Transport.packet";
+      invalid_arg "Pprzlog_transport.Transport.packet";
     let m = String.create msg_length in
     String.blit payload 0 m offset_payload n;
     m.[0] <- stx;

@@ -23,7 +23,7 @@
  *)
 
 module Transport : Protocol.PROTOCOL
-(** Pprz frame (sw/airborne/pprz_transport.h):
+(** PprzLink frame (sw/airborne/pprz_transport.h):
     |STX|length|... payload=(length-4) bytes ...|Checksum A|Checksum B|
     Where checksum is computed over length and payload:
     ck_A = ck_B = 0;
