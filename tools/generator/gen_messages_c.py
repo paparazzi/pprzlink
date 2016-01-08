@@ -64,8 +64,8 @@ static inline void pprz_msg_send_${msg_name}(struct transport_tx *trans, struct 
 
 #else // DOWNLINK
 ${{message:
-#define DOWNLINK_SEND_${msg_name}(_trans, _dev,${{fields: ${attrib_macro},}}) {}
-static inline void pprz_send_msg_${msg_name}(struct transport_tx *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)), uint8_t ac_id __attribute__((unused)),${{fields: ${attrib_fun_unused}}}) {}
+#define DOWNLINK_SEND_${msg_name}(_trans, _dev${{fields:, ${attrib_macro}}}) {}
+static inline void pprz_send_msg_${msg_name}(struct transport_tx *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)), uint8_t ac_id __attribute__((unused))${{fields:, ${attrib_fun_unused}}}) {}
 }}
 
 #endif // DOWNLINK
