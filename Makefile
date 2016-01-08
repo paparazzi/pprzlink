@@ -31,6 +31,7 @@ MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
 MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
+INTERMCU_H ?= $(MESSAGES_INCLUDE)/intermcu_msg.h
 
 all: libs
 
@@ -53,6 +54,7 @@ gen_messages: generators pre_messages_dir
 	@echo 'Generate C messages (OCaml) at location $(MESSAGES_INCLUDE)'
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) telemetry $(TELEMETRY_H)
 	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) datalink $(DATALINK_H)
+	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) intermcu $(INTERMCU_H)
 	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
 
 post_messages_install:
@@ -65,6 +67,7 @@ pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
 	$(Q)./tools/generator/gen_messages.py --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
+	$(Q)./tools/generator/gen_messages.py --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
 
 messages: gen_messages post_messages_install
 
