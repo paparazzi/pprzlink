@@ -67,7 +67,9 @@ extern void pprz_transport_init(struct pprz_transport *t);
 // Checking new data and parsing
 extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, uint8_t *msg_available);
 
-//#define PprzCheckAndParse(_dev, _trans) pprz_check_and_parse(&(_dev).device, &(_trans))
+// Parsing function, only needed for modules doing their own parsing
+// without using the pprz_check_and_parse function
+extern void parse_pprz(struct pprz_transport *t, uint8_t c);
 
 #endif /* PPRZ_TRANSPORT_H */
 

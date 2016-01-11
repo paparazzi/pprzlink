@@ -133,7 +133,7 @@ void pprz_transport_init(struct pprz_transport *t)
 
 
 // Parsing function
-static inline void parse_pprz(struct pprz_transport *t, uint8_t c)
+void parse_pprz(struct pprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
