@@ -72,8 +72,8 @@ static inline void pprz_send_msg_${msg_name}(struct transport_tx *trans __attrib
 
 #define _PPRZ_${class_name}_RET_char(_payload, _offset) ((char)(*((uint8_t*)_payload+_offset)))
 #define _PPRZ_${class_name}_RET_int8_t(_payload, _offset) ((int8_t)(*((uint8_t*)_payload+_offset)))
-#define _PPRZ_${class_name}_RET_uint8_t(_payload, _offset) ((int8_t)(*((uint8_t*)_payload+_offset)))
-#define _PPRZ_${class_name}_RET_int16_t(_payload, _offset) ((uint16_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8))
+#define _PPRZ_${class_name}_RET_uint8_t(_payload, _offset) ((uint8_t)(*((uint8_t*)_payload+_offset)))
+#define _PPRZ_${class_name}_RET_int16_t(_payload, _offset) ((int16_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8))
 #define _PPRZ_${class_name}_RET_uint16_t(_payload, _offset) ((uint16_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8))
 #define _PPRZ_${class_name}_RET_int32_t(_payload, _offset) (int32_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8|((uint32_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24)
 #define _PPRZ_${class_name}_RET_uint32_t(_payload, _offset) (uint32_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8|((uint32_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24)
