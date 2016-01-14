@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import re
+import platform
 
 # if PPRZLINK_LIB not set, then assume the tree containing this
 # file is a reasonable substitute
@@ -26,7 +27,7 @@ else:
 
 
 class IvyMessagesInterface(object):
-    def __init__(self, callback=None, init=True, verbose=False, bind_regex='(.*)', ivy_bus=pprz_env.IVY_BUS):
+    def __init__(self, callback=None, init=True, verbose=False, bind_regex='(.*)', ivy_bus=IVY_BUS):
         self.callback = callback
         self.ivy_id = 0
         self.verbose = verbose
