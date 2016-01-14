@@ -45,6 +45,9 @@
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
 
+// Start byte
+#define PPRZ_STX  0x99
+
 /* PPRZ Transport
  */
 

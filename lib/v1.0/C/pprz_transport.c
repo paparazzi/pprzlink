@@ -41,9 +41,6 @@
 #include <inttypes.h>
 #include "pprzlink/pprz_transport.h"
 
-// Start byte
-#define STX  0x99
-
 // PPRZ parsing state machine
 #define UNINIT      0
 #define GOT_STX     1
@@ -85,7 +82,7 @@ static uint8_t size_of(struct pprz_transport *trans __attribute__((unused)), uin
 
 static void start_message(struct pprz_transport *trans, struct link_device *dev, uint8_t payload_len)
 {
-  dev->put_byte(dev->periph, STX);
+  dev->put_byte(dev->periph, PPRZ_STX);
   const uint8_t msg_len = size_of(trans, payload_len);
   dev->put_byte(dev->periph, msg_len);
   trans->ck_a_tx = msg_len;
@@ -137,7 +134,7 @@ void parse_pprz(struct pprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
-      if (c == STX) {
+      if (c == PPRZ_STX) {
         t->status++;
       }
       break;
