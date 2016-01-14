@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from ivy.std_api import *
+from ivy.ivy import IvyIllegalStateError
 import logging
 import os
 import sys
@@ -16,11 +17,20 @@ from pprzlink.message import PprzMessage
 from pprzlink import messages_xml_map
 
 
+if os.getenv('IVY_BUS') is not None:
+    IVY_BUS = os.getenv('IVY_BUS')
+elif platform.system() == 'Darwin':
+    IVY_BUS = "224.255.255.255:2010"
+else:
+    IVY_BUS = ""
+
+
 class IvyMessagesInterface(object):
-    def __init__(self, callback=None, init=True, verbose=False, bind_regex='(.*)'):
+    def __init__(self, callback=None, init=True, verbose=False, bind_regex='(.*)', ivy_bus=pprz_env.IVY_BUS):
         self.callback = callback
         self.ivy_id = 0
         self.verbose = verbose
+        self.ivy_bus = ivy_bus
         # make sure all messages are parsed before we start creating them in callbacks
         messages_xml_map.parse_messages()
         self.init_ivy(init, bind_regex)
@@ -29,12 +39,15 @@ class IvyMessagesInterface(object):
         IvyUnBindMsg(self.ivy_id)
 
     def shutdown(self):
-        self.stop()
-        IvyStop()
-
-    def __init__del__(self):
         try:
-            IvyUnBindMsg(self.ivy_id)
+            IvyStop()
+            self.stop()
+        except IvyIllegalStateError as e:
+            print(e)
+
+    def __del__(self):
+        try:
+            self.shutdown()
         except:
             pass
 
@@ -42,7 +55,7 @@ class IvyMessagesInterface(object):
         if init:
             IvyInit("Messages %i" % os.getpid(), "READY", 0, lambda x,y: y, lambda x,y: y)
             logging.getLogger('Ivy').setLevel(logging.WARN)
-            IvyStart("")
+            IvyStart(self.ivy_bus)
         self.ivy_id = IvyBindMsg(self.on_ivy_msg, bind_regex)
 
     def on_ivy_msg(self, agent, *larg):
@@ -70,31 +83,36 @@ class IvyMessagesInterface(object):
             return
 
         # check which message class it is
-        # pass non-telemetry messages with ac_id 0
-        if data[0] in ["sim", "ground_dl", "dl"]:
-            if self.verbose:
-                print("ignoring message " + larg[0])
-                sys.stdout.flush()
+        msg_name = data[1]
+        msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
+        if msg_class is None:
+            print("Ignoring unknown message " + larg[0])
             return
-        elif data[0] in ["ground"]:
-            msg_class = data[0]
-            msg_name = data[1]
-            ac_id = 0
-            values = list(filter(None, data[2:]))
-        else:
+        # pass non-telemetry messages with ac_id 0
+        if msg_class == "telemetry":
             try:
                 ac_id = int(data[0])
             except ValueError:
-                if self.verbose:
-                    print("ignoring message " + larg[0])
-                    sys.stdout.flush()
-                return
-            msg_class = "telemetry"
-            msg_name = data[1]
-            values = list(filter(None, data[2:]))
+                print("ignoring message " + larg[0])
+                sys.stdout.flush()
+        else:
+            ac_id = 0
+        values = list(filter(None, data[2:]))
         msg = PprzMessage(msg_class, msg_name)
         msg.set_values(values)
         self.callback(ac_id, msg)
+
+    def send_raw_datalink(self, msg):
+        if not isinstance(msg, PprzMessage):
+            print("Can only send PprzMessage")
+            return
+        if "datalink" not in msg.msg_class:
+            print("Message to embed in RAW_DATALINK needs to be of 'datalink' class")
+            return
+        raw = PprzMessage("ground", "RAW_DATALINK")
+        raw['ac_id'] = msg['ac_id']
+        raw['message'] = msg.to_csv()
+        self.send(raw)
 
     def send(self, msg, ac_id=None):
         if isinstance(msg, PprzMessage):
