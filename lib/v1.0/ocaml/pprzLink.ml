@@ -73,7 +73,7 @@ let pprzlink_dir =
   try Sys.getenv "PPRZLINK_DIR"
   with _ ->
     (* fallback to paparazzi home *)
-    begin try (Sys.getenv "PAPARAZZI_HOME") // "conf" with _ ->
+    begin try (Sys.getenv "PAPARAZZI_HOME") // "var" with _ ->
       (* fallback to system install *)
       begin match Sys.os_type with
       | "Unix" -> "/usr/share/pprzlink"

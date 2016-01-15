@@ -25,6 +25,7 @@ Q=@
 MAKE = make
 
 MESSAGES_XML ?= message_definitions/v1.0/messages.xml
+MESSAGES_DTD ?= message_definitions/v1.0/messages.dtd
 UNITS_XML ?= message_definitions/common/units.xml
 MESSAGES_INSTALL ?= var
 MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
@@ -59,7 +60,7 @@ gen_messages: generators pre_messages_dir
 
 post_messages_install:
 	@echo 'Copy extra lib files'
-	$(Q)cp $(MESSAGES_XML) $(UNITS_XML) $(MESSAGES_INSTALL)
+	$(Q)cp $(MESSAGES_XML) $(MESSAGES_DTD) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
 
