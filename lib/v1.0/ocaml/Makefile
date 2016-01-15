@@ -23,6 +23,14 @@
 # Quiet compilation
 Q=@
 
+# redirect output if quiet compilation
+ifeq ($(Q),@)
+Q_OUT= >/dev/null 2>&1
+else
+Q_OUT=
+endif
+
+
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 
 #
@@ -58,27 +66,27 @@ all: byte native
 byte: _tags META
 	@echo Build bytecode lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cma $(Q_OUT)
 	$(Q)cp META $(BUILDDIR)
 
 # byte with statically linked libs
 static: _tags META
 	@echo Build bytecode lib with static linking
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -tag static lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -tag static lib-pprzlink.cma $(Q_OUT)
 	$(Q)cp META $(BUILDDIR)
 
 native: _tags META
 	@echo Build native lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
+	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cmxa $(Q_OUT)
 	$(Q)cp META $(BUILDDIR)
 
 install: byte native META
 	@echo INSTALL at location $(DESTDIR)
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
-	$(Q)ocamlfind remove $(INSTALL_FLAGS) pprzlink
-	$(Q)ocamlfind install $(INSTALL_FLAGS) pprzlink META $(INSTALL_FILES)
+	$(Q)ocamlfind remove $(INSTALL_FLAGS) pprzlink $(Q_OUT)
+	$(Q)ocamlfind install $(INSTALL_FLAGS) pprzlink META $(INSTALL_FILES) $(Q_OUT)
 
 UNAME = $(shell uname -s)
 ifeq ("$(UNAME)","Darwin")
