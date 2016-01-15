@@ -76,7 +76,7 @@ install: byte
 	$(Q)cp $(INSTALL_FILES) $(DESTDIR)
 
 clean:
-	$(Q)rm -f *.cm* *.out *~ .depend
+	$(Q)rm -f *.cm* *.out *~ .depend *.pyc
 	$(Q)$(OCAMLBUILD) -clean -classic-display -build-dir $(BUILDDIR)
 
 .PHONY: all byte native clean
