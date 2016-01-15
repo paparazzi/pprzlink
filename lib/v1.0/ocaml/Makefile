@@ -25,6 +25,7 @@ Q=@
 
 # redirect output if quiet compilation
 ifeq ($(Q),@)
+QUIET= -quiet
 Q_OUT= >/dev/null 2>&1
 else
 Q_OUT=
@@ -66,20 +67,20 @@ all: byte native
 byte: _tags META
 	@echo Build bytecode lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cma $(Q_OUT)
+	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 # byte with statically linked libs
 static: _tags META
 	@echo Build bytecode lib with static linking
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) -tag static lib-pprzlink.cma $(Q_OUT)
+	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) -tag static lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 native: _tags META
 	@echo Build native lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) -build-dir $(BUILDDIR) lib-pprzlink.cmxa $(Q_OUT)
+	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
 	$(Q)cp META $(BUILDDIR)
 
 install: byte native META
