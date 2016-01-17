@@ -33,6 +33,8 @@ MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 INTERMCU_H ?= $(MESSAGES_INCLUDE)/intermcu_msg.h
+# disable xml validation for pygen by default
+VALIDATE_FLAG ?= --no-validate
 
 all: libs
 
@@ -66,9 +68,9 @@ post_messages_install:
 
 pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
-	$(Q)./tools/generator/gen_messages.py --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
-	$(Q)./tools/generator/gen_messages.py --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
-	$(Q)./tools/generator/gen_messages.py --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
 
 messages: gen_messages post_messages_install
 
