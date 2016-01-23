@@ -33,8 +33,15 @@ MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 INTERMCU_H ?= $(MESSAGES_INCLUDE)/intermcu_msg.h
-# disable xml validation for pygen by default
-VALIDATE_FLAG ?= --no-validate
+
+# validate xml for pygen by default
+# to skip validation define VALIDATE_XML to 0 or FALSE
+VALIDATE_XML ?= TRUE
+ifneq (,$(findstring $(VALIDATE_XML),0 FALSE))
+  VALIDATE_FLAG = --no-validate
+else
+  VALIDATE_FLAG =
+endif
 
 all: libs
 
