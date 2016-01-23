@@ -48,12 +48,21 @@ def gen_messages(opts) :
         """Uses minixsv to validate an XML file with a given XSD schema file. We define pprz_validate
            here because it relies on the XML libs that were loaded in gen_messages(), so it can't be called standalone"""
         # use default values of minixsv, location of the schema file must be specified in the XML file
-        domTreeWrapper = pyxsval.parseAndValidate(fname, xsdFile=schema, errorLimit=errorLimitNumber)
+        try:
+            domTreeWrapper = pyxsval.parseAndValidate(fname, xsdFile=schema, errorLimit=errorLimitNumber)
+        except pyxsval.XsvalError, errstr:
+            print(errstr)
+            return 1
+        except GenXmlIfError, errstr:
+            print(errstr)
+            return 1
+        return 0
 
     # Process XML file, validating as necessary.
+    validation_result = 0
     if opts.validate:
         print("Validating %s" % fname)
-        pprz_validate(fname, schemaFile, opts.error_limit);
+        validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
     else:
         print("Validation skipped for %s." % fname)
 
@@ -65,6 +74,9 @@ def gen_messages(opts) :
 
     print("Found %u PPPRZLink message types in XML file %s" % (
         pprz_parse.total_msgs(xml), fname))
+
+    if opts.only_validate:
+        sys.exit(validation_result)
 
     # Convert language option to lowercase and validate
     opts.language = opts.language.lower()
@@ -84,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--lang", dest="language", choices=supportedLanguages, default=DEFAULT_LANGUAGE, help="language of generated code [default: %(default)s]")
     parser.add_argument("--protocol", choices=[pprz_parse.PROTOCOL_1_0], default=DEFAULT_PROTOCOL, help="PPRZLink protocol version. [default: %(default)s]")
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
+    parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")
     parser.add_argument("--error-limit", default=DEFAULT_ERROR_LIMIT, help="maximum number of validation errors to display")
     parser.add_argument("definition", metavar="XML", help="PPRZLink messages definition")
     parser.add_argument("class_name", help="PPRZLink message class to parse and generate")

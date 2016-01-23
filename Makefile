@@ -90,4 +90,9 @@ clean :
 uninstall: clean
 	$(Q)rm -rf var bin build $(MESSAGES_INCLUDE) $(MESSAGES_LIB)
 
-.PHONY: all libs generators ocaml_lib_v1 pre_messages_dir post_messages_install gen_messages pygen_messages messages pymessages clean uninstall
+validate_messages:
+	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) telemetry
+	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
+	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
+
+.PHONY: all libs generators ocaml_lib_v1 pre_messages_dir post_messages_install gen_messages pygen_messages messages pymessages clean uninstall validate_messages
