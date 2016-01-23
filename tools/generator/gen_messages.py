@@ -72,7 +72,7 @@ def gen_messages(opts) :
     if pprz_parse.check_duplicates(xml):
         sys.exit(1)
 
-    print("Found %u PPPRZLink message types in XML file %s" % (
+    print("Found %u PPRZLink message types in XML file %s" % (
         pprz_parse.total_msgs(xml), fname))
 
     if opts.only_validate:
