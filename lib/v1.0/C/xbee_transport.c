@@ -249,7 +249,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
     if (! xbee_try_to_enter_api(dev, wait)) {
 #if defined XBEE_BAUD && defined XBEE_BAUD_ALTERNATE
       // Badly configured... try the alternate baudrate:
-      dev->set_baudrate(dev, XBEE_BAUD_ALTERNATE); // FIXME add set_baudrate to generic device
+      dev->set_baudrate(dev->periph, XBEE_BAUD_ALTERNATE); // FIXME add set_baudrate to generic device
       if (xbee_try_to_enter_api(dev, wait)) {
         // The alternate baudrate worked,
         print_string(dev, XBEE_ATBD_CODE);
@@ -258,7 +258,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
         // TODO: set LED?
 
         // Set the default baudrate, just in case everything is right
-        dev->set_baudrate(dev, XBEE_BAUD); // FIXME add set_baudrate to generic device
+        dev->set_baudrate(dev->periph, XBEE_BAUD); // FIXME add set_baudrate to generic device
         print_string(dev, "\r");
       }
 
@@ -282,7 +282,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
     print_string(dev, AT_EXIT);
 
 #ifdef XBEE_BAUD
-    dev->set_baudrate(dev, XBEE_BAUD); // FIXME add set_baudrate to generic device
+    dev->set_baudrate(dev->periph, XBEE_BAUD); // FIXME add set_baudrate to generic device
 #endif
 
   }
