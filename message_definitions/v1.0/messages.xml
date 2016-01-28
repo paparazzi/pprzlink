@@ -859,7 +859,9 @@
   </message>
   
   <!--107 is free -->
-  <!--108 is free -->
+  <message name="PIKSI_HEARTBEAT" id="108">
+    <field name="heartbeat" type="uint32"/>
+  </message>
 
   <message name="MULTIGAZE_METERS" id="109">
     <field name="multigaze_meters" type="float[]"/>
@@ -1349,6 +1351,7 @@
     <field name="pdop"    type="uint16"/>
     <field name="numsv"   type="uint8"/>
     <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
+    <field name="comp_id" type="uint8" values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|ARDRONE2|SIM"/>
   </message>
 
   <message name="AHRS_EULER_INT" id="156">
