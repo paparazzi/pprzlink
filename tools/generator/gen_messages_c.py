@@ -40,6 +40,7 @@ extern "C" {
 
 #include "pprzlink/pprzlink_device.h"
 #include "pprzlink/pprzlink_transport.h"
+#include "pprzlink/pprzlink_utils.h"
 
 #if DOWNLINK
 ${{message:#define DL_${msg_name} ${id}
@@ -70,30 +71,7 @@ static inline void pprz_send_msg_${msg_name}(struct transport_tx *trans __attrib
 
 #endif // DOWNLINK
 
-#define _PPRZ_${class_name}_RET_char(_payload, _offset) ((char)(*((uint8_t*)_payload+_offset)))
-#define _PPRZ_${class_name}_RET_int8_t(_payload, _offset) ((int8_t)(*((uint8_t*)_payload+_offset)))
-#define _PPRZ_${class_name}_RET_uint8_t(_payload, _offset) ((uint8_t)(*((uint8_t*)_payload+_offset)))
-#define _PPRZ_${class_name}_RET_int16_t(_payload, _offset) ((int16_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8))
-#define _PPRZ_${class_name}_RET_uint16_t(_payload, _offset) ((uint16_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8))
-#define _PPRZ_${class_name}_RET_int32_t(_payload, _offset) (int32_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8|((uint32_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24)
-#define _PPRZ_${class_name}_RET_uint32_t(_payload, _offset) (uint32_t)(*((uint8_t*)_payload+_offset)|*((uint8_t*)_payload+_offset+1)<<8|((uint32_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24)
-#define _PPRZ_${class_name}_RET_float(_payload, _offset) ({ union { uint32_t u; float f; } _f; _f.u = _PPRZ_${class_name}_RET_uint32_t(_payload, _offset); _f.f; })
-#define _PPRZ_${class_name}_RET_int64_t(_payload, _offset) (int64_t)(*((uint8_t*)_payload+_offset)|((uint64_t)*((uint8_t*)_payload+_offset+1))<<8|((uint64_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24|((uint64_t*)*((uint8_t*)_payload+_offset+4))<<32|((uint64_t)*((uint8_t*)_payload+_offset+5))<<40|((uint64_t)*((uint8_t*)_payload+_offset+6))<<48|((uint64_t)*((uint8_t*)_payload+_offset+7))<<56)
-#define _PPRZ_${class_name}_RET_uint64_t(_payload, _offset) (uint64_t)(*((uint8_t*)_payload+_offset)|((uint64_t)*((uint8_t*)_payload+_offset+1))<<8|((uint64_t)*((uint8_t*)_payload+_offset+2))<<16|((uint32_t)*((uint8_t*)_payload+_offset+3))<<24|((uint64_t*)*((uint8_t*)_payload+_offset+4))<<32|((uint64_t)*((uint8_t*)_payload+_offset+5))<<40|((uint64_t)*((uint8_t*)_payload+_offset+6))<<48|((uint64_t)*((uint8_t*)_payload+_offset+7))<<56)
-#define _PPRZ_${class_name}_RET_double(_payload, _offset) ({ union { uint64_t u; double f; } _f; _f.u = (uint64_t)(_PPRZ_${class_name}_RET_uint64_t(_payload, _offset)); Swap32IfBigEndian(_f.u); _f.f; })
-#define _PPRZ_${class_name}_RET_char_array(_payload, _offset) ((char*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_int8_t_array(_payload, _offset) ((int8_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_uint8_t_array(_payload, _offset) ((uint8_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_int16_t_array(_payload, _offset) ((int16_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_uint16_t_array(_payload, _offset) ((uint16_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_int32_t_array(_payload, _offset) ((int32_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_uint32_t_array(_payload, _offset) ((uint32_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_int64_t_array(_payload, _offset) ((int64_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_uint64_t_array(_payload, _offset) ((uint64_t*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_float_array(_payload, _offset) ((float*)(_payload+_offset))
-#define _PPRZ_${class_name}_RET_double_array(_payload, _offset) ((double*)(_payload+_offset))
-
-${{message:${{read_fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_payload) _PPRZ_${class_name}_RET_${read_type}(_payload, ${offset})\n}}${read_ret}}}
+${{message:${{fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_payload) _PPRZ_VAL_${read_type}(_payload, ${offset})\n}}\n\n}}
 
 #ifdef __cplusplus
 }
@@ -107,7 +85,7 @@ ${{message:${{read_fields:${read_array_byte}#define DL_${msg_name}_${field_name}
 def copy_fixed_headers(directory, protocol_version):
     '''copy the fixed protocol headers to the target directory'''
     import shutil
-    hlist = [ 'pprzlink_device.h', 'pprzlink_transport.h' ]
+    hlist = [ 'pprzlink_device.h', 'pprzlink_transport.h', 'pprzlink_utils.h' ]
     basepath = os.path.dirname(os.path.realpath(__file__))
     srcpath = os.path.join(basepath, 'C/include_v%s' % protocol_version)
     if directory == '':
@@ -141,7 +119,10 @@ def generate(output, xml):
                 f.attrib_fun_unused = 'uint8_t nb_%s __attribute__((unused)), %s *_%s __attribute__((unused))' % (f.field_name, f.type, f.field_name)
                 f.array_byte = 'trans->put_bytes(trans->impl, dev, DL_TYPE_ARRAY_LENGTH, DL_FORMAT_SCALAR, 1, (void *) &nb_%s);\n    ' % f.field_name
                 f.read_type = f.type+'_array'
-                f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_%s_RET_uint8_t(_payload, %d)\n' % (m.msg_name, f.field_name, xml.class_name, offset)
+                if (offset + 1) % min(4, int(f.type_length)) == 0: # data are aligned
+                    f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_VAL_uint8_t(_payload, %d)\n' % (m.msg_name, f.field_name, offset)
+                else: # rely on arch capability to read or not
+                    f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_VAL_len_aligned(_payload, %d)\n' % (m.msg_name, f.field_name, offset)
                 offset += 1
                 # variable arrays are last (for now)
                 f.offset = offset
@@ -152,8 +133,10 @@ def generate(output, xml):
                 f.attrib_fun_unused = '%s *_%s __attribute__((unused))' % (f.type, f.field_name)
                 f.array_byte = ''
                 f.read_type = f.type+'_array'
-                f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_%s_RET_uint8_t(_payload, %d)\n' % (m.msg_name, f.field_name, xml.class_name, offset)
-                offset += 1
+                if offset % min(4, int(f.type_length)) == 0: # data are aligned
+                    f.read_array_byte = '#define DL_%s_%s_length(_payload) (%d)\n' % (m.msg_name, f.field_name, int(f.array_length))
+                else: # rely on arch capability to read or not
+                    f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_VAL_fixed_len_aligned(%d)\n' % (m.msg_name, f.field_name, int(f.array_length))
                 f.offset = offset
                 offset += int(f.length)
                 f.dl_format = 'DL_FORMAT_ARRAY'
@@ -167,13 +150,6 @@ def generate(output, xml):
                 f.read_type = f.type
                 f.read_array_byte = ''
                 f.dl_format = 'DL_FORMAT_SCALAR'
-        if xml.class_name != 'telemetry':
-            m.read_fields = m.fields
-            m.read_ret = '\n\n'
-        else:
-            # skip telemetry class
-            m.read_fields = []
-            m.read_ret = ''
 
     generate_messages_h(directory, name, xml)
     copy_fixed_headers(directory, xml.protocol_version)
