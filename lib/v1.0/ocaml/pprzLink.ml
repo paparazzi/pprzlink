@@ -582,8 +582,8 @@ module type MESSAGES = sig
   val message_answerer : string -> string -> (string -> values -> values) -> Ivy.binding
   (** [message_answerer sender msg_name callback] *)
 
-  val message_req : string -> string -> values -> (string -> values -> unit) -> unit
-(** [message_answerer sender msg_name values receiver] Sends a request on the Ivy bus for the specified message. On reception, [receiver] will be applied on [sender_name] and expected values. *)
+  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding
+(** [message_answerer sender msg_name values receiver] Sends a request on the Ivy bus for the specified message. On reception, [receiver] will be applied on [sender_name] and expected values. Returns Ivy binding for manual unbind of the request listener. *)
 end
 
 
@@ -767,7 +767,8 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     b := Ivy.bind cb r;
     let msg_name_req = msg_name ^ "_REQ" in
     let m = sprintf "%s %s %s" sender id (string_of_message (snd (message_of_name msg_name_req)) values) in
-    Ivy.send m
+    Ivy.send m;
+    !b (* return binding if application side wants to unbind manually *)
 end
 
 module Messages(Class:CLASS) = struct

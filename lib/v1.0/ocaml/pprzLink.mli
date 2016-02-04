@@ -173,11 +173,13 @@ module type MESSAGES = sig
       [message_req] (which will send a [msg_name]_REQ message).
       [callback asker args] must return the list of attributes of the answer. *)
 
-  val message_req : string -> string -> values -> (string -> values -> unit) -> unit
+  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding
   (** [message_req sender msg_name values receiver] Sends a request on the Ivy
       bus for the specified message. A [msg_name]_REQ message is send and a
       [msg_name] message is expected for the reply. On reception, [receiver]
-      will be applied on [sender_name] and attribute values of the values. *)
+      will be applied on [sender_name] and attribute values of the values.
+      Message are unbinded automatically only when getting the answer,
+      timeout should be implemenet on application side. *)
 end
 
 module Messages : functor (Class : CLASS) -> MESSAGES
