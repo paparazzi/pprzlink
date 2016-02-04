@@ -173,7 +173,7 @@ module type MESSAGES = sig
       [message_req] (which will send a [msg_name]_REQ message).
       [callback asker args] must return the list of attributes of the answer. *)
 
-  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding
+  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding * bool ref
   (** [message_req sender msg_name values receiver] Sends a request on the Ivy
       bus for the specified message. A [msg_name]_REQ message is send and a
       [msg_name] message is expected for the reply. On reception, [receiver]

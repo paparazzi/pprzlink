@@ -582,7 +582,7 @@ module type MESSAGES = sig
   val message_answerer : string -> string -> (string -> values -> values) -> Ivy.binding
   (** [message_answerer sender msg_name callback] *)
 
-  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding
+  val message_req : string -> string -> values -> (string -> values -> unit) -> Ivy.binding * bool ref
 (** [message_answerer sender msg_name values receiver] Sends a request on the Ivy bus for the specified message. On reception, [receiver] will be applied on [sender_name] and expected values. Returns Ivy binding for manual unbind of the request listener. *)
 end
 
@@ -759,7 +759,9 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
   let gen_id = let r = ref 0 in fun () -> incr r; !r
   let message_req = fun sender msg_name values (f:string -> (string * value) list -> unit) ->
     let b = ref (Obj.magic ()) in
+    let flag = ref true in
     let cb = fun _ args ->
+      flag := false; (* tells that the message is not binded any more *)
       Ivy.unbind !b;
       f args.(0) (snd (values_of_string args.(1))) in
     let id = sprintf "%d_%d" (Unix.getpid ()) (gen_id ()) in
@@ -768,7 +770,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     let msg_name_req = msg_name ^ "_REQ" in
     let m = sprintf "%s %s %s" sender id (string_of_message (snd (message_of_name msg_name_req)) values) in
     Ivy.send m;
-    !b (* return binding if application side wants to unbind manually *)
+    (!b, flag) (* return binding if application side wants to unbind manually *)
 end
 
 module Messages(Class:CLASS) = struct
