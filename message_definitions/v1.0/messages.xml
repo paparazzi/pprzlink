@@ -185,15 +185,15 @@
   </message>
 
   <message name="VECTORNAV_INFO" id="23">
-    <field name="timestamp" 	type="float" 	unit="s"/>
-    <field name="chksm_error" 	type="uint32"/>
-    <field name="hdr_error" 	type="uint32"/>
+    <field name="timestamp"     type="float"    unit="s"/>
+    <field name="chksm_error"   type="uint32"/>
+    <field name="hdr_error"     type="uint32"/>
     <field name="counter" type="uint16"/>
     <field name="ins_status" type="uint8" values="NoTracking|OutOfSpecs|OK"/>
     <field name="ins_err" type="uint8"/>
-    <field name="YprU1" 	type="float" 	unit="deg"/>
-    <field name="YprU2" 	type="float" 	unit="deg"/>
-    <field name="YprU3" 	type="float" 	unit="deg"/>
+    <field name="YprU1"     type="float"    unit="deg"/>
+    <field name="YprU2"     type="float"    unit="deg"/>
+    <field name="YprU3"     type="float"    unit="deg"/>
   </message>
 
   <!--24 is free -->
@@ -622,9 +622,9 @@
   </message>
 
   <message name="GX3_INFO" id="73">
-    <field name="GX3_freq" 	type="float" 	unit="hz"/>
-    <field name="chksm_error" 	type="uint32"/>
-    <field name="hdr_error" 	type="uint32"/>
+    <field name="GX3_freq"  type="float"    unit="hz"/>
+    <field name="chksm_error"   type="uint32"/>
+    <field name="hdr_error"     type="uint32"/>
     <field name="GX3_chksm"	type="uint16"/>
   </message>
 
@@ -635,14 +635,14 @@
   </message>
 
   <message name="VIDEO_TELEMETRY" id="75">
-    <field name="blob_x1" 	type="int32" 	unit="pixels"/>
-    <field name="blob_y1" 	type="int32" 	unit="pixels"/>
-    <field name="blob_x2" 	type="int32" 	unit="pixels"/>
-    <field name="blob_y2" 	type="int32" 	unit="pixels"/>
-    <field name="blob_x3" 	type="int32" 	unit="pixels"/>
-    <field name="blob_y3" 	type="int32" 	unit="pixels"/>
-    <field name="blob_x4" 	type="int32" 	unit="pixels"/>
-    <field name="blob_y4" 	type="int32" 	unit="pixels"/>
+    <field name="blob_x1"   type="int32"    unit="pixels"/>
+    <field name="blob_y1"   type="int32"    unit="pixels"/>
+    <field name="blob_x2"   type="int32"    unit="pixels"/>
+    <field name="blob_y2"   type="int32"    unit="pixels"/>
+    <field name="blob_x3"   type="int32"    unit="pixels"/>
+    <field name="blob_y3"   type="int32"    unit="pixels"/>
+    <field name="blob_x4"   type="int32"    unit="pixels"/>
+    <field name="blob_y4"   type="int32"    unit="pixels"/>
   </message>
 
   <message name="VF_UPDATE" id="76">
@@ -857,7 +857,7 @@
   <message name="BLUEGIGA" id="106">
     <field name="data_rate" type="uint32" unit="bytes/s"/>
   </message>
-  
+
   <!--107 is free -->
   <message name="PIKSI_HEARTBEAT" id="108">
     <field name="heartbeat" type="uint32"/>
@@ -1027,7 +1027,7 @@
   </message>
 
  <message name="TIMESTAMP" id="129">
- 	<field name="timestamp" type="uint32"/>
+    <field name="timestamp" type="uint32"/>
  </message>
 
   <message name="STAB_ATTITUDE_FLOAT" id="130">
@@ -2214,7 +2214,7 @@
   <field name="course" type="int16" unit="decideg"></field>
   <field name="utm_east"  type="int32" unit="cm"></field>
   <field name="utm_north"  type="int32" unit="cm"></field>
-  <field name="alt"    type="int32" unit="cm"></field>
+  <field name="alt"    type="int32" unit="cm">Height above Mean Sea Level (geoid)</field>
   <field name="itow"  type="uint32" unit="ms"></field>
   <field name="speed"  type="uint16" unit="cm/s"></field>
   <field name="climb"  type="int16" unit="cm/s"></field>
@@ -2499,8 +2499,8 @@
     <field name="ecef_z"  type="int32" unit="cm"   alt_unit="m"/>
     <field name="lat"     type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="lon"     type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-    <field name="alt"     type="int32" unit="mm"   alt_unit="m"/>
-    <field name="hmsl"    type="int32" unit="mm"   alt_unit="m"/>
+    <field name="alt"     type="int32" unit="mm"   alt_unit="m">Height above WGS84 reference ellipsoid</field>
+    <field name="hmsl"    type="int32" unit="mm"   alt_unit="m">Height above Mean Sea Level (geoid)</field>
     <field name="ecef_xd" type="int32" unit="cm/s" alt_unit="m/s"/>
     <field name="ecef_yd" type="int32" unit="cm/s" alt_unit="m/s"/>
     <field name="ecef_zd" type="int32" unit="cm/s" alt_unit="m/s"/>
@@ -2518,57 +2518,57 @@
     <field name="command"     type="uint8[]"/>
   </message>
 
- <message name="SET_ACTUATOR" id="100" link="forwarded">
-   <field name="value" type="uint16"/>
-   <field name="no" type="uint8"/>
-   <field name="ac_id" type="uint8"/>
- </message>
+  <message name="SET_ACTUATOR" id="100" link="forwarded">
+    <field name="value" type="uint16"/>
+    <field name="no" type="uint8"/>
+    <field name="ac_id" type="uint8"/>
+  </message>
 
- <message name="CSC_SERVO_CMD" id="101">
-   <field name="servo_1" type="uint16"/>
-   <field name="servo_2" type="uint16"/>
-   <field name="servo_3" type="uint16"/>
-   <field name="servo_4" type="uint16"/>
- </message>
+  <message name="CSC_SERVO_CMD" id="101">
+    <field name="servo_1" type="uint16"/>
+    <field name="servo_2" type="uint16"/>
+    <field name="servo_3" type="uint16"/>
+    <field name="servo_4" type="uint16"/>
+  </message>
 
- <message name="BOOZ2_FMS_COMMAND" id="149" link="forwarded">
-   <field name="h_mode" type="uint8" values="KILL|RATE|ATTITUDE|HOVER|NAV"/>
-   <field name="v_mode" type="uint8" values="KILL|DIRECT|CLIMB_RC|CLIMB|ALT|NAV"/>
-   <field name="v_sp"   type="int32"/>
-   <field name="h_sp_1" type="int32"/>
-   <field name="h_sp_2" type="int32"/>
-   <field name="h_sp_3" type="int32"/>
-   <field name="ac_id"  type="uint8"/>
- </message>
+  <message name="BOOZ2_FMS_COMMAND" id="149" link="forwarded">
+    <field name="h_mode" type="uint8" values="KILL|RATE|ATTITUDE|HOVER|NAV"/>
+    <field name="v_mode" type="uint8" values="KILL|DIRECT|CLIMB_RC|CLIMB|ALT|NAV"/>
+    <field name="v_sp"   type="int32"/>
+    <field name="h_sp_1" type="int32"/>
+    <field name="h_sp_2" type="int32"/>
+    <field name="h_sp_3" type="int32"/>
+    <field name="ac_id"  type="uint8"/>
+  </message>
 
- <message name="BOOZ_NAV_STICK" id="150" link="forwarded">
-   <field name="ac_id" type="uint8"/>
-   <field name="vx_sp" type="int8"/>
-   <field name="vy_sp" type="int8"/>
-   <field name="vz_sp" type="int8"/>
-   <field name="r_sp"  type="int8"/>
- </message>
+  <message name="BOOZ_NAV_STICK" id="150" link="forwarded">
+    <field name="ac_id" type="uint8"/>
+    <field name="vx_sp" type="int8"/>
+    <field name="vy_sp" type="int8"/>
+    <field name="vz_sp" type="int8"/>
+    <field name="r_sp"  type="int8"/>
+  </message>
 
- <message name="EXTERNAL_FILTER_SOLUTION" id="151" link="forwarded">
-   <field name="ac_id"  type="uint8"/>
-   <field name="status" type="uint8"/>
-   <field name="x"      type="float" unit="m"/>
-   <field name="xd"     type="float" unit="m"/>
-   <field name="y"      type="float" unit="m"/>
-   <field name="yd"     type="float" unit="m"/>
- </message>
+  <message name="EXTERNAL_FILTER_SOLUTION" id="151" link="forwarded">
+    <field name="ac_id"  type="uint8"/>
+    <field name="status" type="uint8"/>
+    <field name="x"      type="float" unit="m"/>
+    <field name="xd"     type="float" unit="m"/>
+    <field name="y"      type="float" unit="m"/>
+    <field name="yd"     type="float" unit="m"/>
+  </message>
 
- <message name="ROTORCRAFT_CAM_STICK" id="152" link="forwarded">
-   <field name="ac_id" type="uint8"/>
-   <field name="tilt" type="int8"/>
-   <field name="pan" type="int8"/>
- </message>
+  <message name="ROTORCRAFT_CAM_STICK" id="152" link="forwarded">
+    <field name="ac_id" type="uint8"/>
+    <field name="tilt" type="int8"/>
+    <field name="pan" type="int8"/>
+  </message>
 
- <message name="GPS_INJECT" id="153" link="forwarded">
-   <field name="ac_id" type="uint8"/>
-   <field name="packet_id" type="uint8"/>
-   <field name="data" type="uint8[]"/>
- </message>
+  <message name="GPS_INJECT" id="153" link="forwarded">
+    <field name="ac_id" type="uint8"/>
+    <field name="packet_id" type="uint8"/>
+    <field name="data" type="uint8[]"/>
+  </message>
 
 </msg_class>
 
