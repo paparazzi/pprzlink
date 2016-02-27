@@ -10,9 +10,9 @@ import platform
 
 # if PPRZLINK_LIB not set, then assume the tree containing this
 # file is a reasonable substitute
-PPRZ_SRC = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+PPRZLINK_LIB = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                                     '../../../')))
-sys.path.append(PPRZ_SRC + "/lib/v1.0/python")
+sys.path.append(PPRZLINK_LIB + "/lib/v1.0/python")
 
 from pprzlink.message import PprzMessage
 from pprzlink import messages_xml_map
@@ -27,49 +27,94 @@ else:
 
 
 class IvyMessagesInterface(object):
-    def __init__(self, callback=None, init=True, verbose=False, bind_regex='(.*)', ivy_bus=IVY_BUS):
-        self.callback = callback
-        self.ivy_id = 0
+    def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
+        if agent_name is None:
+            agent_name = "IvyMessagesInterface %i" % os.getpid()
         self.verbose = verbose
-        self.ivy_bus = ivy_bus
+        self._ivy_bus = ivy_bus
+        self._running = False
+
         # make sure all messages are parsed before we start creating them in callbacks
+        # the message parsing should really be redone...
         messages_xml_map.parse_messages()
-        self.init_ivy(init, bind_regex)
 
-    def stop(self):
-        IvyUnBindMsg(self.ivy_id)
+        # bindings with associated callback functions
+        self.bindings = {}
 
-    def shutdown(self):
-        try:
-            IvyStop()
-            self.stop()
-        except IvyIllegalStateError as e:
-            print(e)
+        IvyInit(agent_name, "READY")
+        logging.getLogger('Ivy').setLevel(logging.WARN)
+        if start_ivy:
+            self.start()
 
     def __del__(self):
         try:
             self.shutdown()
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
-    def init_ivy(self, init=True, bind_regex='(.*)'):
-        if init:
-            IvyInit("Messages %i" % os.getpid(), "READY", 0, lambda x,y: y, lambda x,y: y)
-            logging.getLogger('Ivy').setLevel(logging.WARN)
-            IvyStart(self.ivy_bus)
-        self.ivy_id = IvyBindMsg(self.on_ivy_msg, bind_regex)
+    def start(self):
+        if not self._running:
+            IvyStart(self._ivy_bus)
+            self._running = True
 
-    def on_ivy_msg(self, agent, *larg):
-        """ Split ivy message up into the separate parts
+    def stop(self):
+        if self._running:
+            self._running = False
+            IvyStop()
+
+    def unsubscribe_all(self):
+        for b in self.bindings.keys():
+            IvyUnBindMsg(b)
+            del self.bindings[b]
+
+    def shutdown(self):
+        try:
+            self.unsubscribe_all()
+            self.stop()
+        except IvyIllegalStateError as e:
+            print(e)
+
+    def bind_raw(self, callback, regex='(.*)'):
+        """
+        Bind callback to Ivy messages matching regex (without any extra parsing)
+        :param callback: function called on new message with agent, message, from as params
+        :param regex: regular expression for matching message
+        """
+        bind_id = IvyBindMsg(callback, regex)
+        self.bindings[bind_id] = (callback, regex)
+        return bind_id
+
+    def unbind(self, bind_id):
+        if bind_id in self.bindings:
+            IvyUnBindMsg(bind_id)
+            del self.bindings[bind_id]
+
+    def subscribe(self, callback, regex='(.*)'):
+        """
+        Subscribe to Ivy message matching regex and call callback with ac_id and PprzMessage
+        TODO: possibility to directly specify PprzMessage instead of regex
+        :param callback: function called on new message with ac_id and PprzMessage as params
+        :param regex: regular expression for matching message
+        """
+        bind_id = IvyBindMsg(lambda agent, *larg: self.parse_pprz_msg(callback, larg[0]), regex)
+        self.bindings[bind_id] = (callback, regex)
+        return bind_id
+
+    def unsubscribe(self, bind_id):
+        self.unbind(bind_id)
+
+    @staticmethod
+    def parse_pprz_msg(callback, ivy_msg):
+        """
+        Parse an Ivy message into a PprzMessage.
         Basically parts/args in string are separated by space, but char array can also contain a space:
         |f,o,o, ,b,a,r| in old format or "foo bar" in new format
-        """
-        # return if no callback is set
-        if self.callback is None:
-            return
 
+        :param callback: function to call with ac_id and parsed PprzMessage as params
+        :param ivy_msg: Ivy message string to parse into PprzMessage
+        """
         # first split on array delimiters
-        l = re.split('([|\"][^|\"]*[|\"])', larg[0])
+        l = re.split('([|\"][^|\"]*[|\"])', ivy_msg)
         # strip spaces and filter out emtpy strings
         l = [str.strip(s) for s in l if str.strip(s) is not '']
         data = []
@@ -87,42 +132,58 @@ class IvyMessagesInterface(object):
         msg_name = data[1]
         msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
         if msg_class is None:
-            print("Ignoring unknown message " + larg[0])
+            print("Ignoring unknown message " + ivy_msg)
             return
         # pass non-telemetry messages with ac_id 0
         if msg_class == "telemetry":
             try:
                 ac_id = int(data[0])
             except ValueError:
-                print("ignoring message " + larg[0])
+                print("ignoring message " + ivy_msg)
                 sys.stdout.flush()
         else:
             ac_id = 0
         values = list(filter(None, data[2:]))
         msg = PprzMessage(msg_class, msg_name)
         msg.set_values(values)
-        self.callback(ac_id, msg)
+        # finally call the callback, passing the aircraft id and parsed message
+        callback(ac_id, msg)
 
     def send_raw_datalink(self, msg):
+        """
+        Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
+        :param msg: PprzMessage
+        :returns: Number of clients the message sent to, None if msg was invalid
+        """
         if not isinstance(msg, PprzMessage):
             print("Can only send PprzMessage")
-            return
+            return None
         if "datalink" not in msg.msg_class:
             print("Message to embed in RAW_DATALINK needs to be of 'datalink' class")
-            return
+            return None
         raw = PprzMessage("ground", "RAW_DATALINK")
         raw['ac_id'] = msg['ac_id']
         raw['message'] = msg.to_csv()
-        self.send(raw)
+        return self.send(raw)
 
     def send(self, msg, ac_id=None):
+        """
+        Send a message
+        :param msg: PprzMessage or simple string
+        :param ac_id: Needed if sending a PprzMessage of telemetry msg_class
+        :returns: Number of clients the message sent to, None if msg was invalid
+        """
+        if not self._running:
+            print("Ivy server not running!")
+            return
         if isinstance(msg, PprzMessage):
             if "telemetry" in msg.msg_class:
                 if ac_id is None:
                     print("ac_id needed to send telemetry message.")
+                    return None
                 else:
-                    IvySendMsg("%d %s %s" % (ac_id, msg.name, msg.payload_to_ivy_string()))
+                    return IvySendMsg("%d %s %s" % (ac_id, msg.name, msg.payload_to_ivy_string()))
             else:
-                IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
+                return IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
         else:
-            IvySendMsg(msg)
+            return IvySendMsg(msg)
