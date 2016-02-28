@@ -128,8 +128,17 @@ class IvyMessagesInterface(object):
         if len(data) < 3:
             return
 
+        # normal format is "sender_name msg_name msg_payload..."
+        # advanced format has requests and answers (with request_id as 'pid_index')
+        # request: "sender_name request_id msg_name_REQ msg_payload..."
+        # answer:  "request_id sender_name msg_name msg_payload..."
+
+        # check for request_id in first or second string (-> advanced format with msg_name in third string)
+        advanced = False
+        if re.search("[0-9]+_[0-9]+", data[0]) or re.search("[0-9]+_[0-9]+", data[1]):
+            advanced = True
+        msg_name = data[2] if advanced else data[1]
         # check which message class it is
-        msg_name = data[1]
         msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
         if msg_class is None:
             print("Ignoring unknown message " + ivy_msg)
@@ -143,7 +152,8 @@ class IvyMessagesInterface(object):
                 sys.stdout.flush()
         else:
             ac_id = 0
-        values = list(filter(None, data[2:]))
+        payload = data[3:] if advanced else data[2:]
+        values = list(filter(None, payload))
         msg = PprzMessage(msg_class, msg_name)
         msg.set_values(values)
         # finally call the callback, passing the aircraft id and parsed message
