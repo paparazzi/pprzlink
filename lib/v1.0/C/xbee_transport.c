@@ -25,6 +25,7 @@
  * Maxstream XBee serial input and output
  */
 
+#include <stdbool.h>
 #include "pprzlink/xbee_transport.h"
 #include "pprzlink/print_utils.h"
 
@@ -165,7 +166,7 @@ static int check_available_space(struct xbee_transport *trans __attribute__((unu
   return dev->check_free_space(dev->periph, bytes);
 }
 
-static uint8_t xbee_text_reply_is_ok(struct link_device *dev)
+static bool xbee_text_reply_is_ok(struct link_device *dev)
 {
   char c[2];
   int count = 0;
@@ -179,13 +180,13 @@ static uint8_t xbee_text_reply_is_ok(struct link_device *dev)
   }
 
   if ((count > 2) && (c[0] == 'O') && (c[1] == 'K')) {
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
-static uint8_t xbee_try_to_enter_api(struct link_device *dev, void (*wait)(uint32_t))
+static bool xbee_try_to_enter_api(struct link_device *dev, void (*wait)(uint32_t))
 {
 
   /** Switching to AT mode (FIXME: busy waiting) */
@@ -206,7 +207,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
   t->status = XBEE_UNINIT;
   t->type = type;
   t->rssi = 0;
-  t->trans_rx.msg_received = FALSE;
+  t->trans_rx.msg_received = false;
   t->trans_tx.size_of = (size_of_t) size_of;
   t->trans_tx.check_available_space = (check_available_space_t) check_available_space;
   t->trans_tx.put_bytes = (put_bytes_t) put_bytes;
@@ -323,7 +324,7 @@ static inline void parse_xbee(struct xbee_transport *t, uint8_t c)
       if (c + t->cs_rx != 0xff) {
         goto error;
       }
-      t->trans_rx.msg_received = TRUE;
+      t->trans_rx.msg_received = true;
       goto restart;
       break;
     default:
@@ -338,7 +339,7 @@ restart:
 }
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, uint8_t *msg_available)
+void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, bool *msg_available)
 {
   uint8_t i;
   if (dev->char_available(dev->periph)) {
@@ -354,12 +355,12 @@ void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans,
             for (i = XBEE_24_RFDATA_OFFSET; i < trans->trans_rx.payload_len; i++) {
               buf[i - XBEE_24_RFDATA_OFFSET] = trans->trans_rx.payload[i];
             }
-            *msg_available = TRUE;
+            *msg_available = true;
             break;
           default:
             break;
         }
-        trans->trans_rx.msg_received = FALSE;
+        trans->trans_rx.msg_received = false;
       }
       else if (trans->type == XBEE_868) {
         switch (trans->trans_rx.payload[0]) {
@@ -368,12 +369,12 @@ void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans,
             for (i = XBEE_868_RFDATA_OFFSET; i < trans->trans_rx.payload_len; i++) {
               buf[i - XBEE_868_RFDATA_OFFSET] = trans->trans_rx.payload[i];
             }
-            *msg_available = TRUE;
+            *msg_available = true;
             break;
           default:
             break;
         }
-        trans->trans_rx.msg_received = FALSE;
+        trans->trans_rx.msg_received = false;
       }
     }
   }

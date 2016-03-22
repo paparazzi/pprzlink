@@ -42,6 +42,7 @@
 #define PPRZ_TRANSPORT_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
 
@@ -68,7 +69,7 @@ struct pprz_transport {
 extern void pprz_transport_init(struct pprz_transport *t);
 
 // Checking new data and parsing
-extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, uint8_t *msg_available);
+extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, bool *msg_available);
 
 // Parsing function, only needed for modules doing their own parsing
 // without using the pprz_check_and_parse function

@@ -28,6 +28,7 @@
 #define PPRZLINK_TRANSPORT_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include "pprzlink_device.h"
 
 #ifndef TRANSPORT_PAYLOAD_LEN
@@ -39,7 +40,7 @@
 struct transport_rx {
   uint8_t payload[TRANSPORT_PAYLOAD_LEN]; ///< payload buffer
   volatile uint8_t payload_len;           ///< payload buffer length
-  volatile uint8_t msg_received;           ///< message received flag
+  volatile bool msg_received;             ///< message received flag
   uint8_t ovrn, error;                    ///< overrun and error flags
 };
 

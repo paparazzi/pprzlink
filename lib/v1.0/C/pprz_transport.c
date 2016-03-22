@@ -116,7 +116,7 @@ static int check_available_space(struct pprz_transport *trans __attribute__((unu
 void pprz_transport_init(struct pprz_transport *t)
 {
   t->status = UNINIT;
-  t->trans_rx.msg_received = FALSE;
+  t->trans_rx.msg_received = false;
   t->trans_tx.size_of = (size_of_t) size_of;
   t->trans_tx.check_available_space = (check_available_space_t) check_available_space;
   t->trans_tx.put_bytes = (put_bytes_t) put_bytes;
@@ -166,7 +166,7 @@ void parse_pprz(struct pprz_transport *t, uint8_t c)
       if (c != t->ck_b_rx) {
         goto error;
       }
-      t->trans_rx.msg_received = TRUE;
+      t->trans_rx.msg_received = true;
       goto restart;
     default:
       goto error;
@@ -181,7 +181,7 @@ restart:
 
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, uint8_t *msg_available)
+void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, bool *msg_available)
 {
   uint8_t i;
   if (dev->char_available(dev->periph)) {
@@ -192,8 +192,8 @@ void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans,
       for (i = 0; i < trans->trans_rx.payload_len; i++) {
         buf[i] = trans->trans_rx.payload[i];
       }
-      *msg_available = TRUE;
-      trans->trans_rx.msg_received = FALSE;
+      *msg_available = true;
+      trans->trans_rx.msg_received = false;
     }
   }
 }

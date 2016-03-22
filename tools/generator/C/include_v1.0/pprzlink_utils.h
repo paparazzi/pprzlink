@@ -84,7 +84,7 @@ typedef union __attribute__((packed)) {
   float     f32;
   double    f64;
 } unaligned_t;
- 
+
 #define _PPRZ_VAL_int16_t(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int16)
 #define _PPRZ_VAL_uint16_t(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint16)
 #define _PPRZ_VAL_int32_t(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int32)

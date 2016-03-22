@@ -166,10 +166,10 @@ static void count_bytes(struct ivy_transport *trans __attribute__((unused)), str
 static int check_available_space(struct ivy_transport *trans __attribute__((unused)),
                                  struct link_device *dev __attribute__((unused)), uint8_t bytes __attribute__((unused)))
 {
-  return TRUE;
+  return 1;
 }
 
-static int check_free_space(struct ivy_transport *t __attribute__((unused)), uint8_t len __attribute__((unused))) { return TRUE; }
+static int check_free_space(struct ivy_transport *t __attribute__((unused)), uint8_t len __attribute__((unused))) { return true; }
 static void transmit(struct ivy_transport *t __attribute__((unused)), uint8_t byte __attribute__((unused))) {}
 static void send_message(struct ivy_transport *t __attribute__((unused))) {}
 static int null_function(struct ivy_transport *t __attribute__((unused))) { return 0; }
@@ -177,7 +177,7 @@ static int null_function(struct ivy_transport *t __attribute__((unused))) { retu
 void ivy_transport_init(struct ivy_transport *t)
 {
   t->ivy_p = t->ivy_buf;
-  t->ivy_dl_enabled = TRUE;
+  t->ivy_dl_enabled = true;
 
   t->trans_tx.size_of = (size_of_t) size_of;
   t->trans_tx.check_available_space = (check_available_space_t) check_available_space;

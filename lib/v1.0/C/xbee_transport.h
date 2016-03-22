@@ -29,6 +29,7 @@
 #define XBEE_TRANSPORT_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
 
@@ -59,7 +60,7 @@ struct xbee_transport {
 extern void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, uint32_t baudrate, void (*wait)(uint32_t), char *xbee_init);
 
 
-extern void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, uint8_t *msg_available);
+extern void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, bool *msg_available);
 //#define XBeeCheckAndParse(_dev, _trans) xbee_check_and_parse(&(_dev).device, &(_trans))
 
 #endif /* XBEE_TRANSPORT_H */
