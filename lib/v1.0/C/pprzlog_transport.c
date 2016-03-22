@@ -46,28 +46,29 @@
 
 #define STX_LOG  0x99
 
-static void put_1byte(struct pprzlog_transport *trans, struct link_device *dev, const uint8_t byte)
+static void accumulate_checksum(struct pprzlog_transport *trans, const uint8_t byte)
 {
   trans->ck += byte;
-  dev->put_byte(dev->periph, byte);
 }
 
-static void put_bytes(struct pprzlog_transport *trans, struct link_device *dev,
+static void put_bytes(struct pprzlog_transport *trans, struct link_device *dev, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
-                      uint8_t len, const void *bytes)
+                      const void *bytes, uint16_t len)
 {
   const uint8_t *b = (const uint8_t *) bytes;
   int i;
   for (i = 0; i < len; i++) {
-    put_1byte(trans, dev, b[i]);
+    accumulate_checksum(trans, b[i]);
   }
+  dev->put_buffer(dev->periph, fd, b, len);
 }
 
-static void put_named_byte(struct pprzlog_transport *trans, struct link_device *dev,
+static void put_named_byte(struct pprzlog_transport *trans, struct link_device *dev, long fd,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
 {
-  put_1byte(trans, dev, byte);
+  accumulate_checksum(trans, byte);
+  dev->put_byte(dev->periph, fd, byte);
 }
 
 static uint8_t size_of(struct pprzlog_transport *trans __attribute__((unused)), uint8_t len)
@@ -75,21 +76,21 @@ static uint8_t size_of(struct pprzlog_transport *trans __attribute__((unused)), 
   return len;
 }
 
-static void start_message(struct pprzlog_transport *trans, struct link_device *dev, uint8_t payload_len)
+static void start_message(struct pprzlog_transport *trans, struct link_device *dev, long fd, uint8_t payload_len)
 {
-  dev->put_byte(dev->periph, STX_LOG);
+  dev->put_byte(dev->periph, fd, STX_LOG);
   const uint8_t msg_len = size_of(trans, payload_len);
   trans->ck = 0;
-  put_1byte(trans, dev, msg_len);
-  put_1byte(trans, dev, 0); // TODO use correct source ID
+  uint8_t buf[] = { msg_len, 0 }; // TODO use correct source ID
+  dev->put_buffer(dev->periph, fd, buf, 2);
   uint32_t ts = trans->get_time_usec() / 100;
-  put_bytes(trans, dev, DL_TYPE_TIMESTAMP, DL_FORMAT_SCALAR, 4, (uint8_t *)(&ts));
+  put_bytes(trans, dev, fd, DL_TYPE_TIMESTAMP, DL_FORMAT_SCALAR, (uint8_t *)(&ts), 4);
 }
 
-static void end_message(struct pprzlog_transport *trans, struct link_device *dev)
+static void end_message(struct pprzlog_transport *trans, struct link_device *dev, long fd)
 {
-  dev->put_byte(dev->periph, trans->ck);
-  dev->send_message(dev->periph);
+  dev->put_byte(dev->periph, fd, trans->ck);
+  dev->send_message(dev->periph, fd);
 }
 
 static void overrun(struct pprzlog_transport *trans __attribute__((unused)),
@@ -102,10 +103,10 @@ static void count_bytes(struct pprzlog_transport *trans __attribute__((unused)),
 {
 }
 
-static int check_available_space(struct pprzlog_transport *trans __attribute__((unused)), struct link_device *dev,
+static int check_available_space(struct pprzlog_transport *trans __attribute__((unused)), struct link_device *dev, long *fd,
                                  uint8_t bytes)
 {
-  return dev->check_free_space(dev->periph, bytes);
+  return dev->check_free_space(dev->periph, fd, bytes);
 }
 
 void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec_t get_time_usec)

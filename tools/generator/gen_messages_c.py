@@ -51,13 +51,14 @@ ${{message:#define DL_${msg_name} ${id}
 ${{message:
 #define DOWNLINK_SEND_${msg_name}(_trans, _dev${{fields:, ${attrib_macro}}}) pprz_msg_send_${msg_name}(&((_trans).trans_tx), &((_dev).device), AC_ID${{fields:, ${attrib_macro}}})
 static inline void pprz_msg_send_${msg_name}(struct transport_tx *trans, struct link_device *dev, uint8_t ac_id${{fields:, ${attrib_fun}}}) {
-  if (trans->check_available_space(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */))) {
+  long fd = 0; /* can be an address, an index, a file descriptor, ... */
+  if (trans->check_available_space(trans->impl, dev, &fd, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */))) {
     trans->count_bytes(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */));
-    trans->start_message(trans->impl, dev, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */);
-    trans->put_bytes(trans->impl, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, 1, &ac_id);
-    trans->put_named_byte(trans->impl, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, DL_${msg_name}, "${msg_name}");
-    ${{fields:${array_byte}trans->put_bytes(trans->impl, dev, DL_TYPE_${type_upper}, ${dl_format}, ${length}, (void *) _${field_name});
-    }}trans->end_message(trans->impl, dev);
+    trans->start_message(trans->impl, dev, fd, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */);
+    trans->put_bytes(trans->impl, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, &ac_id, 1);
+    trans->put_named_byte(trans->impl, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, DL_${msg_name}, "${msg_name}");
+    ${{fields:${array_byte}trans->put_bytes(trans->impl, dev, fd, DL_TYPE_${type_upper}, ${dl_format}, (void *) _${field_name}, ${length});
+    }}trans->end_message(trans->impl, dev, fd);
   } else
     trans->overrun(trans->impl, dev);
 }
@@ -117,7 +118,7 @@ def generate(output, xml):
                 f.attrib_macro = 'nb_%s, %s' % (f.field_name, f.field_name)
                 f.attrib_fun = 'uint8_t nb_%s, %s *_%s' % (f.field_name, f.type, f.field_name)
                 f.attrib_fun_unused = 'uint8_t nb_%s __attribute__((unused)), %s *_%s __attribute__((unused))' % (f.field_name, f.type, f.field_name)
-                f.array_byte = 'trans->put_bytes(trans->impl, dev, DL_TYPE_ARRAY_LENGTH, DL_FORMAT_SCALAR, 1, (void *) &nb_%s);\n    ' % f.field_name
+                f.array_byte = 'trans->put_bytes(trans->impl, dev, fd, DL_TYPE_ARRAY_LENGTH, DL_FORMAT_SCALAR, (void *) &nb_%s, 1);\n    ' % f.field_name
                 f.read_type = f.type+'_array'
                 if (offset + 1) % min(4, int(f.type_length)) == 0: # data are aligned
                     f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_VAL_uint8_t(_payload, %d)\n' % (m.msg_name, f.field_name, offset)

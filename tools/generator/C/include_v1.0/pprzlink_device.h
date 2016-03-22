@@ -36,9 +36,10 @@
  * they are used to cast the real functions with the correct type
  * to store in the device structure
  */
-typedef int (*check_free_space_t)(void *, uint8_t);
-typedef void (*put_byte_t)(void *, uint8_t);
-typedef void (*send_message_t)(void *);
+typedef int (*check_free_space_t)(void *, long *, uint8_t);
+typedef void (*put_byte_t)(void *, long, uint8_t);
+typedef void (*put_buffer_t)(void *, long, const uint8_t *, uint16_t);
+typedef void (*send_message_t)(void *, long);
 typedef int (*char_available_t)(void *);
 typedef uint8_t (*get_byte_t)(void *);
 typedef void (*set_baudrate_t)(void *, uint32_t baudrate);
@@ -48,6 +49,7 @@ typedef void (*set_baudrate_t)(void *, uint32_t baudrate);
 struct link_device {
   check_free_space_t check_free_space;  ///< check if transmit buffer is not full
   put_byte_t put_byte;                  ///< put one byte
+  put_buffer_t put_buffer;              ///< put several bytes from a buffer
   send_message_t send_message;          ///< send completed buffer
   char_available_t char_available;      ///< check if a new character is available
   get_byte_t get_byte;                  ///< get a new char

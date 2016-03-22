@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <Ivy/ivy.h>
 
-static void put_bytes(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)),
+static void put_bytes(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       uint8_t len, const void *bytes)
 {
@@ -126,7 +126,7 @@ static void put_bytes(struct ivy_transport *trans, struct link_device *dev __att
   }
 }
 
-static void put_named_byte(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)),
+static void put_named_byte(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)),
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte __attribute__((unused)), const char *name __attribute__((unused)))
 {
@@ -138,13 +138,13 @@ static uint8_t size_of(struct ivy_transport *trans __attribute__((unused)), uint
   return len;
 }
 
-static void start_message(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)),
+static void start_message(struct ivy_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)),
                           uint8_t payload_len __attribute__((unused)))
 {
   trans->ivy_p = trans->ivy_buf;
 }
 
-static void end_message(struct ivy_transport *trans, struct link_device *dev)
+static void end_message(struct ivy_transport *trans, struct link_device *dev, long fd __attribute__((unused)))
 {
   *(--trans->ivy_p) = '\0';
   if (trans->ivy_dl_enabled) {
@@ -164,14 +164,14 @@ static void count_bytes(struct ivy_transport *trans __attribute__((unused)), str
 }
 
 static int check_available_space(struct ivy_transport *trans __attribute__((unused)),
-                                 struct link_device *dev __attribute__((unused)), uint8_t bytes __attribute__((unused)))
+                                 struct link_device *dev __attribute__((unused)), long *fd __attribute__((unused)), uint8_t bytes __attribute__((unused)))
 {
   return 1;
 }
 
-static int check_free_space(struct ivy_transport *t __attribute__((unused)), uint8_t len __attribute__((unused))) { return true; }
-static void transmit(struct ivy_transport *t __attribute__((unused)), uint8_t byte __attribute__((unused))) {}
-static void send_message(struct ivy_transport *t __attribute__((unused))) {}
+static int check_free_space(struct ivy_transport *t __attribute__((unused)), long *fd __attribute__((unused)), uint8_t len __attribute__((unused))) { return 1; }
+static void transmit(struct ivy_transport *t __attribute__((unused)), long fd __attribute__((unused)), uint8_t byte __attribute__((unused))) {}
+static void send_message(struct ivy_transport *t __attribute__((unused)), long fd __attribute__((unused))) {}
 static int null_function(struct ivy_transport *t __attribute__((unused))) { return 0; }
 
 void ivy_transport_init(struct ivy_transport *t)

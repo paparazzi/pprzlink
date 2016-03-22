@@ -49,29 +49,30 @@
 #define GOT_CRC1    4
 
 
-static void put_1byte(struct pprz_transport *trans, struct link_device *dev, const uint8_t byte)
+static void accumulate_checksum(struct pprz_transport *trans, const uint8_t byte)
 {
   trans->ck_a_tx += byte;
   trans->ck_b_tx += trans->ck_a_tx;
-  dev->put_byte(dev->periph, byte);
 }
 
-static void put_bytes(struct pprz_transport *trans, struct link_device *dev,
+static void put_bytes(struct pprz_transport *trans, struct link_device *dev, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
-                      uint8_t len, const void *bytes)
+                      const void *bytes, uint16_t len)
 {
   const uint8_t *b = (const uint8_t *) bytes;
   int i;
   for (i = 0; i < len; i++) {
-    put_1byte(trans, dev, b[i]);
+    accumulate_checksum(trans, b[i]);
   }
+  dev->put_buffer(dev->periph, fd, b, len);
 }
 
-static void put_named_byte(struct pprz_transport *trans, struct link_device *dev,
+static void put_named_byte(struct pprz_transport *trans, struct link_device *dev, long fd,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
 {
-  put_1byte(trans, dev, byte);
+  accumulate_checksum(trans, byte);
+  dev->put_byte(dev->periph, fd, byte);
 }
 
 static uint8_t size_of(struct pprz_transport *trans __attribute__((unused)), uint8_t len)
@@ -80,20 +81,20 @@ static uint8_t size_of(struct pprz_transport *trans __attribute__((unused)), uin
   return len + 4;
 }
 
-static void start_message(struct pprz_transport *trans, struct link_device *dev, uint8_t payload_len)
+static void start_message(struct pprz_transport *trans, struct link_device *dev, long fd, uint8_t payload_len)
 {
-  dev->put_byte(dev->periph, PPRZ_STX);
+  dev->put_byte(dev->periph, fd, PPRZ_STX);
   const uint8_t msg_len = size_of(trans, payload_len);
-  dev->put_byte(dev->periph, msg_len);
+  dev->put_byte(dev->periph, fd, msg_len);
   trans->ck_a_tx = msg_len;
   trans->ck_b_tx = msg_len;
 }
 
-static void end_message(struct pprz_transport *trans, struct link_device *dev)
+static void end_message(struct pprz_transport *trans, struct link_device *dev, long fd)
 {
-  dev->put_byte(dev->periph, trans->ck_a_tx);
-  dev->put_byte(dev->periph, trans->ck_b_tx);
-  dev->send_message(dev->periph);
+  dev->put_byte(dev->periph, fd, trans->ck_a_tx);
+  dev->put_byte(dev->periph, fd, trans->ck_b_tx);
+  dev->send_message(dev->periph, fd);
 }
 
 static void overrun(struct pprz_transport *trans __attribute__((unused)), struct link_device *dev)
@@ -107,9 +108,9 @@ static void count_bytes(struct pprz_transport *trans __attribute__((unused)), st
 }
 
 static int check_available_space(struct pprz_transport *trans __attribute__((unused)), struct link_device *dev,
-                                 uint8_t bytes)
+                                 long *fd, uint8_t bytes)
 {
-  return dev->check_free_space(dev->periph, bytes);
+  return dev->check_free_space(dev->periph, fd, bytes);
 }
 
 // Init pprz transport structure

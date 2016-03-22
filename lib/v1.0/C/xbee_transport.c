@@ -90,28 +90,29 @@
 
 /** Xbee protocol implementation */
 
-static void put_1byte(struct xbee_transport *trans, struct link_device *dev, const uint8_t byte)
+static void accumulate_checksum(struct xbee_transport *trans, const uint8_t byte)
 {
   trans->cs_tx += byte;
-  dev->put_byte(dev->periph, byte);
 }
 
-static void put_bytes(struct xbee_transport *trans, struct link_device *dev,
+static void put_bytes(struct xbee_transport *trans, struct link_device *dev, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
-                      uint8_t len, const void *bytes)
+                      const void *bytes, uint16_t len)
 {
   const uint8_t *b = (const uint8_t *) bytes;
   int i;
   for (i = 0; i < len; i++) {
-    put_1byte(trans, dev, b[i]);
+    accumulate_checksum(trans, b[i]);
   }
+  dev->put_buffer(dev->periph, fd, b, len);
 }
 
-static void put_named_byte(struct xbee_transport *trans, struct link_device *dev,
+static void put_named_byte(struct xbee_transport *trans, struct link_device *dev, long fd,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
 {
-  put_1byte(trans, dev, byte);
+  accumulate_checksum(trans, byte);
+  dev->put_byte(dev->periph, fd, byte);
 }
 
 static uint8_t size_of(struct xbee_transport *trans, uint8_t len)
@@ -124,28 +125,28 @@ static uint8_t size_of(struct xbee_transport *trans, uint8_t len)
   }
 }
 
-static void start_message(struct xbee_transport *trans, struct link_device *dev, uint8_t payload_len)
+static void start_message(struct xbee_transport *trans, struct link_device *dev, long fd, uint8_t payload_len)
 {
   dev->nb_msgs++;
-  dev->put_byte(dev->periph, XBEE_START);
+  dev->put_byte(dev->periph, fd, XBEE_START);
   const uint16_t len = payload_len + XBEE_API_OVERHEAD;
-  dev->put_byte(dev->periph, (len >> 8));
-  dev->put_byte(dev->periph, (len & 0xff));
+  dev->put_byte(dev->periph, fd, (len >> 8));
+  dev->put_byte(dev->periph, fd, (len & 0xff));
   trans->cs_tx = 0;
   if (trans->type == XBEE_24) {
     const uint8_t header[] = XBEE_24_TX_HEADER;
-    put_bytes(trans, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, XBEE_24_TX_OVERHEAD + 1, header);
+    put_bytes(trans, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, header, XBEE_24_TX_OVERHEAD + 1);
   } else {
     const uint8_t header[] = XBEE_868_TX_HEADER;
-    put_bytes(trans, dev, DL_TYPE_UINT8, DL_FORMAT_SCALAR, XBEE_868_TX_OVERHEAD + 1, header);
+    put_bytes(trans, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, header, XBEE_868_TX_OVERHEAD + 1);
   }
 }
 
-static void end_message(struct xbee_transport *trans, struct link_device *dev)
+static void end_message(struct xbee_transport *trans, struct link_device *dev, long fd)
 {
   trans->cs_tx = 0xff - trans->cs_tx;
-  dev->put_byte(dev->periph, trans->cs_tx);
-  dev->send_message(dev->periph);
+  dev->put_byte(dev->periph, trans->cs_tx, fd);
+  dev->send_message(dev->periph, fd);
 }
 
 static void overrun(struct xbee_transport *trans __attribute__((unused)),
@@ -160,10 +161,10 @@ static void count_bytes(struct xbee_transport *trans __attribute__((unused)),
   dev->nb_bytes += bytes;
 }
 
-static int check_available_space(struct xbee_transport *trans __attribute__((unused)), struct link_device *dev,
+static int check_available_space(struct xbee_transport *trans __attribute__((unused)), struct link_device *dev, long *fd,
                                  uint8_t bytes)
 {
-  return dev->check_free_space(dev->periph, bytes);
+  return dev->check_free_space(dev->periph, fd, bytes);
 }
 
 static bool xbee_text_reply_is_ok(struct link_device *dev)
@@ -190,7 +191,7 @@ static bool xbee_try_to_enter_api(struct link_device *dev, void (*wait)(uint32_t
 {
 
   /** Switching to AT mode (FIXME: busy waiting) */
-  print_string(dev, AT_COMMAND_SEQUENCE);
+  print_string(dev, 0, AT_COMMAND_SEQUENCE);
 
   /** - busy wait 1.25s */
   if (wait != NULL) {
@@ -250,9 +251,9 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
         if (xbee_try_to_enter_api(dev, wait)) {
           // The alternate baudrate worked,
           if (alternate == 9600) {
-            print_string(dev, "ATBD6\rATWR\r");
+            print_string(dev, 0, "ATBD6\rATWR\r");
           } else if (alternate == 57600) {
-            print_string(dev, "ATBD3\rATWR\r");
+            print_string(dev, 0, "ATBD3\rATWR\r");
           }
         } else {
           // Complete failure, none of the 2 baudrates result in any reply
@@ -260,26 +261,26 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
 
           // Set the default baudrate, just in case everything is right
           dev->set_baudrate(dev->periph, baudrate);
-          print_string(dev, "\r");
+          print_string(dev, 0, "\r");
         }
         // Continue changing settings until the EXIT is issued.
       }
     }
 
     /** Setting my address */
-    print_string(dev, AT_SET_MY);
-    print_hex16(dev, addr);
-    print_string(dev, "\r");
+    print_string(dev, 0, AT_SET_MY);
+    print_hex16(dev, 0, addr);
+    print_string(dev, 0, "\r");
 
-    print_string(dev, AT_AP_MODE);
+    print_string(dev, 0, AT_AP_MODE);
 
     // Extra configuration AT commands
     if (xbee_init != NULL) {
-      print_string(dev, xbee_init);
+      print_string(dev, 0, xbee_init);
     }
 
     // Switching back to normal mode (and apply all parameters' changes)
-    print_string(dev, AT_EXIT);
+    print_string(dev, 0, AT_EXIT);
 
     // Set the desired baudrate for normal operation
     if (baudrate > 0) {
