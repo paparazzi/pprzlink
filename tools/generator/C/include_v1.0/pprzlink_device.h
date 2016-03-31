@@ -36,7 +36,7 @@
  * they are used to cast the real functions with the correct type
  * to store in the device structure
  */
-typedef int (*check_free_space_t)(void *, long *, uint8_t);
+typedef int (*check_free_space_t)(void *, long *, uint16_t);
 typedef void (*put_byte_t)(void *, long, uint8_t);
 typedef void (*put_buffer_t)(void *, long, const uint8_t *, uint16_t);
 typedef void (*send_message_t)(void *, long);

@@ -162,7 +162,7 @@ static void count_bytes(struct xbee_transport *trans __attribute__((unused)),
 }
 
 static int check_available_space(struct xbee_transport *trans __attribute__((unused)), struct link_device *dev, long *fd,
-                                 uint8_t bytes)
+                                 uint16_t bytes)
 {
   return dev->check_free_space(dev->periph, fd, bytes);
 }

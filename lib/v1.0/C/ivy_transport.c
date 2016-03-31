@@ -164,7 +164,7 @@ static void count_bytes(struct ivy_transport *trans __attribute__((unused)), str
 }
 
 static int check_available_space(struct ivy_transport *trans __attribute__((unused)),
-                                 struct link_device *dev __attribute__((unused)), long *fd __attribute__((unused)), uint8_t bytes __attribute__((unused)))
+                                 struct link_device *dev __attribute__((unused)), long *fd __attribute__((unused)), uint16_t bytes __attribute__((unused)))
 {
   return 1;
 }

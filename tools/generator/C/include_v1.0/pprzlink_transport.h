@@ -75,7 +75,7 @@ enum TransportDataFormat {
  * to store in the transport structure
  */
 typedef uint8_t (*size_of_t)(void *, uint8_t);
-typedef int (*check_available_space_t)(void *, struct link_device *, long *, uint8_t);
+typedef int (*check_available_space_t)(void *, struct link_device *, long *, uint16_t);
 typedef void (*put_bytes_t)(void *, struct link_device *, long, enum TransportDataType, enum TransportDataFormat,
                             const void *, uint16_t);
 typedef void (*put_named_byte_t)(void *, struct link_device *, long, enum TransportDataType, enum TransportDataFormat,
