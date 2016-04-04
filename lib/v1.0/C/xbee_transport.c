@@ -145,7 +145,7 @@ static void start_message(struct xbee_transport *trans, struct link_device *dev,
 static void end_message(struct xbee_transport *trans, struct link_device *dev, long fd)
 {
   trans->cs_tx = 0xff - trans->cs_tx;
-  dev->put_byte(dev->periph, trans->cs_tx, fd);
+  dev->put_byte(dev->periph, fd, trans->cs_tx);
   dev->send_message(dev->periph, fd);
 }
 
