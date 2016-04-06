@@ -2885,6 +2885,11 @@
 
 
   <msg_class name="intermcu">
+
+	<!-- KEEP INTERMCU MESSAGES BELOW 8 BYTES PER MESSAGES
+		 TO ALLOW TRANSFER OVER CAN BUS -->
+
+
     <message name="IMCU_COMMANDS" id="1">
       <field name="status" type="uint8"/>
       <field name="values" type="int16[]"/>
@@ -2894,9 +2899,42 @@
       <field name="status" type="uint8"/>
       <field name="values" type="int16[]"/>
     </message>
-    
+
    <message name="IMCU_SPEKTRUM_SOFT_BIND" id="3"/>
-      
+
+  <message name="IMCU_FBW_STATUS" id="4">
+    <field name="mode" type="uint8" values="MANUAL|AUTO|FAILSAFE"/>
+    <field name="rc_status" type="uint8" values="OK|LOST|REALLY_LOST"/>
+    <field name="frame_rate" type="uint8" unit="Hz"/>
+    <field name="vsupply" type="uint16" unit="decivolt"/>
+    <field name="current" type="int32" unit="mA"/>
+  </message>
+
+   <message name="IMCU_REMOTE_MAG" id="10">
+     <field name="mag_x" type="int16">RAW Magnetometer Data</field>
+     <field name="mag_y" type="int16"/>
+     <field name="mag_z" type="int16"/>
+   </message>
+
+   <message name="IMCU_REMOTE_BARO" id="11">
+     <field name="pitot_stat" type="float" unit="Pa">Static Barometric Pressure in Pascal</field>
+     <field name="pitot_temp" type="float"  unit="C">Pressure Sensor Temperature</field>
+   </message>
+
+   <message name="IMCU_REMOTE_AIRSPEED" id="12">
+     <field name="pitot_IAS"  type="float"  unit="m/s">Indicated Airspeed</field>
+   </message>
+
+   <message name="IMCU_REMOTE_GROUND" id="15">
+     <field name="mode" type="uint8" values="SWITCH|SONAR|LASER|INFRARED"/>
+     <field name="id" type="uint8">Sensor ID</field>
+     <field name="range" type="uint16" unit="cm"/>
+   </message>
+
+   <message name="PAYLOAD" id="114">
+     <field name="values" type="uint8[]" unit="none"/>
+   </message>
+
   </msg_class>
 
 </protocol>
