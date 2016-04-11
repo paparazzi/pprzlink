@@ -23,7 +23,6 @@ Add Libraries to the Search Path
     # if PAPARAZZI_SRC not set, then assume the tree containing this file is a reasonable substitute
     PPRZ_SRC = getenv("PAPARAZZI_SRC", path.normpath(path.join(path.dirname(path.abspath(__file__)), '~/paparazzi/')))
 
-    sys.path.append(PPRZ_SRC + "/sw/lib/python")
     sys.path.append(PPRZ_SRC + "/sw/ext/pprzlink/lib/v1.0/python")
 
     from ivy_msg_interface  import IvyMessagesInterface
@@ -103,6 +102,8 @@ Messages are defined in the [messages.xml](https://github.com/paparazzi/pprzlink
 - ground
 - alert
 - intermcu
+
+Please reference [Paparazzi Messages Document](http://docs.paparazziuav.org/latest/paparazzi_messages.html) for a more detailed overview. 
 
 ### Message Classes
 
