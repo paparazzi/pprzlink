@@ -4,17 +4,60 @@
 
 PPRZLINK is a messages toolkit (message definition, code generators, libraries) to be used with [Paparazzi UAV System] (https://paparazziuav.org) and compatible systems. One tool that uses PPRZLINK is the [Flying Robot Commander](https://github.com/paparazzi/flyingrobotcommander), a web based, RESTful application for controlling multiple aircraft.
 
+## Documentation
+
+Documentation is in the [doc](doc) subdirectory and can be viewed on https://pprzlink.readthedocs.org
+
+To build the docs locally:
+
+    sudo pip install sphinx sphinx-autobuild phinx_rtd_theme
+    cd doc && make html
+
 ## Libraries
 
 PPRZLINK libraries are available for the following programming languages: 
 
-- [C](https://github.com/hooperfly/pprzlink/tree/master/lib/v1.0/C)
-- [ocaml](https://github.com/hooperfly/pprzlink/tree/master/lib/v1.0/ocaml)
-- [python](https://github.com/hooperfly/pprzlink/tree/master/lib/v1.0/python)
+- [C](lib/v1.0/C)
+- [ocaml](lib/v1.0/ocaml)
+- [python](lib/v1.0/python)
+
+## Messages
+
+Messages are defined in the [messages.xml](message_definitions/v1.0/messages.xml) file and are grouped into the following message classes:
+
+- telemetry
+- datalink
+- ground
+- alert
+- intermcu
+
+Please reference [Paparazzi Messages Document](http://docs.paparazziuav.org/latest/paparazzi_messages.html) for a more detailed overview. 
+
+### Message Classes
+
+**Telemetry**
+
+Telemetry messages are sent from the aircraft to the ground and are defined in the `telemetry` class of the [messages.xml](message_definitions/v1.0/messages.xml) file.
+
+**Datalink**
+
+Datalink messages are sent from the ground to the aircraft and are defined in the `datalink` class of the [messages.xml](master/message_definitions/v1.0/messages.xml) file.
+
+**Ground**
+
+Ground messages are sent to the ground network agents(GCS, server, link, etc...) and are defined in the `ground` class of the [messages.xml](master/message_definitions/v1.0/messages.xml) file.
+
+**Alert**
+
+TBD
+
+**InterMCU**
+
+TBD
 
 ## Python Library
 
-The [python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy_msg_interface.py](https://github.com/paparazzi/pprzlink/blob/master/lib/v1.0/python/ivy_msg_interface.py). There is also a serial version of the interface in [serial_msg_interface.py](https://github.com/paparazzi/pprzlink/blob/master/lib/v1.0/python/serial_msg_interface.py).
+The [python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy_msg_interface.py](lib/v1.0/python/pprzlink/ivy_msg_interface.py). There is also a serial version of the interface in [serial_msg_interface.py](lib/v1.0/python/pprzlink/serial_msg_interface.py).
 
 ### Ivy Message Call Sequence
 
@@ -25,7 +68,7 @@ Add Libraries to the Search Path
 
     sys.path.append(PPRZ_SRC + "/sw/ext/pprzlink/lib/v1.0/python")
 
-    from ivy_msg_interface  import IvyMessagesInterface
+    from pprzlink.ivy_msg_interface  import IvyMessagesInterface
     from pprzlink.message   import PprzMessage
     ...
 
@@ -63,7 +106,6 @@ It's easy to construct messages to send over the ivy message bus. Here are a few
 **Datalink Message**
 
     def guidance(ac_id, flag, x, y, z, yaw):
-
         msg = PprzMessage("datalink", "GUIDED_SETPOINT_NED")
         msg['ac_id'] = ac_id
         msg['flags'] = flag
@@ -74,55 +116,19 @@ It's easy to construct messages to send over the ivy message bus. Here are a few
 
         ivy_interface.send_raw_datalink(msg)
 
-        return 'Guidance: ac_id=%d, flag=%d, x=%s, y=%s, z=%s, yaw=%s\n' % (ac_id, flag, x, y, z, yaw)
 
 
 **Ground Message**
 
     def flightblock(ac_id, fb_id):
-
         msg = PprzMessage("ground", "JUMP_TO_BLOCK")
         msg['ac_id']    = ac_id
         msg['block_id'] = fb_id
 
         ivy_interface.send(msg)
 
-        return 'Flightblock: ac_id=%d, fb_id=%d\n' % (ac_id, fb_id)
-
 ### Subscribing to Ivy Messages
 
 TBD - Describe how to subscribe to message classes 
 
-## Messages
 
-Messages are defined in the [messages.xml](https://github.com/paparazzi/pprzlink/blob/master/message_definitions/v1.0/messages.xml) file and are grouped into the following message classes:
-
-- telemetry
-- datalink
-- ground
-- alert
-- intermcu
-
-Please reference [Paparazzi Messages Document](http://docs.paparazziuav.org/latest/paparazzi_messages.html) for a more detailed overview. 
-
-### Message Classes
-
-**Telemetry**
-
-Telemetry messages are sent from the aircraft to the ground and are defined in the `telemetry` class of the [messages.xml](https://github.com/paparazzi/pprzlink/blob/master/message_definitions/v1.0/messages.xml) file.
-
-**Datalink**
-
-Datalink messages are sent from the ground to the aircraft and are defined in the `datalink` class of the [messages.xml](https://github.com/paparazzi/pprzlink/blob/master/message_definitions/v1.0/messages.xml) file.
-
-**Ground**
-
-Ground messages are sent to the ground network agents(GCS, server, link, etc...) and are defined in the `ground` class of the [messages.xml](https://github.com/paparazzi/pprzlink/blob/master/message_definitions/v1.0/messages.xml) file.
-
-**Alert**
-
-TBD
-
-**InterMCU**
-
-TBD
