@@ -1,5 +1,5 @@
 Serial Interface
 ================
 
-.. autoclass:: serial_msg_interface.SerialMessagesInterface
+.. autoclass:: pprzlink.serial_msg_interface.SerialMessagesInterface
 	:members:

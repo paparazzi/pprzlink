@@ -4,11 +4,14 @@ from __future__ import absolute_import, print_function
 
 import os
 
-# if PAPARAZZI_HOME not set, then assume the tree containing this
-# file is a reasonable substitute
-PPRZ_HOME = os.getenv("PAPARAZZI_HOME", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                      '../../../../../../..')))
-default_messages_file = '%s/var/messages.xml' % PPRZ_HOME
+# if PAPARAZZI_HOME is set use $PAPARAZZI_HOME/var/messages.xml
+# else use messages.xml from pprzlink message_definitions directly
+PPRZ_HOME = os.getenv("PAPARAZZI_HOME")
+if PPRZ_HOME is not None:
+    default_messages_file = '%s/var/messages.xml' % PPRZ_HOME
+else:
+    default_messages_file = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                          "../../../../message_definitions/v1.0/messages.xml"))
 
 message_dictionary = {}
 message_dictionary_types = {}

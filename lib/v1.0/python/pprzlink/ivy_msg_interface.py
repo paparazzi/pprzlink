@@ -8,14 +8,8 @@ import sys
 import re
 import platform
 
-# if PPRZLINK_LIB not set, then assume the tree containing this
-# file is a reasonable substitute
-PPRZLINK_LIB = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '../../../')))
-sys.path.append(PPRZLINK_LIB + "/lib/v1.0/python")
-
-from pprzlink.message import PprzMessage
-from pprzlink import messages_xml_map
+from .message import PprzMessage
+from . import messages_xml_map
 
 
 if os.getenv('IVY_BUS') is not None:
@@ -108,7 +102,7 @@ class IvyMessagesInterface(object):
         """
         Parse an Ivy message into a PprzMessage.
         Basically parts/args in string are separated by space, but char array can also contain a space:
-        |f,o,o, ,b,a,r| in old format or "foo bar" in new format
+        ``|f,o,o, ,b,a,r|`` in old format or ``"foo bar"`` in new format
 
         :param callback: function to call with ac_id and parsed PprzMessage as params
         :param ivy_msg: Ivy message string to parse into PprzMessage
