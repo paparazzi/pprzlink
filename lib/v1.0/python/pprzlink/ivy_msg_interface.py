@@ -71,6 +71,7 @@ class IvyMessagesInterface(object):
     def bind_raw(self, callback, regex='(.*)'):
         """
         Bind callback to Ivy messages matching regex (without any extra parsing)
+
         :param callback: function called on new message with agent, message, from as params
         :param regex: regular expression for matching message
         """
@@ -87,6 +88,7 @@ class IvyMessagesInterface(object):
         """
         Subscribe to Ivy message matching regex and call callback with ac_id and PprzMessage
         TODO: possibility to directly specify PprzMessage instead of regex
+
         :param callback: function called on new message with ac_id and PprzMessage as params
         :param regex: regular expression for matching message
         """
@@ -156,6 +158,7 @@ class IvyMessagesInterface(object):
     def send_raw_datalink(self, msg):
         """
         Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
+
         :param msg: PprzMessage
         :returns: Number of clients the message sent to, None if msg was invalid
         """
@@ -173,6 +176,7 @@ class IvyMessagesInterface(object):
     def send(self, msg, ac_id=None):
         """
         Send a message
+
         :param msg: PprzMessage or simple string
         :param ac_id: Needed if sending a PprzMessage of telemetry msg_class
         :returns: Number of clients the message sent to, None if msg was invalid
