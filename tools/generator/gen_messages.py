@@ -61,10 +61,10 @@ def gen_messages(opts) :
     # Process XML file, validating as necessary.
     validation_result = 0
     if opts.validate:
-        print("Validating %s" % fname)
+        print("Validating msg_class %s in %s" % (opts.class_name, fname))
         validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
     else:
-        print("Validation skipped for %s." % fname)
+        print("Validation skipped for msg_class %s in %s." % (opts.class_name, fname))
 
     print("Parsing %s" % fname)
     xml = pprz_parse.PPRZXML(fname, opts.class_name, opts.protocol)
@@ -72,8 +72,8 @@ def gen_messages(opts) :
     if pprz_parse.check_duplicates(xml):
         sys.exit(1)
 
-    print("Found %u PPRZLink message types in XML file %s" % (
-        pprz_parse.total_msgs(xml), fname))
+    print("Found %u PPRZLink messages of msg_class %s in XML file %s" % (
+        pprz_parse.total_msgs(xml), opts.class_name, fname))
 
     if opts.only_validate:
         sys.exit(validation_result)
