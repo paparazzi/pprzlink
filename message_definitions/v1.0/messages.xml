@@ -2931,10 +2931,6 @@
      <field name="range" type="uint16" unit="cm"/>
    </message>
 
-   <message name="PAYLOAD" id="114">
-     <field name="values" type="uint8[]" unit="none"/>
-   </message>
-
   </msg_class>
 
 </protocol>
