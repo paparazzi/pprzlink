@@ -68,7 +68,7 @@ gen_messages: generators pre_messages_dir
 	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
 
 post_messages_install:
-	@echo 'Copy extra lib files'
+	@echo 'Copy extra lib files to $(MESSAGES_INSTALL)'
 	$(Q)cp $(MESSAGES_XML) $(MESSAGES_DTD) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
