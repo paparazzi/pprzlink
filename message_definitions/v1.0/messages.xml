@@ -1952,7 +1952,15 @@
     <field name="AMSL_GPS" type="float" unit="ft" alt_unit="m"/>
   </message>
 
- <!--224 is free -->
+ <message name="DIVERGENCE" id="224">
+    <field name="divergence"                type="float"/>
+    <field name="divergence_vision"         type="float"/>
+    <field name="normalized_thrust"         type="float"/>
+    <field name="cov_div"		    type="float"/>
+    <field name="pstate" 		    type="float"/>
+    <field name="pused" 		    type="float"/>
+    <field name="sonar" 		    type="float"/>
+ </message>
 
   <message name="VIDEO_SYNC" id="225">
     <field name="id" type="uint8"/>
