@@ -1106,16 +1106,17 @@
   </message>
 
   <message name="RATE_LOOP" id="136">
-    <field name="sp_p" type="int32"/>
-    <field name="sp_q" type="int32"/>
-    <field name="sp_r" type="int32"/>
-    <field name="sumerr_p" type="int32"/>
-    <field name="sumerr_q" type="int32"/>
-    <field name="sumerr_r" type="int32"/>
-    <field name="fb_p" type="int32"/>
-    <field name="fb_q" type="int32"/>
-    <field name="fb_r" type="int32"/>
-    <field name="delta_t" type="int32"/>
+    <description>Rotorcraft rate control loop.</description>
+    <field name="sp_p"     type="float" unit="rad/s" alt_unit="deg/s">rate setpoint</field>
+    <field name="sp_q"     type="float" unit="rad/s" alt_unit="deg/s">rate setpoint</field>
+    <field name="sp_r"     type="float" unit="rad/s" alt_unit="deg/s">rate setpoint</field>
+    <field name="sumerr_p" type="float">integrated quaternion error</field>
+    <field name="sumerr_q" type="float">integrated quaternion error</field>
+    <field name="sumerr_r" type="float">integrated quaternion error</field>
+    <field name="fb_p"     type="float">feedback command on pitch (pprz scale)</field>
+    <field name="fb_q"     type="float">feedback command on roll  (pprz scale)</field>
+    <field name="fb_r"     type="float">feedback command on yaw   (pprz scale)</field>
+    <field name="delta_t"  type="int32">thrust command</field>
   </message>
 
   <message name="FILTER_ALIGNER" id="137">
