@@ -8,14 +8,8 @@ import sys
 import re
 import platform
 
-# if PPRZLINK_LIB not set, then assume the tree containing this
-# file is a reasonable substitute
-PPRZLINK_LIB = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '../../../')))
-sys.path.append(PPRZLINK_LIB + "/lib/v1.0/python")
-
-from pprzlink.message import PprzMessage
-from pprzlink import messages_xml_map
+from .message import PprzMessage
+from . import messages_xml_map
 
 
 if os.getenv('IVY_BUS') is not None:
@@ -77,6 +71,7 @@ class IvyMessagesInterface(object):
     def bind_raw(self, callback, regex='(.*)'):
         """
         Bind callback to Ivy messages matching regex (without any extra parsing)
+
         :param callback: function called on new message with agent, message, from as params
         :param regex: regular expression for matching message
         """
@@ -93,6 +88,7 @@ class IvyMessagesInterface(object):
         """
         Subscribe to Ivy message matching regex and call callback with ac_id and PprzMessage
         TODO: possibility to directly specify PprzMessage instead of regex
+
         :param callback: function called on new message with ac_id and PprzMessage as params
         :param regex: regular expression for matching message
         """
@@ -108,7 +104,7 @@ class IvyMessagesInterface(object):
         """
         Parse an Ivy message into a PprzMessage.
         Basically parts/args in string are separated by space, but char array can also contain a space:
-        |f,o,o, ,b,a,r| in old format or "foo bar" in new format
+        ``|f,o,o, ,b,a,r|`` in old format or ``"foo bar"`` in new format
 
         :param callback: function to call with ac_id and parsed PprzMessage as params
         :param ivy_msg: Ivy message string to parse into PprzMessage
@@ -162,6 +158,7 @@ class IvyMessagesInterface(object):
     def send_raw_datalink(self, msg):
         """
         Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
+
         :param msg: PprzMessage
         :returns: Number of clients the message sent to, None if msg was invalid
         """
@@ -179,6 +176,7 @@ class IvyMessagesInterface(object):
     def send(self, msg, ac_id=None):
         """
         Send a message
+
         :param msg: PprzMessage or simple string
         :param ac_id: Needed if sending a PprzMessage of telemetry msg_class
         :returns: Number of clients the message sent to, None if msg was invalid

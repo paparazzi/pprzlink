@@ -2,18 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 import threading
 import serial
-import os
-import sys
 
-# if PPRZLINK_LIB not set, then assume the tree containing this
-# file is a reasonable substitute
-PPRZ_SRC = os.getenv("PPRZLINK_LIB", os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '../../../')))
-sys.path.append(PPRZ_SRC + "/lib/v1.0/python")
-
-from pprzlink.message import PprzMessage
-from pprzlink.pprz_transport import PprzTransport
-import pprzlink.messages_xml_map
+from .message import PprzMessage
+from .pprz_transport import PprzTransport
 
 
 class SerialMessagesInterface(threading.Thread):
@@ -73,6 +64,7 @@ class SerialMessagesInterface(threading.Thread):
 def test():
     import time
     import argparse
+    from . import messages_xml_map
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", help="path to messages.xml file")
@@ -80,7 +72,7 @@ def test():
     parser.add_argument("-d", "--device", help="device name", dest='dev', default='/dev/ttyUSB0')
     parser.add_argument("-b", "--baudrate", help="baudrate", dest='baud', default=115200, type=int)
     args = parser.parse_args()
-    pprzlink.messages_xml_map.parse_messages(args.file)
+    messages_xml_map.parse_messages(args.file)
     serial_interface = SerialMessagesInterface(lambda s, m: print("new message from %i: %s" % (s, m)), device=args.dev,
                                                baudrate=args.baud, msg_class=args.msg_class, verbose=True)
 
