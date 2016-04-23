@@ -1952,7 +1952,15 @@
     <field name="AMSL_GPS" type="float" unit="ft" alt_unit="m"/>
   </message>
 
- <!--224 is free -->
+ <message name="DIVERGENCE" id="224">
+    <field name="divergence" type="float"> vertical velocity / height from optitrack (unit = 1/sec)</field>
+    <field name="divergence_vision" type="float"> vertical velocity / height from vision (unit = 1/sec)</field>
+    <field name="normalized_thrust" type="float"> thrust / max thrust paparazzi (-)</field>
+    <field name="cov_div" type="float"> covariance of divergence and thrust, or past divergence depending on the mode (-)</field>
+    <field name="pstate" type="float"> gain state in adaptive gain control: indicative of height (-) </field>
+    <field name="pused" type="float"> gain used for control, includes the effect of the p-gain of adaptive control (-) </field>
+    <field name="sonar" type="float"> measurement from the sonar (mm)</field>
+ </message>
 
   <message name="VIDEO_SYNC" id="225">
     <field name="id" type="uint8"/>
