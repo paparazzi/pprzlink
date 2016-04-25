@@ -1572,14 +1572,17 @@
 
 
   <message name="AEROPROBE" id="179">
-     <field name="counter"    type="uint32"/>
-     <field name="velocity"   type="int16"  unit="cm/s" alt_unit="m/s"/>
-     <field name="a_attack"   type="int16"  unit="centideg" alt_unit="deg"/>
-     <field name="a_sidesl"   type="int16"  unit="centideg" alt_unit="deg"/>
-     <field name="altitude"   type="int32"  unit="cm" alt_unit="m"/>
-     <field name="dynamic_p"  type="int32"  unit="Pa"/>
-     <field name="static_p"   type="int32"  unit="Pa"/>
-     <field name="checksum"   type="uint8"/>
+    <description>
+      Airflow data returned by OTF and uADC 3D probes from Aeroprobe.
+    </description>
+    <field name="counter"    type="uint32"/>
+    <field name="velocity"   type="int16"  unit="cm/s" alt_unit="m/s"/>
+    <field name="a_attack"   type="int16"  unit="centideg" alt_unit="deg"/>
+    <field name="a_sideslip" type="int16"  unit="centideg" alt_unit="deg"/>
+    <field name="altitude"   type="int32"  unit="cm" alt_unit="m"/>
+    <field name="dynamic_p"  type="int32"  unit="Pa"/>
+    <field name="static_p"   type="int32"  unit="Pa"/>
+    <field name="checksum"   type="uint8"/>
   </message>
 
   <message name="FMS_TIME" id="180">
