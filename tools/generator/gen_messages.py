@@ -38,7 +38,7 @@ def gen_messages(opts) :
     # Enable validation by default, disabling it if explicitly requested
     if opts.validate:
         try:
-            #from lib.genxmlif import GenXmlIfError
+            from lib.genxmlif import GenXmlIfError
             from lib.minixsv import pyxsval
         except:
             print("WARNING: Unable to load XML validator libraries. XML validation will not be performed")
@@ -50,10 +50,10 @@ def gen_messages(opts) :
         # use default values of minixsv, location of the schema file must be specified in the XML file
         try:
             domTreeWrapper = pyxsval.parseAndValidate(fname, xsdFile=schema, errorLimit=errorLimitNumber)
-        except pyxsval.XsvalError, errstr:
+        except pyxsval.XsvalError as errstr:
             print(errstr)
             return 1
-        except GenXmlIfError, errstr:
+        except GenXmlIfError as errstr:
             print(errstr)
             return 1
         return 0
