@@ -2504,15 +2504,15 @@
     <field name="yaw"         type="int8"/>
   </message>
 
-  <message name="REMOTE_GPS_SMALL" id="54" link="broadcasted">
-    <field name="ac_id"   type="uint8"/>
-    <field name="numsv"   type="uint8"/>
-    <field name="pos_xyz"  type="uint32" unit="cm">bits 31-21 x position in cm : bits 20-10 y position in cm : bits 9-0 z position in cm</field>
-    <field name="speed_xyz"  type="uint32" unit="cm/s">bits 31-21 speed x in cm/s : bits 20-10 speed y in cm/s : bits 9-0 speed z in cm/s</field>
-    <field name="heading"   type="int16" unit="rad*1e4"/>
+  <message name="REMOTE_GPS_SMALL" id="54" link="forwarded">
+    <field name="heading"   type="int16"  unit="rad*1e4"/>
+    <field name="pos_xyz"  	type="uint32" unit="cm">bits 31-21 x position in cm : bits 20-10 y position in cm : bits 9-0 z position in cm</field>
+    <field name="speed_xyz" type="uint32" unit="cm/s">bits 31-21 speed x in cm/s : bits 20-10 speed y in cm/s : bits 9-0 speed z in cm/s</field>
+    <field name="tow"   	type="uint32" unit="ms" alt_unit="m"/>
+    <field name="ac_id"   	type="uint8"/>
   </message>
 
-  <message name="REMOTE_GPS" id="55" link="broadcasted">
+  <message name="REMOTE_GPS" id="55" link="forwarded">
     <field name="ac_id"   type="uint8"/>
     <field name="numsv"   type="uint8"/>
     <field name="ecef_x"  type="int32" unit="cm"   alt_unit="m"/>
