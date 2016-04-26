@@ -219,8 +219,9 @@
     <field name="south" type="float" unit="m"/>
   </message>
 
-  <message name="WC_RSSI" id="28">
-    <field name="raw_level" type="uint8"/>
+  <message name="RSSI" id="28">
+    <field name="rssi" type="uint8" unit="dB"/>
+    <field name="tx_power" type="uint8" unit="dB"/>
   </message>
 
   <message name="RANGEFINDER" id="29">
