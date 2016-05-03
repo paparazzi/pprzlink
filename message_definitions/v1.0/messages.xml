@@ -2959,6 +2959,11 @@
      <field name="range" type="uint16" unit="cm"/>
    </message>
 
+   <message name="IMCU_TELEMETRY" id="114">
+     <field name="msg_id" type="uint8"/>
+     <field name="msg" type="uint8[]"/>
+   </message>
+
   </msg_class>
 
 </protocol>
