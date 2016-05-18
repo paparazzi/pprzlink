@@ -41,6 +41,10 @@
 #ifndef PPRZ_TRANSPORT_H
 #define PPRZ_TRANSPORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include "pprzlink/pprzlink_transport.h"
@@ -74,6 +78,10 @@ extern void pprz_check_and_parse(struct link_device *dev, struct pprz_transport 
 // Parsing function, only needed for modules doing their own parsing
 // without using the pprz_check_and_parse function
 extern void parse_pprz(struct pprz_transport *t, uint8_t c);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* PPRZ_TRANSPORT_H */
 

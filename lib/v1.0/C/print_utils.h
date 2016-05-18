@@ -28,6 +28,10 @@
 #ifndef PRINT_UTILS_H
 #define PRINT_UTILS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "pprzlink/pprzlink_device.h"
 
 static inline void print_string(struct link_device *dev, long fd, char *s)
@@ -65,6 +69,10 @@ static inline void print_hex32(struct link_device *dev, long fd, uint32_t c)
   print_hex16(dev, fd, high32);
   print_hex16(dev, fd, low32);
 }
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* PRINT_UTILS_H */
 

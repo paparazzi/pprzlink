@@ -30,6 +30,10 @@
 #ifndef IVY_TRANSPORT_H
 #define IVY_TRANSPORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
 
@@ -46,6 +50,10 @@ struct ivy_transport {
 
 // Init function
 extern void ivy_transport_init(struct ivy_transport *t);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif // IVY_TRANSPORT_H
 

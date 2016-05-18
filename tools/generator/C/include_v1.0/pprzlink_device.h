@@ -27,6 +27,10 @@
 #ifndef PPRZLINK_DEVICE_H
 #define PPRZLINK_DEVICE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <inttypes.h>
 
@@ -61,6 +65,10 @@ struct link_device {
   uint32_t nb_bytes;                    ///< The number of bytes send
 
 };
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif // PPRZLINK_DEVICE_H
 

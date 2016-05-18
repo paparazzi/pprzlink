@@ -27,6 +27,10 @@
 #ifndef PPRZLINK_TRANSPORT_H
 #define PPRZLINK_TRANSPORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include "pprzlink_device.h"
@@ -98,6 +102,10 @@ struct transport_tx {
   count_bytes_t count_bytes;                      ///< count bytes to send
   void *impl;                                     ///< pointer to parent implementation
 };
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* PPRZLINK_TRANSPORT_H */
 

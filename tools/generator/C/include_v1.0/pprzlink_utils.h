@@ -33,6 +33,10 @@
 #ifndef PPRZLINK_UTILS_H
 #define PPRZLINK_UTILS_H
 
+ #ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 
 #ifdef __IEEE_BIG_ENDIAN /* From machine/ieeefp.h */
@@ -170,5 +174,9 @@ typedef union __attribute__((packed)) {
 #define _PPRZ_VAL_fixed_len_aligned(_len) (0)
 
 #endif // PPRZLINK_UNALIGNED_ACCESS
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif // PPRZLINK_UTILS_H
