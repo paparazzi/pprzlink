@@ -29,6 +29,10 @@
 #ifndef PPRZLOG_TRANSPORT_H
 #define PPRZLOG_TRANSPORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "pprzlink/pprzlink_transport.h"
 
 typedef uint32_t (*get_time_usec_t)(void);
@@ -44,6 +48,10 @@ struct pprzlog_transport {
 
 // Init function
 extern void pprzlog_transport_init(struct pprzlog_transport *t, uint32_t (*get_time_usec_t)(void));
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif
 
