@@ -2598,6 +2598,14 @@
     <field name="data" type="uint8[]"/>
   </message>
 
+  <message name="VIDEO_SELECTED" id="155" link="broadcasted" >
+    <field name="startx" type="int32"/>
+    <field name="starty" type="int32"/>
+    <field name="width" type="int32"/>
+    <field name="height" type="int32"/>
+    <field name="downsized_width" type="int32"/>
+  </message>
+
 </msg_class>
 
 
