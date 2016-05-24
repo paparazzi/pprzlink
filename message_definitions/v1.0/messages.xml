@@ -2598,6 +2598,15 @@
     <field name="data" type="uint8[]"/>
   </message>
 
+  <message name="VIDEO_ROI" id="155" link="forwarded" >
+    <field name="ac_id" type="uint8">The aircraft in which video stream you clicked </field>
+    <field name="startx" type="int32">The x of the upper left corner of the selected area</field>
+    <field name="starty" type="int32">The y of the upper left corner of the selected area </field>
+    <field name="width" type="int32">The width of the selected area </field>
+    <field name="height" type="int32">The height of the selected area </field>
+    <field name="downsized_width" type="int32">The width of the image you received. Added because a module the receives this message does not know how big the image was that was broadcasted </field>
+  </message>
+
 </msg_class>
 
 
