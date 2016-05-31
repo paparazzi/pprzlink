@@ -2137,9 +2137,7 @@
     <field name="cpu_load"    type="uint8" unit="%">Global CPU load</field>
     <field name="core_free"   type="uint32">Core free memory</field>
     <field name="heap_free"   type="uint32">Heap free memory</field>
-    <field name="th_load"     type="uint8[]">Individual threads load</field>
   </message>
-
 
   <message name="PPRZ_DEBUG" id="247">
     <field name="module"   type="uint8"/>
