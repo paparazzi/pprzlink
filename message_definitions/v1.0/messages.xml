@@ -2129,8 +2129,15 @@
     <field name="motor_id"    type="uint8">Motor ID</field>
   </message>
 
-  <!-- 246 is free -->
-
+  <message name="RTOS_MON" id="246">
+    <description>
+      RTOS monitoring
+    </description>
+    <field name="nb_threads"  type="uint8">Number of running threads</field>
+    <field name="cpu_load"    type="uint8" unit="%">Global CPU load</field>
+    <field name="core_free"   type="uint32" unit="Bytes">Core free memory</field>
+    <field name="heap_free"   type="uint32" unit="Bytes">Heap free memory</field>
+  </message>
 
   <message name="PPRZ_DEBUG" id="247">
     <field name="module"   type="uint8"/>
