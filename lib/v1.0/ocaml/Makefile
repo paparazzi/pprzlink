@@ -33,7 +33,8 @@ endif
 
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-
+CAMLP4_DEFS = -DHAS_BYTES_MODULE
+PP_OPTS = -pp "camlp4o pa_macro.cmo $(CAMLP4_DEFS)"
 #
 # NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
 # see http://caml.inria.fr/mantis/view.php?id=5503
