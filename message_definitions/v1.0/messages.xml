@@ -2477,19 +2477,20 @@
   <message name="GUIDED_SETPOINT_NED" id="40" link="forwarded">
     <description>
       Set vehicle position or velocity in NED.
-      Frame can be specified with the bits 0-3 in the flags field:
-      0x0: LOCAL_NED
-      0x1: LOCAL_OFFSET_NED
-      0x2: BODY_NED
-      0x3: BODY_OFFSET_NED
-      Bits 4-7 in the flag field can be used to enable velocity control on specifc fields:
-      bit 4: x as velocity
-      bit 5: y as velocity
-      bit 6: z as velocity
-      bit 7: yaw as rate
+      Frame can be specified with the bits 0-3
+      Velocity of position setpoint can be specified with the bits 5-7
+      Flags field definition:
+      - bit 0: x,y as offset coordinates
+      - bit 1: x,y in body coordinates
+      - bit 2: z as offset coordinates
+      - bit 3: yaw as offset coordinates
+      - bit 4: free
+      - bit 5: x,y as vel
+      - bit 6: z as vel
+      - bit 7: yaw as rate
     </description>
     <field name="ac_id" type="uint8"/>
-    <field name="flags" type="uint8">bits 0-3: frame, bits 4-7: use as velocity</field>
+    <field name="flags" type="uint8">bits 0-3: frame, bits 5-7: use as velocity</field>
     <field name="x" type="float" unit="m">X position/velocity in NED</field>
     <field name="y" type="float" unit="m">Y position/velocity in NED</field>
     <field name="z" type="float" unit="m">Z position/velocity in NED (negative altitude)</field>
