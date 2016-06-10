@@ -737,6 +737,7 @@
   <message name="WIND_INFO_RET" id="87">
     <description>
       Wind information returned to the ground station.
+      The wind is reported as a vector, it gives the direction the wind is blowing to.
       This can be used to acknowledge data comming from the ground wind estimator
       or from an embedded algorithm.
       Flags field definition:
@@ -2278,6 +2279,7 @@
  <message name="WIND_INFO" id="3" link="forwarded">
    <description>
      Wind information.
+     The wind is reported as a vector, it gives the direction the wind is blowing to.
      This can be comming from the ground wind estimator
      or from an embedded algorithm.
      Flags field definition:
