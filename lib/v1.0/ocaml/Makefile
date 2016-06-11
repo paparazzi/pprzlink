@@ -69,7 +69,7 @@ all: byte native
 byte: _tags META
 	@echo Build bytecode lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) -build-dir $(BUILDDIR) lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 # byte with statically linked libs
