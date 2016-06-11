@@ -60,6 +60,7 @@ ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
 endif
 
+PP_OPTS = -pp "camlp4o pa_macro.cmo $(CAMLP4_DEFS)"
 INSTALL_FILES = $(shell ls $(BUILDDIR)/*.so $(BUILDDIR)/*.a $(BUILDDIR)/*.mli $(BUILDDIR)/*.cm*)
 
 
@@ -81,7 +82,7 @@ static: _tags META
 native: _tags META
 	@echo Build native lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
+	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
 	$(Q)cp META $(BUILDDIR)
 
 install: byte native META

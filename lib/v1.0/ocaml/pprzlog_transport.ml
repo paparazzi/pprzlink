@@ -39,10 +39,10 @@ module Transport = struct
   let offset_payload = 2
 
   let index_start = fun buf ->
-    String.index buf stx
+    CompatPL.bytes_index buf stx
 
   let length = fun buf start ->
-    let len = String.length buf - start in
+    let len = CompatPL.bytes_length buf - start in
     if len > offset_length then
       let l = Char.code buf.[start+offset_length] in
       DebugPL.call 'T' (fun f -> fprintf f "Pprzlog_transport len=%d\n" l);
@@ -52,7 +52,7 @@ module Transport = struct
 
   let (+=) = fun r x -> r := (!r + x) land 0xff
   let compute_checksum = fun msg ->
-    let l = String.length msg in
+    let l = CompatPL.bytes_length msg in
     let ck_a = ref 0 in
     for i = 1 to l - 2 do
       ck_a += Char.code msg.[i]
@@ -60,34 +60,34 @@ module Transport = struct
     !ck_a
 
   let checksum = fun msg ->
-    let l = String.length msg in
+    let l = CompatPL.bytes_length msg in
     let ck_a = compute_checksum msg in
     DebugPL.call 'T' (fun f -> fprintf f "Pprzlog_transport cs: %d %d\n" ck_a (Char.code msg.[l-1]));
     ck_a = Char.code msg.[l-1]
 
   let payload = fun msg ->
-    let l = String.length msg in
+    let l = CompatPL.bytes_length msg in
     assert(Char.code msg.[offset_length] + 8 = l);
-    Protocol.payload_of_string (String.sub msg offset_payload (l-3))
+    Protocol.payload_of_string (CompatPL.bytes_sub msg offset_payload (l-3))
 
   let packet = fun payload ->
     let payload = Protocol.string_of_payload payload in
-    let n = String.length payload in
+    let n = CompatPL.bytes_length payload in
     let msg_length = n + 3 in (** + stx, len, ck_a *)
     if msg_length >= 256 then
       invalid_arg "Pprzlog_transport.Transport.packet";
-    let m = String.create msg_length in
-    String.blit payload 0 m offset_payload n;
-    m.[0] <- stx;
-    m.[offset_length] <- Char.chr (msg_length - 8);
+    let m = CompatPL.bytes_create msg_length in
+    CompatPL.bytes_blit payload 0 m offset_payload n;
+    CompatPL.bytes_set m 0 stx;
+    CompatPL.bytes_set m offset_length (Char.chr (msg_length - 8));
     let ck_a = compute_checksum m in
-    m.[msg_length-1] <- Char.chr ck_a;
+    CompatPL.bytes_set m (msg_length-1) (Char.chr ck_a);
     m
 end
 
 let pprz_payload_of_payload = fun s ->
-  let n = String.length s in
-  Protocol.payload_of_string (String.sub s 5 (n - 5))
+  let n = CompatPL.bytes_length s in
+  Protocol.payload_of_string (CompatPL.bytes_sub s 5 (n - 5))
 
 let parse = fun p ->
   let s = Protocol.string_of_payload p in
