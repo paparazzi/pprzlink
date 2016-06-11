@@ -33,14 +33,15 @@ endif
 
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-CAMLP4_DEFS = -DHAS_BYTES_MODULE
-PP_OPTS = -pp "camlp4o pa_macro.cmo $(CAMLP4_DEFS)"
+CAMLP4_DEFS ?=
+
 #
 # NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
 # see http://caml.inria.fr/mantis/view.php?id=5503
 #
 OCAML_VERSION := $(shell ocamlc -version)
 OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
+OCAMLC_MINOR := $(shell echo $(OCAML_VERSION) | cut -f2 -d.)
 ifeq ($(shell test $(OCAML_MAJOR) -lt 4; echo $$?),0)
 # need to use an old buggy ocaml(build) version: build-dir MUST be relative
 BUILDDIR ?= ../../../build/ocaml/pprzlink
@@ -50,6 +51,11 @@ else
 # so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
 PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
 BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
+
+ifeq ($(shell test $(OCAMLC_MINOR) -ge 2; echo $$?),0)
+# the Bytes module is available since OCaml 4.02.0
+CAMLP4_DEFS += -DHAS_BYTES_MODULE
+endif
 endif
 
 INSTALL_FLAGS ?=
