@@ -29,17 +29,17 @@ module Transport = struct
   let size_packet = 4
 
   let index_start = fun s ->
-    String.index s start_delimiter
+    CompatPL.bytes_index s start_delimiter
 
   let length = fun s i ->
-    if String.length s < i+offset_length+2 then
+    if CompatPL.bytes_length s < i+offset_length+2 then
       raise Protocol.Not_enough
     else
       (Char.code s.[i+offset_length] lsl 8) lor (Char.code s.[i+offset_length+1]) + size_packet
 
   let compute_checksum = fun s ->
     let cs = ref 0 in
-    for i = offset_payload to String.length s - 2 do
+    for i = offset_payload to CompatPL.bytes_length s - 2 do
       cs := (!cs + Char.code s.[i]) land 0xff
     done;
     0xff - !cs
@@ -47,22 +47,22 @@ module Transport = struct
   let checksum = fun s ->
     let c = compute_checksum s in
     DebugPL.call 'x' (fun f -> Printf.fprintf f "XB.cs=%x\n" c);
-    c = Char.code s.[String.length s-1]
+    c = Char.code s.[CompatPL.bytes_length s-1]
 
   let payload = fun s ->
-    Protocol.payload_of_string (String.sub s offset_payload (String.length s - size_packet))
+    Protocol.payload_of_string (CompatPL.bytes_sub s offset_payload (CompatPL.bytes_length s - size_packet))
 
   let packet = fun payload ->
     let payload = Protocol.string_of_payload payload in
-    let n = String.length payload in
+    let n = CompatPL.bytes_length payload in
     let msg_length = n + size_packet in
-    let m = String.create msg_length in
-    String.blit payload 0 m offset_payload n;
-    m.[0] <- start_delimiter;
-    m.[offset_length] <- Char.chr (n lsr 8);
-    m.[offset_length+1] <- Char.chr (n land 0xff);
+    let m = CompatPL.bytes_create msg_length in
+    CompatPL.bytes_blit payload 0 m offset_payload n;
+    CompatPL.bytes_set m 0 start_delimiter;
+    CompatPL.bytes_set m (offset_length) (Char.chr (n lsr 8));
+    CompatPL.bytes_set m (offset_length+1) (Char.chr (n land 0xff));
     let cs = compute_checksum m in
-    m.[msg_length-1] <- Char.chr cs;
+    CompatPL.bytes_set m (msg_length-1) (Char.chr cs);
     m
 end
 
@@ -104,7 +104,7 @@ let api_rx16_id = Char.chr 0x81
 
 let write_int64 = fun buf offset x ->
   for i = 0 to 7 do
-    buf.[offset+7-i] <- Char.chr (Int64.to_int (Int64.shift_right x (8*i)) land 0xff)
+    CompatPL.bytes_set buf (offset+7-i) (Char.chr (Int64.to_int (Int64.shift_right x (8*i)) land 0xff))
   done
 
 let read_int64 = fun buf offset ->
@@ -115,44 +115,44 @@ let read_int64 = fun buf offset ->
   !x
 
 let write_int16 = fun buf offset x ->
-  buf.[offset] <- Char.chr (x lsr 8);
-  buf.[offset+1] <- Char.chr (x land 0xff)
+  CompatPL.bytes_set buf offset (Char.chr (x lsr 8));
+  CompatPL.bytes_set buf (offset+1) (Char.chr (x land 0xff))
 
 let read_int16 = fun buf offset ->
   (Char.code buf.[offset] lsl 8) lor (Char.code buf.[offset+1])
 
 let api_tx64 = fun ?(frame_id = 0) dest data ->
   assert (frame_id >=0 && frame_id < 0x100);
-  let n = String.length data in
+  let n = CompatPL.bytes_length data in
   assert (n <= 100);
   let optional868 = if !mode868 then 3 else 0 in
   let l = 1 + 1 + 8 + optional868 + 1 + n in
-  let s = String.create l in
-  s.[0] <- api_tx64_id;
-  s.[1] <- Char.chr frame_id;
+  let s = CompatPL.bytes_create l in
+  CompatPL.bytes_set s 0 api_tx64_id;
+  CompatPL.bytes_set s 1 (Char.chr frame_id);
   if !mode868 then begin
-    s.[10] <- Char.chr 0xff;
-    s.[11] <- Char.chr 0xfe;
-    s.[12] <- Char.chr 0x0;
+    CompatPL.bytes_set s 10 (Char.chr 0xff);
+    CompatPL.bytes_set s 11 (Char.chr 0xfe);
+    CompatPL.bytes_set s 12 (Char.chr 0x0);
   end;
   write_int64 s 2 dest;
-  s.[10+optional868] <- Char.chr 0;
-  String.blit data 0 s (11+ optional868) n;
+  CompatPL.bytes_set s (10+optional868) (Char.chr 0);
+  CompatPL.bytes_blit data 0 s (11+ optional868) n;
   s
 
 let api_tx16 = fun ?(frame_id = 0) dest data ->
   check_not_in_868 "api_tx16";
   assert (frame_id >=0 && frame_id < 0x100);
-  let n = String.length data in
+  let n = CompatPL.bytes_length data in
   assert (n <= 100);
   let l = 1 + 1 + 2 + 1 + n in
-  let s = String.create l in
-  s.[0] <- api_tx16_id;
-  s.[1] <- Char.chr frame_id;
+  let s = CompatPL.bytes_create l in
+  CompatPL.bytes_set s 0 api_tx16_id;
+  CompatPL.bytes_set s 1 (Char.chr frame_id);
   assert (dest >= 0 && dest < 0x10000);
   write_int16 s 2 dest;
-  s.[4] <- Char.chr 0;
-  String.blit data 0 s 5 n;
+  CompatPL.bytes_set s 4 (Char.chr 0);
+  CompatPL.bytes_blit data 0 s 5 n;
   s
 
 
@@ -172,13 +172,13 @@ let at_exit = "ATCN\r"
 let at_api_enable = "ATAP1\r"
 
 let api_parse_frame = fun s ->
-  let n = String.length s in
+  let n = CompatPL.bytes_length s in
   assert(n>0);
   match s.[0] with
       x when x = api_at_command_response_id ->
         assert(n >= 5);
-        AT_Command_Response (Char.code s.[1], String.sub s 2 2,
-                             Char.code s.[4], String.sub s 5 (n-5))
+        AT_Command_Response (Char.code s.[1], CompatPL.bytes_sub s 2 2,
+                             Char.code s.[4], CompatPL.bytes_sub s 5 (n-5))
     | x when not !mode868 && x = api_tx_status_id ->
       assert(n = 3);
       TX_Status (Char.code s.[1], Char.code s.[2])
@@ -190,14 +190,13 @@ let api_parse_frame = fun s ->
     | x when not !mode868 && x = api_rx64_id ->
       assert(n >= 11);
       RX_Packet_64 (read_int64 s 1, Char.code s.[9],
-                    Char.code s.[10], String.sub s 11 (n-11))
+                    Char.code s.[10], CompatPL.bytes_sub s 11 (n-11))
     | x when !mode868 && x = api868_rx64_id ->
       let idx_data = 12 in
       assert(n >= idx_data);
       RX868_Packet (read_int64 s 1,
-                    Char.code s.[11], String.sub s idx_data (n-idx_data))
+                    Char.code s.[11], CompatPL.bytes_sub s idx_data (n-idx_data))
     | x when not !mode868 && (x = api_rx16_id || x = api_tx16_id) ->
       (* tx16 here allows to receive simulated xbee messages *)
-      RX_Packet_16 (read_int16 s 1, Char.code s.[3], Char.code  s.[4], String.sub s 5 (n-5))
+      RX_Packet_16 (read_int16 s 1, Char.code s.[3], Char.code  s.[4], CompatPL.bytes_sub s 5 (n-5))
     | x -> failwith (Printf.sprintf "Xbee.parse_frame: unknown frame id '%d'" (Char.code x))
-

@@ -4,3 +4,4 @@ protocol
 pprz_transport
 pprzlog_transport
 xbee_transport
+compatPL

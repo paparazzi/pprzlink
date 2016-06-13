@@ -33,6 +33,7 @@ endif
 
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
+CAMLP4_DEFS ?=
 
 #
 # NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
@@ -40,6 +41,7 @@ OCAMLBUILD=ocamlbuild -use-ocamlfind
 #
 OCAML_VERSION := $(shell ocamlc -version)
 OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
+OCAMLC_MINOR := $(shell echo $(OCAML_VERSION) | cut -f2 -d.)
 ifeq ($(shell test $(OCAML_MAJOR) -lt 4; echo $$?),0)
 # need to use an old buggy ocaml(build) version: build-dir MUST be relative
 BUILDDIR ?= ../../../build/ocaml/pprzlink
@@ -49,6 +51,11 @@ else
 # so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
 PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
 BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
+
+ifeq ($(shell test $(OCAMLC_MINOR) -ge 2; echo $$?),0)
+# the Bytes module is available since OCaml 4.02.0
+CAMLP4_DEFS += -DHAS_BYTES_MODULE
+endif
 endif
 
 INSTALL_FLAGS ?=
@@ -59,6 +66,7 @@ ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
 endif
 
+PP_OPTS = -pp "camlp4o pa_macro.cmo $(CAMLP4_DEFS)"
 INSTALL_FILES = $(shell ls $(BUILDDIR)/*.so $(BUILDDIR)/*.a $(BUILDDIR)/*.mli $(BUILDDIR)/*.cm*)
 
 
@@ -67,7 +75,7 @@ all: byte native
 byte: _tags META
 	@echo Build bytecode lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) -build-dir $(BUILDDIR) lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 # byte with statically linked libs
@@ -80,7 +88,7 @@ static: _tags META
 native: _tags META
 	@echo Build native lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
+	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) -build-dir $(BUILDDIR) lib-pprzlink.cmxa
 	$(Q)cp META $(BUILDDIR)
 
 install: byte native META
