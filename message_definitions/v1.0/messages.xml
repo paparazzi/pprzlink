@@ -2208,8 +2208,14 @@
       <field name="yaw_c"  type="float"/>
   </message>
 
-  <!-- 251 is free -->
-  <!-- 252 is free -->
+   <!--251 is free -->
+
+   <message name="GPS_SMALL" id="252">
+    <field name="multiplex_speed"  type="uint32">bits 31-21 course in decideg : bits 20-10 ground speed in cm/s : bits 9-0 climb speed in cm/s</field>
+    <field name="lat"  type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"></field>
+    <field name="lon"  type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"></field>
+    <field name="alt"  type="int16" unit="cm" alt_unit="m">height above the ellipsoid</field>
+  </message>
 
   <message name="I2C_ERRORS" id="253">
     <field name="wd_reset_cnt"                type="uint16"/>
@@ -2258,13 +2264,14 @@
 
 <msg_class name="datalink">
  <message name="ACINFO" id="1" link="broadcasted">
-  <field name="course" type="int16" unit="decideg"></field>
-  <field name="utm_east"  type="int32" unit="cm"></field>
-  <field name="utm_north"  type="int32" unit="cm"></field>
-  <field name="alt"    type="int32" unit="cm">Height above Mean Sea Level (geoid)</field>
-  <field name="itow"  type="uint32" unit="ms"></field>
-  <field name="speed"  type="uint16" unit="cm/s"></field>
-  <field name="climb"  type="int16" unit="cm/s"></field>
+  <field name="course"    type="int16"  unit="decideg" alt_unit="deg"/>
+  <field name="utm_east"  type="int32"  unit="cm"      alt_unit="m"/>
+  <field name="utm_north" type="int32"  unit="cm"      alt_unit="m"/>
+  <field name="utm_zone"  type="uint8"/>
+  <field name="alt"       type="int32"  unit="cm"      alt_unit="m">Height above Mean Sea Level (geoid)</field>
+  <field name="itow"      type="uint32" unit="ms"      alt_unit="s" alt_unit_coef="0.001"></field>
+  <field name="speed"     type="uint16" unit="cm/s"    alt_unit="m/s">ground speed</field>
+  <field name="climb"     type="int16"  unit="cm/s"    alt_unit="m/s"></field>
   <field name="ac_id" type="uint8"/>
  </message>
 
@@ -2352,6 +2359,17 @@
    <field name="ac_id" type="uint8"/>
    <field name="length" type="uint8"/>
    <field name="rtcm" type="uint8[]"/>
+ </message>
+ 
+  <message name="ACINFO_LLA" id="14" link="broadcasted">
+  <field name="course" type="int16"  unit="decideg" alt_unit="deg"/>
+  <field name="lat"    type="int32"  unit="1e7deg"  alt_unit="deg" alt_unit_coef="0.0000001"/>
+  <field name="lon"    type="int32"  unit="1e7deg"  alt_unit="deg" alt_unit_coef="0.0000001"/>
+  <field name="alt"    type="int32"  unit="cm"      alt_unit="m">Height above ellipsoid</field>
+  <field name="itow"   type="uint32" unit="ms"      alt_unit="s" alt_unit_coef="0.001"></field>
+  <field name="speed"  type="uint16" unit="cm/s"    alt_unit="m/s">ground speed</field>
+  <field name="climb"  type="int16"  unit="cm/s"    alt_unit="m/s"></field>
+  <field name="ac_id"  type="uint8"/>
  </message>
 
  <message name="GET_SETTING" id="16" link="forwarded">
@@ -2543,10 +2561,10 @@
   </message>
 
   <message name="REMOTE_GPS_SMALL" id="54" link="forwarded">
-    <field name="heading"   type="int16"  unit="rad*1e4"/>
-    <field name="pos_xyz"  	type="uint32" unit="cm">bits 31-21 x position in cm : bits 20-10 y position in cm : bits 9-0 z position in cm</field>
-    <field name="speed_xyz" type="uint32" unit="cm/s">bits 31-21 speed x in cm/s : bits 20-10 speed y in cm/s : bits 9-0 speed z in cm/s</field>
-    <field name="tow"   	type="uint32" unit="ms" alt_unit="m"/>
+    <field name="heading"   type="int16"  unit="1e4rad" alt_unit="deg" alt_unit_coef="0.0057296"/>
+    <field name="pos_xyz"  	type="uint32">bits 31-21 east position [cm] : bits 20-10 north position [cm] : bits 9-0 up position [cm]</field>
+    <field name="speed_xyz" type="uint32">bits 31-21 east speed [cm/s] : bits 20-10 north speed [cm/s] : bits 9-0 climb speed [cm/s]</field>
+    <field name="tow"   	type="uint32" unit="ms" alt_unit="s" alt_unit_coef="0.001"/>
     <field name="ac_id"   	type="uint8"/>
   </message>
 
