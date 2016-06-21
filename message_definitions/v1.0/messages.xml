@@ -2930,6 +2930,16 @@
     <field name="itow"   type="uint32" unit="ms"/>
   </message>
 
+  <message name="OBSTACLE" id="38">
+    <field name="id"     type="string"/>
+    <field name="color"  type="string"/>
+    <field name="status" type="uint8" unit="bool"/>
+    <field name="lat"    type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="lon"    type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="radius" type="float" unit="m"/>
+    <field name="alt" 	 type="int32" unit="mm"/>
+  </message>
+
   <message name="PLUMES" id="100">
     <field name="ids" type="string" format="csv"/>
     <field name="lats" type="string" format="csv"/>
