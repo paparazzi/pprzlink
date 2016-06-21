@@ -2647,11 +2647,11 @@
     <field name="data" type="uint8[]"/>
   </message>
 
- <message name="EXTERNAL_MAGNETO_RAW" id="154" link="forwarded">
-  <field name="x" type="int16"/>
-  <field name="y" type="int16"/>
-  <field name="z" type="int16"/>
- </message>
+  <message name="EXTERNAL_MAG_RAW" id="154" link="forwarded">
+    <field name="x" type="int16"/>
+    <field name="y" type="int16"/>
+    <field name="z" type="int16"/>
+  </message>
 
   <message name="VIDEO_ROI" id="155" link="forwarded" >
     <field name="ac_id" type="uint8">The aircraft in which video stream you clicked </field>
