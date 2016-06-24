@@ -196,7 +196,23 @@
     <field name="YprU3"     type="float"    unit="deg"/>
   </message>
 
-  <!--24 is free -->
+  <message name="HYBRID_GUIDANCE" id="24">
+    <field name="pos_x" type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="pos_y" type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="speed_x" type="int32" alt_unit="m/s" alt_unit_coef="0.0000019"/>
+    <field name="speed_y" type="int32" alt_unit="m/s" alt_unit_coef="0.0000019"/>
+    <field name="wind_x" type="int32" alt_unit="m/s" alt_unit_coef="0.0039063"/>
+    <field name="wind_y" type="int32" alt_unit="m/s" alt_unit_coef="0.0039063"/>
+    <field name="pos_err_x" type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="pos_err_y" type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="speed_sp_x" type="int32" alt_unit="m/s" alt_unit_coef="0.0039063"/>
+    <field name="speed_sp_y" type="int32" alt_unit="m/s" alt_unit_coef="0.0039063"/>
+    <field name="norm_ref_speed" type="int32" alt_unit="m/s" alt_unit_coef="0.0039063"/>
+    <field name="heading_diff" type="int32"/>
+    <field name="phi" type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
+    <field name="theta" type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
+    <field name="psi" type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
+  </message>
 
   <message name="SVINFO" id="25">
     <field name="chn" type="uint8"/>
