@@ -2948,14 +2948,16 @@
     <field name="itow"   type="uint32" unit="ms"/>
   </message>
 
-  <message name="OBSTACLE" id="38">
-    <field name="id"     type="string"/>
-    <field name="color"  type="string"/>
-    <field name="status" type="uint8" unit="bool"/>
-    <field name="lat"    type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-    <field name="lon"    type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+  <message name="SHAPE" id="38">
+    <field name="id"         type="uint8"/>
+    <field name="linecolor"  type="string"/>
+    <field name="fillcolor"  type="string" values="color|none"/>
+    <field name="shape"      type="uint8" values="Circle|Polygon|Line"/>
+    <field name="status" type="uint8" unit="bool" values="create|delete"/>
+    <field name="latarr"    type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="lonarr"    type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="radius" type="float" unit="m"/>
-    <field name="alt" 	 type="int32" unit="mm"/>
+    <field name="alt"    type="int32" unit="mm"/>
   </message>
 
   <message name="PLUMES" id="100">

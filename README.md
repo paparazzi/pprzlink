@@ -68,7 +68,7 @@ Add Libraries to the Search Path
 
     sys.path.append(PPRZ_SRC + "/sw/ext/pprzlink/lib/v1.0/python")
 
-    from pprzlink.ivy_msg_interface  import IvyMessagesInterface
+    from pprzlink.ivy  import IvyMessagesInterface
     from pprzlink.message   import PprzMessage
     ...
 
