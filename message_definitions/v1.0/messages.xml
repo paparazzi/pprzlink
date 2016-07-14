@@ -159,10 +159,7 @@
      <field name="val2" type="uint16"/>
    </message>
 
-   <message name="TEST_FORMAT" id="19">
-     <field name="val1" type="double"/>
-     <field name="val2" type="float"/>
-   </message>
+   <!--19 is free -->
 
    <message name="CAM" id="20">
      <field name="phi" type="int16" unit="deg"/>
@@ -235,10 +232,7 @@
     <field name="south" type="float" unit="m"/>
   </message>
 
-  <message name="RSSI" id="28">
-    <field name="rssi" type="uint8" unit="dB"/>
-    <field name="tx_power" type="uint8" unit="dB"/>
-  </message>
+  <!--28 is free -->
 
   <message name="RANGEFINDER" id="29">
     <field name="range" type="uint16" unit="cm"/>
@@ -266,12 +260,7 @@
     <field name="value" type="float"/>
   </message>
 
-
-  <message name="MARK" id="32">
-    <field name="ac_id" type="uint8"/>
-    <field name="lat" type="float" unit="deg"/>
-    <field name="long" type="float" unit="deg"/>
-  </message>
+  <!--32 is free -->
 
   <message name="SYS_MON" id="33">
     <field name="periodic_time" type="uint16" unit="usec" alt_unit="msec" alt_unit_coef="0.001"/>
@@ -307,7 +296,6 @@
     <field name="temp" type="int8" unit="deg"/>
   </message>
 
-
   <message name="ENERGY" id="37">
     <field name="bat"      type="float" unit="V"/>
     <field name="amp"      type="float" unit="A"/>
@@ -315,36 +303,11 @@
     <field name="power"   type="float" unit="W"/>
   </message>
 
-  <message name="BARO_BMP85_CALIB" id="38">
-    <field name="a1"  type="int16"/>
-    <field name="a2"  type="int16"/>
-    <field name="a3"  type="int16"/>
-    <field name="a4"  type="uint16"/>
-    <field name="a5"  type="uint16"/>
-    <field name="a6"  type="uint16"/>
-    <field name="b1"  type="int16"/>
-    <field name="b2"  type="int16"/>
-    <field name="mb"  type="int16"/>
-    <field name="mc"  type="int16"/>
-    <field name="md"  type="int16"/>
-  </message>
+  <!--38 is free -->
 
-  <message name="BARO_BMP85" id="39">
-    <field name="UT"  type="int32"/>
-    <field name="UP"  type="int32"/>
-    <field name="P"  type="uint32"/>
-    <field name="T"  type="float"/>
-    <field name="MSL"  type="float"/>
-  </message>
+  <!--39 is free -->
 
-  <message name="SPEED_LOOP" id="40">
-    <field name="ve_set_point" type="float" unit="m/s"/>
-    <field name="ve" type="float" unit="m/s"/>
-    <field name="vn_set_point" type="float" unit="m/s"/>
-    <field name="vn" type="float" unit="m/s"/>
-    <field name="north_sp" type="float" unit="rad"/>
-    <field name="east_sp" type="float" unit="rad"/>
-  </message>
+  <!--40 is free -->
 
   <message name="ALT_KALMAN" id="41">
     <field name="p00" type="float"/>
@@ -370,12 +333,7 @@
     <field name="alt" type="float" unit="m"/>
   </message>
 
-  <message name="PRESSURE" id="45">
-    <field name="airspeed_adc" type="float"/>
-    <field name="airspeed" type="float" unit="m/s"/>
-    <field name="altitude_adc" type="float"/>
-    <field name="altitude" type="float" unit="m"/>
-  </message>
+  <!--45 is free -->
 
   <message name="BARO_WORDS" id="46">
     <field name="w1"  type="uint16"/>
@@ -391,10 +349,7 @@
     <field name="alt" type="int32" unit="mm" alt_unit="m">Height above Mean Sea Level (geoid)</field>
   </message>
 
-  <message name="CHRONO" id="48">
-    <field name="tag"  type="uint8"/>
-    <field name="time" type="uint32" unit="us"/>
-  </message>
+  <!--48 is free -->
 
   <message name="WP_MOVED_ENU" id="49">
     <field name="wp_id" type="uint8"/>
@@ -480,14 +435,7 @@
    <field name="scaled" type="float"/>
  </message>
 
- <message name="PBN" id="58">
-   <field name="airspeed_adc" type="uint16"></field>
-   <field name="altitude_adc" type="uint16"></field>
-   <field name="airspeed" type="float"></field>
-   <field name="altitude" type="float"></field>
-   <field name="airspeed_offset" type="uint16"></field>
-   <field name="altitude_offset" type="uint16"></field>
- </message>
+ <!--58 is free -->
 
   <message name="GPS_LLA" id="59">
     <field name="lat"        type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -645,31 +593,13 @@
     <field name="GX3_chksm"	type="uint16"/>
   </message>
 
-  <message name="EXPLAIN" id="74">
-    <field name="type" type="uint8" values="NAME|SETTING|WAYPOINT|BLOCK|IMAV2013"/>
-    <field name="id" type="uint8"/>
-    <field name="string" type="uint8[]"/>
-  </message>
+  <!--74 is free -->
 
-  <message name="VIDEO_TELEMETRY" id="75">
-    <field name="blob_x1"   type="int32"    unit="pixels"/>
-    <field name="blob_y1"   type="int32"    unit="pixels"/>
-    <field name="blob_x2"   type="int32"    unit="pixels"/>
-    <field name="blob_y2"   type="int32"    unit="pixels"/>
-    <field name="blob_x3"   type="int32"    unit="pixels"/>
-    <field name="blob_y3"   type="int32"    unit="pixels"/>
-    <field name="blob_x4"   type="int32"    unit="pixels"/>
-    <field name="blob_y4"   type="int32"    unit="pixels"/>
-  </message>
+  <!--75 is free -->
 
-  <message name="VF_UPDATE" id="76">
-    <field name="baro" type="float" unit="m"/>
-    <field name="range_meter" type="float" unit="m"/>
-  </message>
+  <!--76 is free -->
 
-  <message name="VF_PREDICT" id="77">
-    <field name="accel" type="float" unit="m/s/s"/>
-  </message>
+  <!--77 is free -->
 
   <!--message for Invariant filter with position-->
   <message name="INV_FILTER" id="78">
@@ -697,10 +627,7 @@
     <field name="task_list" type="uint8[]"/>
   </message>
 
-  <message name="CROSS_TRACK_ERROR" id="80">
-    <field name="cross_track_error" type="float" unit="m"/>
-    <field name="cte_int" type="float"/>
-  </message>
+  <!--80 is free -->
 
   <message name="GENERIC_COM" id="81">
     <field name="lat" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -795,42 +722,22 @@
     <field name="ftemp" type="float" unit="deg_celsius" format="%.2f"/>
   </message>
 
-  <message name="ANTENNA_DEBUG" id="92">
-    <field name="mag_xraw" type="int32"/>
-    <field name="mag_yraw" type="int32"/>
-    <field name="mag_xcal" type="float"/>
-    <field name="mag_ycal" type="float"/>
-    <field name="mag_heading" type="float"/>
-    <field name="mag_magnitude" type="float"/>
-    <field name="mag_temp" type="float"/>
-    <field name="mag_distor" type="uint8"/>
-    <field name="mag_cal_status" type="uint8"/>
-  </message>
+  <!--92 is free -->
 
-  <message name="ANTENNA_STATUS" id="93">
-    <field name="azim_sp" type="float"/>
-    <field name="elev_sp" type="float"/>
-    <field name="id_sp" type="uint8"/>
+  <!--93 is free -->
+
+  <message name="MOTOR_BENCH_STATUS" id="94">
+    <field name="time_ticks" type="uint32"/>
+    <field name="throttle" type="float" format="%.3f"/>
+    <field name="rpm" type="float"/>
+    <field name="current" type="float"/>
+    <field name="thrust" type="float"/>
+    <field name="torque" type="float"/>
+    <field name="time_s" type="uint16"/>
     <field name="mode" type="uint8"/>
   </message>
 
- <message name="MOTOR_BENCH_STATUS" id="94">
-   <field name="time_ticks" type="uint32"/>
-   <field name="throttle" type="float" format="%.3f"/>
-   <field name="rpm" type="float"/>
-   <field name="current" type="float"/>
-   <field name="thrust" type="float"/>
-   <field name="torque" type="float"/>
-   <field name="time_s" type="uint16"/>
-   <field name="mode" type="uint8"/>
-  </message>
-
-  <message name="MOTOR_BENCH_STATIC" id="95">
-    <field name="av_rpm"     type="float"/>
-    <field name="av_thrust"  type="float"/>
-    <field name="av_current" type="float"/>
-    <field name="throttle"   type="uint16"/>
-  </message>
+  <!--95 is free -->
 
   <message name="HIH_STATUS" id="96">
     <field name="humid" type="uint16"/>
@@ -897,7 +804,6 @@
     <field name="multigaze_meters" type="float[]"/>
   </message>
 
-
   <message name="DC_SHOT" id="110">
     <field name="photo_nr" type="int16"/>
     <field name="lat" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001">Gedetic latitude</field>
@@ -912,11 +818,7 @@
     <field name="itow" type="uint32" unit="ms">GPS time of week</field>
   </message>
 
-  <message name="TEST_BOARD_RESULTS" id="111">
-    <field name="uart" type="uint8"/>
-    <field name="ppm" type="uint8"/>
-    <field name="servo" type="uint16[]"/>
-  </message>
+  <!--111 is free -->
 
   <!--112 is free -->
 
@@ -2376,7 +2278,7 @@
    <field name="length" type="uint8"/>
    <field name="rtcm" type="uint8[]"/>
  </message>
- 
+
   <message name="ACINFO_LLA" id="14" link="broadcasted">
   <field name="course" type="int16"  unit="decideg" alt_unit="deg"/>
   <field name="lat"    type="int32"  unit="1e7deg"  alt_unit="deg" alt_unit_coef="0.0000001"/>
