@@ -2360,7 +2360,7 @@
    <field name="length" type="uint8"/>
    <field name="rtcm" type="uint8[]"/>
  </message>
- 
+
   <message name="ACINFO_LLA" id="14" link="broadcasted">
   <field name="course" type="int16"  unit="decideg" alt_unit="deg"/>
   <field name="lat"    type="int32"  unit="1e7deg"  alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -2949,15 +2949,47 @@
   </message>
 
   <message name="SHAPE" id="38">
+    <description>
+      The SHAPE message used to draw shapes onto the Paparazzi GCS.
+
+      Field name shape is used to define the type of shape i.e. Circle, Polygon or Line.
+      This is indexed from 0-2 respectively.
+      Each shape type has can be given a unique id number.
+      ie. a circle can be defined with id 1 and so can a polygon.
+
+      linecolor and fillcolor take in a color string ie: "red", "blue" ...
+      If "None" is passed into fillcolor no fill will be present.
+      opacity will change the opacity of fill.
+      0 -> Transparent
+      1 -> Light Fill
+      2 -> Medium Fill
+      3 -> Heavy Fill
+      4 -> Opaque
+
+      passing a status of 0 will create or update a shape specified by id and type.
+      passing a status of 1 will delete the shape specified by the id and the type.
+
+      Latarr and lonarr contain the coordinates for the shapes.
+      Circle will take the first coordinates given.
+      Polygon will take all the coordinates given.
+      Line will take the first two coordinates given.
+
+      Radius is only used for the circle.
+
+      The alt field can be populated to display a number above the shape.
+      The text field can be populated to display text above the shape.
+    </description>
     <field name="id"         type="uint8"/>
     <field name="linecolor"  type="string"/>
-    <field name="fillcolor"  type="string" values="color|none"/>
+    <field name="fillcolor"  type="string" values="color|None"/>
+    <field name="opacity"    type="uint8"/>
     <field name="shape"      type="uint8" values="Circle|Polygon|Line"/>
-    <field name="status" type="uint8" unit="bool" values="create|delete"/>
-    <field name="latarr"    type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-    <field name="lonarr"    type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-    <field name="radius" type="float" unit="m"/>
-    <field name="alt"    type="int32" unit="mm"/>
+    <field name="status"     type="uint8"  values="create|delete"/>
+    <field name="latarr"     type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="lonarr"     type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="radius"     type="float" unit="m"/>
+    <field name="alt"        type="int32" unit="mm">msl</field>
+    <field name="text"       type="string"/>
   </message>
 
   <message name="PLUMES" id="100">
