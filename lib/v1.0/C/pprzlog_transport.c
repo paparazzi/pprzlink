@@ -73,13 +73,14 @@ static void put_named_byte(struct pprzlog_transport *trans, struct link_device *
 
 static uint8_t size_of(struct pprzlog_transport *trans __attribute__((unused)), uint8_t len)
 {
-  return len;
+  // add offset: STX(1), LENGTH(1), SOURCE(1), TIMESTAMP(4), CHECKSUM(1)
+  return len + 8;
 }
 
 static void start_message(struct pprzlog_transport *trans, struct link_device *dev, long fd, uint8_t payload_len)
 {
   dev->put_byte(dev->periph, fd, STX_LOG);
-  const uint8_t msg_len = size_of(trans, payload_len);
+  const uint8_t msg_len = payload_len; // only the payload length here
   trans->ck = 0;
   uint8_t buf[] = { msg_len, 0 }; // TODO use correct source ID
   put_bytes(trans, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, buf, 2);
