@@ -57,7 +57,7 @@ TBD
 
 ## Python Library
 
-The [python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy_msg_interface.py](lib/v1.0/python/pprzlink/ivy_msg_interface.py). There is also a serial version of the interface in [serial_msg_interface.py](lib/v1.0/python/pprzlink/serial_msg_interface.py).
+The [python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy.py](lib/v1.0/python/pprzlink/ivy.py). There is also a serial version of the interface in [serial.py](lib/v1.0/python/pprzlink/serial.py).
 
 ### Ivy Message Call Sequence
 
@@ -68,7 +68,7 @@ Add Libraries to the Search Path
 
     sys.path.append(PPRZ_SRC + "/sw/ext/pprzlink/lib/v1.0/python")
 
-    from pprzlink.ivy_msg_interface  import IvyMessagesInterface
+    from pprzlink.ivy  import IvyMessagesInterface
     from pprzlink.message   import PprzMessage
     ...
 
