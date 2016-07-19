@@ -2988,8 +2988,8 @@
       2 - Medium Fill
       3 - Opaque
 
-      passing a status of 0 will create or update a shape specified by id and type.
-      passing a status of 1 will delete the shape specified by the id and the type.
+      Passing a status of 0 will create or update the shape specified by id and type.
+      Passing a status of 1 will delete the shape specified by id and type.
 
       latarr is an array of coordinates that contain the latitude coordinate for each point in the shape. 
       The array is comma separated.
