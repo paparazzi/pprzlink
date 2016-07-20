@@ -2376,7 +2376,7 @@
    <field name="length" type="uint8"/>
    <field name="rtcm" type="uint8[]"/>
  </message>
- 
+
   <message name="ACINFO_LLA" id="14" link="broadcasted">
   <field name="course" type="int16"  unit="decideg" alt_unit="deg"/>
   <field name="lat"    type="int32"  unit="1e7deg"  alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -2969,6 +2969,54 @@
     <field name="climb"  type="float"  unit="m/s"/>
     <field name="itow"   type="uint32" unit="ms"/>
   </message>
+
+  <message name="SHAPE" id="38">
+    <description>
+      The SHAPE message used to draw shapes onto the Paparazzi GCS.
+      Field name shape is used to define the type of shape i.e. Circle, Polygon, Line, or Text.
+      This is indexed from 0-3 respectively.
+
+      Each shape drawn must have an id number associated with it. 
+      This id number in conjuction with the shapetype will be needed to update or delete the shape. 
+      A circle can be defined with the same id as a polygon but since they have different shape types they are considered unique.
+
+      linecolor and fillcolor take in a color string ie: "red", "blue" 
+      
+      opacity will change the level of transparency of the fill.
+      0 - Transparent
+      1 - Light Fill
+      2 - Medium Fill
+      3 - Opaque
+
+      Passing a status of 0 will create or update the shape specified by id and type.
+      Passing a status of 1 will delete the shape specified by id and type.
+
+      latarr is an array of coordinates that contain the latitude coordinate for each point in the shape. 
+      The array is comma separated.
+      lonarr is similar to latarr but contain the longitude coordinate for each point in the shape.
+
+      Circle and Text type will take the first coordinates given to place the shape.
+      Polygon will take all the coordinates given.
+      Line will take the first two coordinates given.
+
+      Radius is only used for the circle.
+
+      Text will always be populated with each message using the first set of coordinates.
+      The text field can not be blank or have spaces.
+      If text is not desired for a shape then pass "NULL" into the text field.
+    </description>
+    <field name="id"         type="uint8"/>
+    <field name="linecolor"  type="string"/>
+    <field name="fillcolor"  type="string"/>
+    <field name="opacity"    type="uint8" values="Transparent|Light|Medium|Opaque"/>
+    <field name="shape"      type="uint8" values="Circle|Polygon|Line"/>
+    <field name="status"     type="uint8"  values="create|delete"/>
+    <field name="latarr"     type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="lonarr"     type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+    <field name="radius"     type="float" unit="m"/>
+    <field name="text"       type="string"/>
+  </message>
+
 
   <message name="PLUMES" id="100">
     <field name="ids" type="string" format="csv"/>
