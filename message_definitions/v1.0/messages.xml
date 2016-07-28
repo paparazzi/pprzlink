@@ -188,7 +188,7 @@
     <field name="timestamp"     type="float"    unit="s"/>
     <field name="chksm_error"   type="uint32"/>
     <field name="hdr_error"     type="uint32"/>
-    <field name="counter" type="uint16"/>
+    <field name="rate" type="uint16" unit="packets/s"/>
     <field name="ins_status" type="uint8" values="NoTracking|OutOfSpecs|OK"/>
     <field name="ins_err" type="uint8"/>
     <field name="YprU1"     type="float"    unit="deg"/>
