@@ -888,7 +888,15 @@
     <field name="A2A_msg_rate" type="uint32"/>
   </message>
 
-  <!--107 is free -->
+  <message name="THROTTLE_CURVE" id="107">
+    <field name="curve" type="uint8"/>
+    <field name="throttle" type="uint16"/>
+    <field name="collective" type="int16"/>
+    <field name="rpm_sp" type="uint16"/>
+    <field name="rpm_meas" type="uint16"/>
+    <field name="rpm_err_sum" type="float"/>
+  </message>
+
   <message name="PIKSI_HEARTBEAT" id="108">
     <field name="heartbeat" type="uint32"/>
   </message>
