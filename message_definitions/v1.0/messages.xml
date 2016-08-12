@@ -282,6 +282,7 @@
     <field name="periodic_cycle_max" type="uint16" unit="usec" alt_unit="msec" alt_unit_coef="0.001"/>
     <field name="event_number" type="uint16"/>
     <field name="cpu_load" type="uint8" unit="%"/>
+f
   </message>
 
   <message name="MOTOR" id="34">
@@ -2173,6 +2174,7 @@
     <field name="cpu_load"    type="uint8" unit="%">Global CPU load</field>
     <field name="core_free"   type="uint32" unit="Bytes">Core free memory</field>
     <field name="heap_free"   type="uint32" unit="Bytes">Heap free memory</field>
+    <field name="cpu_time"    type="float" unit="s"/>
   </message>
 
   <message name="PPRZ_DEBUG" id="247">
