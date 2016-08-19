@@ -927,7 +927,10 @@
     <field name="servo" type="uint16[]"/>
   </message>
 
-  <!--112 is free -->
+  <message name="MOTOR_MIXING" id="112">
+    <field name="values" type="int16[]" unit="none"/>
+  </message>
+
 
   <message name="MLX_SERIAL" id="113">
     <field name="serial0" type="uint32"/>
