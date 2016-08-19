@@ -142,7 +142,11 @@ class IvyMessagesInterface(object):
         # pass non-telemetry messages with ac_id 0
         if msg_class == "telemetry":
             try:
-                ac_id = int(data[0])
+                sdata = data[0]
+                if(sdata[0:6] == 'replay'):
+                    ac_id = int(sdata[6:])
+                else:
+                    ac_id = int(sdata)
             except ValueError:
                 print("ignoring message " + ivy_msg)
                 sys.stdout.flush()
