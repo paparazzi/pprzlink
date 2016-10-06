@@ -1394,7 +1394,7 @@
     <field name="pdop"    type="uint16"/>
     <field name="numsv"   type="uint8"/>
     <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
-    <field name="comp_id" type="uint8" values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|ARDRONE2|SIM"/>
+    <field name="comp_id" type="uint8" values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|ARDRONE2|SIM|MULTI|VECTORNAV|IMCU"/>
   </message>
 
   <message name="AHRS_EULER_INT" id="156">
@@ -1951,7 +1951,13 @@
     <field name="g2_r" type="float"/>
   </message>
 
-  <!--217 is free -->
+  <message name="ROTORCRAFT_FP_MIN" id="217">
+    <description>Minimalistic message to track Rotorcraft over very low bandwidth links</description>
+    <field name="east"     type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="north"    type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="up"       type="int32" alt_unit="m" alt_unit_coef="0.0039063"/>
+    <field name="gspeed"   type="uint16" unit="cm/s" alt_unit="m/s"/>
+  </message>
 
   <message name="BEBOP_ACTUATORS" id="218">
     <field name="cmd_thrust" type="int32"/>
@@ -2691,6 +2697,12 @@
     <field name="downsized_width" type="int32">The width of the image you received. Added because a module the receives this message does not know how big the image was that was broadcasted </field>
   </message>
 
+  <message name="EMERGENCY_CMD" id="156" link="forwarded">
+    <description>Overcome setting ID and block ID problems in the case of multiboard autopilots like AP/FBW. With this message a KILL command can be sent to AP and FBW at the same time.</description>
+    <field name="ac_id" type="uint8"/>
+    <field name="cmd" type="uint8" values="KILL|STANDBY|LAND"/>
+  </message>
+
 </msg_class>
 
 
@@ -2989,12 +3001,12 @@
       Field name shape is used to define the type of shape i.e. Circle, Polygon, Line, or Text.
       This is indexed from 0-3 respectively.
 
-      Each shape drawn must have an id number associated with it. 
-      This id number in conjuction with the shapetype will be needed to update or delete the shape. 
+      Each shape drawn must have an id number associated with it.
+      This id number in conjuction with the shapetype will be needed to update or delete the shape.
       A circle can be defined with the same id as a polygon but since they have different shape types they are considered unique.
 
-      linecolor and fillcolor take in a color string ie: "red", "blue" 
-      
+      linecolor and fillcolor take in a color string ie: "red", "blue"
+
       opacity will change the level of transparency of the fill.
       0 - Transparent
       1 - Light Fill
@@ -3004,7 +3016,7 @@
       Passing a status of 0 will create or update the shape specified by id and type.
       Passing a status of 1 will delete the shape specified by id and type.
 
-      latarr is an array of coordinates that contain the latitude coordinate for each point in the shape. 
+      latarr is an array of coordinates that contain the latitude coordinate for each point in the shape.
       The array is comma separated.
       lonarr is similar to latarr but contain the longitude coordinate for each point in the shape.
 
@@ -3028,6 +3040,11 @@
     <field name="lonarr"     type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="radius"     type="float" unit="m"/>
     <field name="text"       type="string"/>
+  </message>
+
+  <message name="DL_EMERGENCY_CMD" id="39">
+    <field name="ac_id" type="string"/>
+    <field name="cmd" type="uint8" values="KILL|STANDBY|LAND"/>
   </message>
 
 
@@ -3100,9 +3117,39 @@
      <field name="range" type="uint16" unit="cm"/>
    </message>
 
+   <message name="IMCU_REMOTE_GPS" id="62">
+     <field name="ecef_x"  type="int32" unit="cm"   alt_unit="m"/>
+     <field name="ecef_y"  type="int32" unit="cm"   alt_unit="m"/>
+     <field name="ecef_z"  type="int32" unit="cm"   alt_unit="m"/>
+     <field name="alt"     type="int32" unit="mm"   alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+     <field name="hmsl"    type="int32" unit="mm"   alt_unit="m">height above mean sea level (geoid)</field>
+     <field name="ecef_xd" type="int32" unit="cm/s" alt_unit="m/s"/>
+     <field name="ecef_yd" type="int32" unit="cm/s" alt_unit="m/s"/>
+     <field name="ecef_zd" type="int32" unit="cm/s" alt_unit="m/s"/>
+     <field name="course"  type="int32" alt_unit="rad" alt_unit_coef="0.0000001"/>
+     <field name="gspeed"  type="uint16" unit="cm/s" alt_unit="m/s"/>
+     <field name="pacc"    type="uint32" unit="cm"   alt_unit="m"/>
+     <field name="sacc"    type="uint32" unit="cm/s" alt_unit="m/s"/>
+     <field name="numsv"   type="uint8"/>
+     <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
+   </message>
+
+   <message name="IMCU_DATALINK" id="113">
+     <description>Forward FBW datalink to AP</description>
+     <field name="msg" type="uint8[]"/>
+   </message>
+
    <message name="IMCU_TELEMETRY" id="114">
      <field name="msg_id" type="uint8"/>
      <field name="msg" type="uint8[]"/>
+   </message>
+
+   <message name="IMCU_DEBUG" id="115">
+     <field name="msg" type="uint8[]"/>
+   </message>
+
+   <message name="IMCU_PAYLOAD" id="116">
+     <field name="data" type="uint8[]"/>
    </message>
 
   </msg_class>
