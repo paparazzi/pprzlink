@@ -1931,6 +1931,22 @@
       <field name="alt"  type="int16" unit="cm" alt_unit="m">height above the ellipsoid</field>
     </message>
 
+    <message name="KALAMOS" id="251">
+      <field name="Status"   type="uint8"/>
+      <field name="Height"   type="float"/>
+      <field name="Avoid_psi"   type="float"/>
+      <field name="Avoid_rate"   type="float"/>
+      <field name="Descend_z"   type="float"/>
+      <field name="Joe_x"   type="float"/>
+      <field name="Joe_y"  type="float"/>
+      <field name="Land_x"  type="float"/>
+      <field name="Land_y"  type="float"/>
+      <field name="V_optic_x"   type="float"/>
+      <field name="V_optic_y"   type="float"/>
+      <field name="Att_calib_phi"   type="float"/>
+      <field name="Att_calib_theta"   type="float"/>
+    </message>
+
     <message name="I2C_ERRORS" id="253">
       <field name="wd_reset_cnt"                type="uint16"/>
       <field name="queue_full_cnt"              type="uint16"/>
