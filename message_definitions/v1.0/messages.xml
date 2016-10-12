@@ -2051,7 +2051,14 @@
     <field name="imageBuffer" type="uint8[]"/>
   </message>
 
-  <!--230 is free -->
+  <message name="GPS_RXMRTCM" id="230">
+    <field name="Msg1005"      type="uint32" />
+    <field name="Msg1077"  	 type="uint32" />
+    <field name="Msg1087"      type="uint32" />
+    <field name="Crc1005"      type="uint32" />
+    <field name="Crc1077"      type="uint32" />
+    <field name="Crc1087"      type="uint32"  />
+  </message>
 
   <message name="ROTORCRAFT_STATUS" id="231">
     <field name="link_imu_nb_err" type="uint32"/>
@@ -2243,7 +2250,24 @@
       <field name="yaw_c"  type="float"/>
   </message>
 
-   <!--251 is free -->
+   <message name="GPS_RTK" id="251">
+    <field name="iTOW"          type="uint32" unit="ms"/>
+    <field name="refStationId"  type="uint16"/>
+    <field name="relPosN"       type="int32" unit="cm"/>
+    <field name="relPosE"       type="int32" unit="cm"/>
+    <field name="relPosD"       type="int32" unit="cm"/>
+    <field name="relPosHPN"     type="int8"  unit="mm"/>
+    <field name="relPosHPE"     type="int8"  unit="mm"/>
+    <field name="relPosHPD"     type="int8"  unit="mm"/>
+    <field name="accN"          type="uint32" unit="mm"/>
+    <field name="accE"          type="uint32" unit="mm"/>
+    <field name="accD"          type="uint32" unit="mm"/>
+    <field name="carrSoln"      type="uint8"  values="NONE|RTK FLOAT|RTK FIX"/>
+    <field name="relPosValid"   type="uint8"  values="FALSE|TRUE"/>
+    <field name="diffSoln"      type="uint8"  values="NONE|DGPS"/>
+    <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
+  </message>
+   
 
    <message name="GPS_SMALL" id="252">
     <field name="multiplex_speed"  type="uint32">bits 31-21 course in decideg : bits 20-10 ground speed in cm/s : bits 9-0 climb speed in cm/s</field>
@@ -2701,6 +2725,11 @@
     <description>Overcome setting ID and block ID problems in the case of multiboard autopilots like AP/FBW. With this message a KILL command can be sent to AP and FBW at the same time.</description>
     <field name="ac_id" type="uint8"/>
     <field name="cmd" type="uint8" values="KILL|STANDBY|LAND"/>
+  </message>
+
+  <message name="RTCM_INJECT" id="157" link="broadcasted">
+    <field name="packet_id" type="uint8"/>
+    <field name="data" type="uint8[]"/>
   </message>
 
 </msg_class>
