@@ -2081,9 +2081,8 @@
      <field name="value" type="uint16"/>
    </message>
 
- <!--233 is free -->
    <message name="PX4FLOW" id="233">
-     <!--field name="time_usec" type="uint64"/--> <!-- uint64 not supported yet -->
+     <field name="time_sec" type="float" unit="s"/>
      <field name="sensor_id" type="uint8"/>
      <field name="flow_x" type="int16"/>
      <field name="flow_y" type="int16"/>
@@ -2198,57 +2197,9 @@
     <field name="errno"   type="uint8"/>
   </message>
 
-  <message name="NPS_ACCEL_LTP" id="248">
-    <field name="xdd"   type="float" unit="m/s2"/>
-    <field name="ydd"   type="float" unit="m/s2"/>
-    <field name="zdd"   type="float" unit="m/s2"/>
-  </message>
-
-  <message name="LOOSE_INS_GPS" id="249">
-    <field name="status"        type="uint8" values="UNINITIALIZED|STARTUP_TRANSIENTS|LOWPASSING|GPS_LOST|NOMINAL"/>
-    <field name="time_running"  type="double" alt_unit="minutes" alt_unit_coef="0.016666666666667"/>
-    <field name="q0"            type="double" />
-    <field name="q1"            type="double" />
-    <field name="q2"            type="double" />
-    <field name="q3"            type="double" />
-    <field name="phi"           type="double" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="theta"         type="double" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="psi"           type="double" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="north"         type="double" unit="m"  />
-    <field name="east"          type="double" unit="m"  />
-    <field name="down"          type="double" unit="m"  />
-    <field name="v_north"       type="double" unit="m/s"/>
-    <field name="v_east"        type="double" unit="m/s"/>
-    <field name="v_down"        type="double" unit="m/s"/>
-    <field name="est_p"         type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="est_q"         type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="est_r"         type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="gyroBias_x"    type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="gyroBias_y"    type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="gyroBias_z"    type="double" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="imuCallbacks"  type="uint32" />
-    <field name="gpsCallbacks"  type="uint32" />
-    <field name="baroCallbacks" type="uint32" />
-<!--    <field name="mahrs_gbx"      type="float"  alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="mahrs_gby"      type="float"  alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="mahrs_gbz"      type="float"  alt_unit="deg/s" alt_unit_coef="57.29578"/>
-    <field name="alpha"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.3" />
-    <field name="beta"    type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.3" />
-    <field name="airspeed" type="float" unit="m/s" />
-    <field name="barometer" type="float" unit="Pa" /> -->
-  </message>
-
-  <message name="AFL_COEFFS" id="250">
-      <field name="roll_a"   type="float"/>
-      <field name="roll_b"  type="float"/>
-      <field name="roll_c"  type="float"/>
-      <field name="pitch_a"  type="float"/>
-      <field name="pitch_b"   type="float"/>
-      <field name="pitch_c"   type="float"/>
-      <field name="yaw_a"   type="float"/>
-      <field name="yaw_b"  type="float"/>
-      <field name="yaw_c"  type="float"/>
-  </message>
+  <!-- 248 is free -->
+  <!-- 249 is free -->
+  <!-- 250 is free -->
 
    <message name="GPS_RTK" id="251">
     <field name="iTOW"          type="uint32" unit="ms"/>
@@ -2267,7 +2218,6 @@
     <field name="diffSoln"      type="uint8"  values="NONE|DGPS"/>
     <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
   </message>
-   
 
    <message name="GPS_SMALL" id="252">
     <field name="multiplex_speed"  type="uint32">bits 31-21 course in decideg : bits 20-10 ground speed in cm/s : bits 9-0 climb speed in cm/s</field>
@@ -2291,31 +2241,29 @@
     <field name="bus_number"                  type="uint8"/>
   </message>
 
-  <message name="RDYB_TRAJECTORY" id="254">
-    <field name="commanded_phi" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="commanded_theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="commanded_psi" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="setpoint_x" type="float" unit="m N"/>
-    <field name="setpoint_y" type="float" unit="m E"/>
-    <field name="setpoint_z" type="float" unit="m D"/>
+  <message name="HEARTBEAT" id="254">
+    <field name="type" type="uint8"/>
+    <field name="autopilot" type="uint8"/>
+    <field name="base_mode" type="uint8"/>
+    <field name="custom_mode" type="uint32"/>
+    <field name="system_status" type="uint8"/>
+    <field name="mavlink_version" type="uint8"/>
   </message>
 
-  <message name="HENRY_GNSS" id="255">
-    <field name="last_imu_update" type="uint32"/>
-    <field name="GPS_time" type="double"/>
-    <field name="GPS_solution_valid" type="uint8"/>
-    <field name="latitude" type="double" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="longitude" type="double" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
-    <field name="altitude" type="double" />
-    <field name="North" type="double" />
-    <field name="East" type="double" />
-    <field name="Down" type="double" />
-    <field name="SVs_Tracked" type="uint8" />
-    <field name="SVs_PVT" type="uint8" />
-    <field name="V_North" type="double"/>
-    <field name="V_East" type="double"/>
-    <field name="V_Down" type="double"/>
-  </message>
+   <message name="PX4FLOW_RAD" id="255">
+     <field name="time_sec" type="float" unit="s"/>
+     <field name="sensor_id" type="uint8"/>
+     <field name="int_time_us" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
+     <field name="int_x" type="float" unit="rad" alt_unit="deg"/>
+     <field name="int_y" type="float" unit="rad" alt_unit="deg"/>
+     <field name="int_xgyro" type="float" unit="rad" alt_unit="deg"/>
+     <field name="int_ygyro" type="float" unit="rad" alt_unit="deg"/>
+     <field name="int_zgyro" type="float" unit="rad" alt_unit="deg"/>
+     <field name="temp" type="int16" alt_unit="C" alt_unit_coef="0.01"/>
+     <field name="quality" type="uint8"/>
+     <field name="d_time_us" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
+     <field name="distance" type="float" unit="m"/>
+   </message>
 
 </msg_class>
 
