@@ -2199,7 +2199,20 @@
 
   <!-- 248 is free -->
   <!-- 249 is free -->
-  <!-- 250 is free -->
+
+   <message name="PX4FLOW_INT" id="250">
+     <field name="frame_cnt" type="uint16"/>
+     <field name="acc_flow_x" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
+     <field name="acc_flow_y" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
+     <field name="acc_gyro_x" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
+     <field name="acc_gyro_y" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
+     <field name="acc_gyro_z" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
+     <field name="int_time" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
+     <field name="sonar_time" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
+     <field name="gnd_dist" type="int16" alt_unit="m" alt_unit_coef="0.001"/>
+     <field name="gyro_temp" type="int16" alt_unit="C" alt_unit_coef="0.01"/>
+     <field name="quality" type="uint8"/>
+   </message>
 
    <message name="GPS_RTK" id="251">
     <field name="iTOW"          type="uint32" unit="ms"/>
