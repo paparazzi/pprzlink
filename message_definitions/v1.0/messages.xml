@@ -2051,6 +2051,7 @@
     <field name="imageBuffer" type="uint8[]"/>
   </message>
 
+
   <message name="GPS_RXMRTCM" id="230">
     <field name="Msg1005"      type="uint32" />
     <field name="Msg1077"  	 type="uint32" />
