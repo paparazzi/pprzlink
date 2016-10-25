@@ -282,6 +282,9 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
     // Switching back to normal mode (and apply all parameters' changes)
     print_string(dev, 0, AT_EXIT);
 
+    // Wait for all AT operations to finish before ending init
+    wait(250000);
+
     // Set the desired baudrate for normal operation
     if (baudrate > 0) {
       dev->set_baudrate(dev->periph, baudrate);
