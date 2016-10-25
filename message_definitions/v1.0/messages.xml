@@ -2093,10 +2093,7 @@
      <field name="ground_distance" type="float" unit="m"/>
    </message>
 
-  <message name="OPTICFLOW" id="234">
-    <field name="flow" type="uint16"></field>
-    <field name="ref_alt" type="float"></field>
-  </message>
+   <!-- 248 is free -->
 
   <message name="VISUALTARGET" id="235">
     <field name="x" type="uint16"></field>
@@ -2200,20 +2197,7 @@
 
   <!-- 248 is free -->
   <!-- 249 is free -->
-
-   <message name="PX4FLOW_INT" id="250">
-     <field name="frame_cnt" type="uint16"/>
-     <field name="acc_flow_x" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
-     <field name="acc_flow_y" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
-     <field name="acc_gyro_x" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
-     <field name="acc_gyro_y" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
-     <field name="acc_gyro_z" type="int16" alt_unit="rad" alt_unit_coef="0.001"/>
-     <field name="int_time" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
-     <field name="sonar_time" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
-     <field name="gnd_dist" type="int16" alt_unit="m" alt_unit_coef="0.001"/>
-     <field name="gyro_temp" type="int16" alt_unit="C" alt_unit_coef="0.01"/>
-     <field name="quality" type="uint8"/>
-   </message>
+  <!-- 250 is free -->
 
    <message name="GPS_RTK" id="251">
     <field name="iTOW"          type="uint32" unit="ms"/>
@@ -2259,29 +2243,8 @@
     <field name="bus_number"                  type="uint8"/>
   </message>
 
-  <message name="HEARTBEAT" id="254">
-    <field name="type" type="uint8"/>
-    <field name="autopilot" type="uint8"/>
-    <field name="base_mode" type="uint8"/>
-    <field name="custom_mode" type="uint32"/>
-    <field name="system_status" type="uint8"/>
-    <field name="mavlink_version" type="uint8"/>
-  </message>
-
-  <message name="PX4FLOW_RAD" id="255">
-    <field name="time_sec" type="float" unit="s"/>
-    <field name="sensor_id" type="uint8"/>
-    <field name="int_time_us" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
-    <field name="int_x" type="float" unit="rad" alt_unit="deg"/>
-    <field name="int_y" type="float" unit="rad" alt_unit="deg"/>
-    <field name="int_xgyro" type="float" unit="rad" alt_unit="deg"/>
-    <field name="int_ygyro" type="float" unit="rad" alt_unit="deg"/>
-    <field name="int_zgyro" type="float" unit="rad" alt_unit="deg"/>
-    <field name="temp" type="int16" alt_unit="C" alt_unit_coef="0.01"/>
-    <field name="quality" type="uint8"/>
-    <field name="d_time_us" type="uint32" alt_unit="s" alt_unit_coef="0.000001"/>
-    <field name="distance" type="float" unit="m"/>
-  </message>
+  <!-- 254 is free -->
+  <!-- 255 is free -->
 
 </msg_class>
 
