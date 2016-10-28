@@ -623,6 +623,16 @@
     <field name="duty" type="uint8" unit="%"/>
   </message>
 
+  <message name="GVF" id="71">
+    <description>
+    Information about the trajectory followed by the Guidance Vector Field algorithm.
+    </description>
+    <field name="error" type="float">Error index e, i.e. 'distance' to the trajectory</field>
+    <field name="traj" type="uint8">Kind of trajectory</field>
+    <field name="s" type="int8" values="1|-1">Direction to be followed</field>
+    <field name="p" type="float[]">Parameters describing the trajectory</field>
+  </message>
+
   <message name="SUPERBITRF" id="72">
       <field name="status" type="uint8" values="UNINIT|INIT_BINDING|INIT_TRANSFER|BINDING|SYNCING_A|SYNCING_B|TRANSFER"/>
       <field name="cyrf_status" type="uint8" values="UNINIT|IDLE|GET_MFG_ID|MULTIWRITE|DATA_CODE|CHAN_SOP_DATA_CRC|RX_IRQ_STATUS_PACKET|SEND"/>
