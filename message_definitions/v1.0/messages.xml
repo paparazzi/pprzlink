@@ -624,16 +624,13 @@
   </message>
 
   <message name="GVF" id="71">
-	<field name="error" type="float"/>
-	<field name="traj" type="uint8"/>
-	<field name="s" type="int8"/>
-	<field name="p1" type="float"/>
-	<field name="p2" type="float"/>
-	<field name="p3" type="float"/>
-	<field name="p4" type="float"/>
-	<field name="p5" type="float"/>
-	<field name="p6" type="float"/>
-	<field name="p7" type="float"/>
+    <description>
+    Information about the trajectory followed by the Guidance Vector Field algorithm.
+    <description>
+    <field name="error" type="float">Error index e, i.e. 'distance' to the trajectory</field>
+    <field name="traj" type="uint8">Kind of trajectory</field>
+    <field name="s" type="int8" values="1|-1">Direction to be followed</field>
+    <field name="p" type="float[]">Parameters describing the trajectory</field>
   </message>
 
   <message name="SUPERBITRF" id="72">
