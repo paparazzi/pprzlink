@@ -623,6 +623,19 @@
     <field name="duty" type="uint8" unit="%"/>
   </message>
 
+  <message name="GVF" id="71">
+	<field name="error" type="float"/>
+	<field name="traj" type="uint8"/>
+	<field name="s" type="int8"/>
+	<field name="p1" type="float"/>
+	<field name="p2" type="float"/>
+	<field name="p3" type="float"/>
+	<field name="p4" type="float"/>
+	<field name="p5" type="float"/>
+	<field name="p6" type="float"/>
+	<field name="p7" type="float"/>
+  </message>
+
   <message name="SUPERBITRF" id="72">
       <field name="status" type="uint8" values="UNINIT|INIT_BINDING|INIT_TRANSFER|BINDING|SYNCING_A|SYNCING_B|TRANSFER"/>
       <field name="cyrf_status" type="uint8" values="UNINIT|IDLE|GET_MFG_ID|MULTIWRITE|DATA_CODE|CHAN_SOP_DATA_CRC|RX_IRQ_STATUS_PACKET|SEND"/>
