@@ -2093,7 +2093,11 @@
      <field name="ground_distance" type="float" unit="m"/>
    </message>
 
-   <!-- 248 is free -->
+  <message name="LIDAR" id="234">
+    <field name="distance" type="uint16"/>
+    <field name="status" type="uint8" values="REQ|READ|PARSE"/>
+    <field name="trans_status" type="uint8" values="Pending|Running|Success|Failed|Done"/>
+  </message>
 
   <message name="VISUALTARGET" id="235">
     <field name="x" type="uint16"></field>
