@@ -705,7 +705,7 @@
 
   <message name="MISSION_STATUS" id="79">
     <field name="remaining_time" type="float"/>
-    <field name="task_list" type="uint8[]"/>
+    <field name="index_list" type="uint8[]"/>
   </message>
 
   <message name="CROSS_TRACK_ERROR" id="80">
@@ -2393,6 +2393,7 @@
     <field name="wp_north" type="float" unit="m"/>
     <field name="wp_alt" type="float" unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_GOTO_WP_LLA" id="21" link="forwarded">
@@ -2402,6 +2403,7 @@
     <field name="wp_lon" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="wp_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_CIRCLE" id="22" link="forwarded">
@@ -2412,6 +2414,7 @@
     <field name="center_alt" type="float" unit="m">altitude above geoid (MSL)</field>
     <field name="radius" type="float" unit="m"/>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_CIRCLE_LLA" id="23" link="forwarded">
@@ -2422,6 +2425,7 @@
     <field name="center_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
     <field name="radius" type="float" unit="m"/>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_SEGMENT" id="24" link="forwarded">
@@ -2433,6 +2437,7 @@
     <field name="segment_north_2" type="float" unit="m"/>
     <field name="segment_alt" type="float" unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_SEGMENT_LLA" id="25" link="forwarded">
@@ -2444,6 +2449,7 @@
     <field name="segment_lon_2" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="segment_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_PATH" id="26" link="forwarded">
@@ -2462,6 +2468,7 @@
     <field name="path_alt" type="float" unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
     <field name="nb" type="uint8"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_PATH_LLA" id="27" link="forwarded">
@@ -2480,6 +2487,7 @@
     <field name="path_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
     <field name="nb" type="uint8"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_SURVEY" id="28" link="forwarded">
@@ -2491,6 +2499,7 @@
     <field name="survey_north_2" type="float" unit="m"/>
     <field name="survey_alt" type="float" unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="MISSION_SURVEY_LLA" id="29" link="forwarded">
@@ -2502,6 +2511,7 @@
     <field name="survey_lon_2" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
     <field name="survey_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
     <field name="duration" type="float" unit="s"/>
+    <field name="index" type="uint8"/>
   </message>
 
   <message name="GOTO_MISSION" id="30" link="forwarded">
