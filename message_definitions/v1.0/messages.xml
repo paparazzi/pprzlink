@@ -2211,7 +2211,14 @@
 
   <!-- 248 is free -->
   <!-- 249 is free -->
-  <!-- 250 is free -->
+
+  <message name="INDI_G" id="250">
+    <field name="G1_roll" type="float[]" unit="none"/>
+    <field name="G1_pitch" type="float[]" unit="none"/>
+    <field name="G1_yaw" type="float[]" unit="none"/>
+    <field name="G1_thrust" type="float[]" unit="none"/>
+    <field name="G2" type="float[]" unit="none"/>
+  </message>
 
    <message name="GPS_RTK" id="251">
     <field name="iTOW"          type="uint32" unit="ms"/>
