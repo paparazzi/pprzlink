@@ -593,7 +593,21 @@
     </message>
 
     <!-- 80 is free -->
-    <!-- 81 is free -->
+
+    <message name="GENERIC_COM" id="81">
+      <field name="lat" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="lon" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="alt" type="int16" unit="m"/>
+      <field name="gspeed" type="uint16" unit="cm/s" alt_unit="m/s"/>
+      <field name="course" type="int16" unit="decideg" alt_unit="deg"/>
+      <field name="airspeed" type="uint16" unit="cm/s" alt_unit="m/s"/>
+      <field name="vsupply" type="uint8" unit="decivolt"/>
+      <field name="energy" type="uint8" unit="deciAh"/>
+      <field name="throttle" type="uint8" unit="%"/>
+      <field name="ap_mode" type="uint8"/>
+      <field name="nav_block" type="uint8"/>
+      <field name="flight_time" type="uint16" unit="s"/>
+    </message>
 
     <message name="FORMATION_SLOT_TM" id="82">
       <field name="ac_id" type="uint8"/>
@@ -1614,7 +1628,6 @@
       <field name="humidity" type="float" unit="%"/>
     </message>
 
-  <!-- Do we need this? Is the turntable still a thing? -->
     <message name="IMU_TURNTABLE" id="220">
       <field name="omega" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
     </message>
@@ -1649,7 +1662,9 @@
       <field name="sonar" type="float"> measurement from the sonar (mm)</field>
     </message>
 
-    <!-- 225 is free -->
+    <message name="VIDEO_SYNC" id="225">
+      <field name="id" type="uint8"/>
+    </message>
 
     <message name="PERIODIC_TELEMETRY_ERR" id="226">
       <field name="process" type="uint8"/>
