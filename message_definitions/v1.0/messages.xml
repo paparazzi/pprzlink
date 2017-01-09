@@ -2209,7 +2209,22 @@
     <field name="errno"   type="uint8"/>
   </message>
 
-  <!-- 248 is free -->
+  <message name="BATTERY_MONITOR" id="248">
+    <field name="version"   type="uint8" values="v3|v4|v5"/>
+    <field name="bus_dev_stat"   type="uint8" values="CURRENT|VOLTAGE|TEMP"/>
+    <field name="bus_trans_stat"   type="uint8" values="Pending|Running|Success|Failed|Done"/>
+    <field name="current_raw"    type="uint16" unit="mV" alt_unit="V" alt_unit_coef="0.001"/>
+    <field name="current"	     type="float" unit="A"/>
+    <field name="bus_voltage"	 type="uint16" unit="mV" alt_unit="V" alt_unit_coef="0.001"/>
+    <field name="bus_temp_raw" type="uint16[]" unit="mV"/>
+    <field name="bus_temp" type="float[]" unit="C"/>
+    <field name="bal1_trans_stat"  type="uint8" values="Pending|Running|Success|Failed|Done"/>
+    <field name="bal1_cells" type="uint16[]" unit="mV"/>
+    <field name="bal2_trans_stat"  type="uint8" values="Pending|Running|Success|Failed|Done"/>
+    <field name="bal2_cells" type="uint16[]" unit="mV"/>
+    <field name="safety_plug"   type="uint16" values="mV"/>
+  </message>
+
   <!-- 249 is free -->
 
   <message name="INDI_G" id="250">
