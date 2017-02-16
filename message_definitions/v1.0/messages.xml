@@ -991,7 +991,7 @@
       <field name="bp"               type="int32"/>
       <field name="bq"               type="int32"/>
       <field name="br"               type="int32"/>
-      <field name="comp_id"          type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+      <field name="comp_id"          type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <!-- 135 is free -->
@@ -1246,7 +1246,7 @@
       <field name="body_phi"   type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
       <field name="body_theta" type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
       <field name="body_psi"   type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="comp_id"    type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+      <field name="comp_id"    type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <message name="AHRS_QUAT_INT" id="157">
@@ -1259,7 +1259,7 @@
       <field name="body_qx" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
       <field name="body_qy" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
       <field name="body_qz" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
-      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <!-- 158 is free -->
@@ -1363,7 +1363,7 @@
       <field name="phi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
       <field name="theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
       <field name="psi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
   <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
@@ -1396,7 +1396,7 @@
       <field name="bp"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="bq"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="br"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
-      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+      <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <message name="AEROPROBE" id="179">
