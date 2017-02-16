@@ -1414,7 +1414,7 @@
     <field name="body_phi"   type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
     <field name="body_theta" type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
     <field name="body_psi"   type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-    <field name="comp_id"    type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+    <field name="comp_id"    type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
   </message>
 
   <message name="AHRS_QUAT_INT" id="157">
@@ -1427,7 +1427,7 @@
     <field name="body_qx" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
     <field name="body_qy" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
     <field name="body_qz" type="int32" alt_unit=""  alt_unit_coef="0.0000305"/>
-    <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+    <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
   </message>
 
   <message name="AHRS_RMAT_INT" id="158">
@@ -1449,7 +1449,7 @@
     <field name="body_m20" type="int32" alt_unit=""  alt_unit_coef="0.0000610"/>
     <field name="body_m21" type="int32" alt_unit=""  alt_unit_coef="0.0000610"/>
     <field name="body_m22" type="int32" alt_unit=""  alt_unit_coef="0.0000610"/>
-    <field name="comp_id"  type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+    <field name="comp_id"  type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
   </message>
 
   <message name="ROTORCRAFT_NAV_STATUS" id="159">
@@ -1589,7 +1589,7 @@
     <field name="phi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
     <field name="theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
     <field name="psi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-    <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3"/>
+    <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
   </message>
 
   <message name="AHRS_MEASUREMENT_EULER" id="174">
