@@ -1846,7 +1846,10 @@
       <field name="safety_plug"   type="uint16" values="mV">Safety plug voltage</field>
     </message>
 
-  <!-- 249 is free -->
+    <message name="WING_POS" id="249">
+      <description>Measures position of the wing in a flapping wing vehicle</description>
+      <field name="pos" type="float" unit="none"/>
+    </message>
 
     <message name="INDI_G" id="250">
       <field name="G1_roll" type="float[]" unit="none"/>
@@ -1873,8 +1876,6 @@
       <field name="diffSoln"      type="uint8"  values="NONE|DGPS"/>
       <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
     </message>
-
-  <!-- 249 is free -->
 
   <!-- 250 is free -->
 
