@@ -2212,6 +2212,16 @@
       <field name="yaw"         type="int8"/>
     </message>
 
+    <message name="RC_5CH" id="53" link="broadcasted">
+      <field name="ac_id"       type="uint8"/>
+      <field name="throttle"    type="uint8"/>
+      <field name="roll"        type="int8"/>
+      <field name="pitch"       type="int8"/>
+      <field name="yaw"         type="int8"/>
+      <field name="mode"        type="int8"/>
+      <field name="kill"        type="int8"/>
+    </message>
+
     <message name="REMOTE_GPS_SMALL" id="54" link="forwarded">
       <field name="heading"   type="int16"  unit="1e4rad" alt_unit="deg" alt_unit_coef="0.0057296"/>
       <field name="pos_xyz"  	type="uint32">bits 31-21 east position [cm] : bits 20-10 north position [cm] : bits 9-0 up position [cm]</field>
