@@ -159,7 +159,14 @@
       <field name="val2" type="uint16"/>
     </message>
 
-    <!-- 19 is free -->
+    <message name="ECU" id="19">
+      <field name="stg_in" type="uint8" unit="bool"/>
+      <field name="stb_in" type="uint8" unit="bool"/>
+      <field name="ain1" type="float" unit="V"/>
+      <field name="ain2" type="float" unit="V"/>
+      <field name="ain3" type="float" unit="V"/>
+      <field name="ain4" type="float" unit="V"/>
+    </message>
 
     <message name="CAM" id="20">
       <field name="phi" type="int16" unit="deg"/>
