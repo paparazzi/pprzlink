@@ -694,7 +694,15 @@
       <field name="ftemp" type="float" unit="deg_celsius" format="%.2f"/>
     </message>
 
-    <!-- 92 is free -->
+    <message name="LOGGER_STATUS" id="92">
+      <description>
+        Logger status and error id (dependent of the logging system)
+      </description>
+      <field name="status" type="uint8" values="STOPPED|RUNNING|ERROR">General status of the logger</field>
+      <field name="errno" type="uint8">Error number, depend of the logging system, provides detailed information</field>
+      <field name="used" type="uint32" unit="bytes">Accumulated number of bytes written by the logger</field>
+    </message>
+
     <!-- 93 is free -->
 
     <message name="MOTOR_BENCH_STATUS" id="94">
