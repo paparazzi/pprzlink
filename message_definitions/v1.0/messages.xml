@@ -1889,7 +1889,14 @@
       <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
     </message>
 
-  <!-- 249 is free -->
+    <message name="GPS_RXMRTCM" id="249">
+      <field name="Msg1005"      type="uint32" />
+      <field name="Msg1077"  	 type="uint32" />
+      <field name="Msg1087"      type="uint32" />
+      <field name="Crc1005"      type="uint32" />
+      <field name="Crc1077"      type="uint32" />
+      <field name="Crc1087"      type="uint32"  />
+    </message>
 
   <!-- 250 is free -->
 
