@@ -6,17 +6,9 @@ from __future__ import absolute_import, division, print_function
 import threading
 import socket
 
-# used to run the test from this directory
-# any better implementation ?
-import os
-import sys
-PACKAGE_PARENT = '..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
 # load pprzlink messages and transport
-from pprzlink.message import PprzMessage
-from pprzlink.pprz_transport import PprzTransport
+from .message import PprzMessage
+from .pprz_transport import PprzTransport
 
 # default port
 UPLINK_PORT = 4243
