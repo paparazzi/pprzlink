@@ -186,7 +186,7 @@ class IvyMessagesInterface(object):
         raw['message'] = msg.to_csv()
         return self.send(raw)
 
-    def send(self, msg, ac_id=None):
+    def send(self, msg, sender_id=None, receiver_id=None, component_id=None):
         """
         Send a message
 
@@ -199,11 +199,11 @@ class IvyMessagesInterface(object):
             return
         if isinstance(msg, PprzMessage):
             if "telemetry" in msg.msg_class:
-                if ac_id is None:
+                if sender_id is None:
                     print("ac_id needed to send telemetry message.")
                     return None
                 else:
-                    return IvySendMsg("%d %s %s" % (ac_id, msg.name, msg.payload_to_ivy_string()))
+                    return IvySendMsg("%d %s %s" % (sender_id, msg.name, msg.payload_to_ivy_string()))
             else:
                 return IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
         else:

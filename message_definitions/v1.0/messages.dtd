@@ -4,6 +4,7 @@
 <!ELEMENT msg_class (message+)>
 <!ATTLIST msg_class
   name CDATA #REQUIRED
+  id   CDATA #IMPLIED
 >
 
 <!ELEMENT message (description?,field*)>

@@ -15,11 +15,12 @@ based on:
 import sys, textwrap, os
 import pprz_parse
 
-# XSD schema file
-schemaFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "pprz_schema.xsd")
+# XSD schema file => must be pprz_schema.xsd and be stored in the same directory as messages.xml
+schemaFileName = "pprz_schema.xsd"
 
 # Set defaults for generating MAVLink code
 DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_1_0
+DEFAULT_MESSAGES = pprz_parse.MESSAGES_1_0
 DEFAULT_LANGUAGE = 'C'
 DEFAULT_ERROR_LIMIT = 200
 DEFAULT_VALIDATE = True
@@ -61,7 +62,14 @@ def gen_messages(opts) :
     # Process XML file, validating as necessary.
     validation_result = 0
     if opts.validate:
-        print("Validating msg_class %s in %s" % (opts.class_name, fname))
+        import os.path
+        directory = os.path.dirname(fname)
+        schemaFile = os.path.join(directory, schemaFileName)
+        if not os.path.isfile(schemaFile):
+            print ("Schema file %s does not exist." % (schemaFile))
+            sys.exit(1);
+        print("Validating msg_class %s in %s with %s" % (opts.class_name, fname,schemaFile))
+
         validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
     else:
         print("Validation skipped for msg_class %s in %s." % (opts.class_name, fname))
@@ -81,8 +89,8 @@ def gen_messages(opts) :
     # Convert language option to lowercase and validate
     opts.language = opts.language.lower()
     if opts.language == 'c':
-        import gen_messages_c
-        gen_messages_c.generate(opts.output, xml)
+        gen_message_c = __import__(xml.generator_module + "_c")
+        gen_message_c.generate(opts.output, xml)
     else:
         print("Unsupported language %s" % opts.language)
 
@@ -94,7 +102,8 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="This tool generate implementations from PPRZLink message definitions")
     parser.add_argument("-o", "--output", default="stdout", help="output file or stream [default: %(default)s]")
     parser.add_argument("--lang", dest="language", choices=supportedLanguages, default=DEFAULT_LANGUAGE, help="language of generated code [default: %(default)s]")
-    parser.add_argument("--protocol", choices=[pprz_parse.PROTOCOL_1_0], default=DEFAULT_PROTOCOL, help="PPRZLink protocol version. [default: %(default)s]")
+    parser.add_argument("--protocol", choices=[pprz_parse.PROTOCOL_1_0,pprz_parse.PROTOCOL_2_0], default=DEFAULT_PROTOCOL, help="PPRZLink protocol version. [default: %(default)s]")
+    parser.add_argument("--messages", choices=[pprz_parse.MESSAGES_1_0], default=DEFAULT_MESSAGES, help="PPRZLink message definitino version. [default: %(default)s]")
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
     parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")
     parser.add_argument("--error-limit", default=DEFAULT_ERROR_LIMIT, help="maximum number of validation errors to display")

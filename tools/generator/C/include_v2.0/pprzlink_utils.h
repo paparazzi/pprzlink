@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-#define PPRZLINK_PROTOCOL_VERSION "1.0"
+#define PPRZLINK_PROTOCOL_VERSION "2.0"
 
 #include <inttypes.h>
 
@@ -176,10 +176,6 @@ typedef union __attribute__((packed)) {
 #define _PPRZ_VAL_fixed_len_aligned(_len) (0)
 
 #endif // PPRZLINK_UNALIGNED_ACCESS
-
-/* Message id helpers */
-#define SenderIdOfPprzMsg(x) (x[0])
-#define IdOfPprzMsg(x) (x[1])
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -1,6 +1,6 @@
 # Hey Emacs, this is a -*- makefile -*-
 #
-# Copyright (C) 2017 Gautier Hattenberger <gautier.hattenberger@enac.fr>
+# Copyright (C) 2017 Fabien Garcia <fabien.garcia@enac.fr>
 #
 # This file is part of paparazzi.
 #
@@ -19,5 +19,16 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-include ../../common/ocaml/Makefile
+MAKE = make
+
+all:
+
+install:
+	# Install correct version python library to DESTDIR
+	@echo INSTALL at location $(DESTDIR)
+	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
+	$(Q)cp -r pprzlink $(DESTDIR)
+
+
+.PHONY: all install
 

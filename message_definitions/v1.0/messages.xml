@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE protocol SYSTEM "messages.dtd">
 <protocol>
-  <!-- messages from modem or sim to server -->
-  <msg_class name="telemetry">
+ <!-- messages from modem or sim to server -->
+ <msg_class name="telemetry" id="0">
 
     <message name="AUTOPILOT_VERSION" id="1">
       <field name="version" type="uint32">version encoded as: MAJOR * 10000 + MINOR * 100 + PATCH</field>
@@ -1944,7 +1944,7 @@
 
   </msg_class>
 
-  <msg_class name="datalink">
+  <msg_class name="datalink" id="1">
     <message name="ACINFO" id="1" link="broadcasted">
       <field name="course"    type="int16"  unit="decideg" alt_unit="deg"/>
       <field name="utm_east"  type="int32"  unit="cm"      alt_unit="m"/>
@@ -2764,7 +2764,7 @@
     </message>
   </msg_class>
 
-  <msg_class name="intermcu">
+  <msg_class name="intermcu" id="2">
 
 	<!-- KEEP INTERMCU MESSAGES BELOW 8 BYTES PER MESSAGES
 		 TO ALLOW TRANSFER OVER CAN BUS -->

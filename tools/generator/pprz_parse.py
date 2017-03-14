@@ -13,6 +13,8 @@ based on:
 import xml.parsers.expat, os, errno, time, sys, operator, struct
 
 PROTOCOL_1_0 = "1.0"
+PROTOCOL_2_0 = "2.0"
+MESSAGES_1_0 = "1.0"
 
 class PPRZParseError(Exception):
     def __init__(self, message, inner_exception=None):
@@ -87,12 +89,18 @@ class PPRZXML(object):
     def __init__(self, filename, class_name, protocol_version=PROTOCOL_1_0):
         self.filename = filename
         self.class_name = class_name
+        self.class_id= None
         self.message = []
         self.protocol_version = protocol_version
 
         if protocol_version == PROTOCOL_1_0:
             self.protocol_version_major = 1
             self.protocol_version_minor = 0
+            self.generator_module = "gen_messages_v1_0"
+        elif protocol_version == PROTOCOL_2_0:
+            self.protocol_version_major = 2
+            self.protocol_version_minor = 0
+            self.generator_module = "gen_messages_v2_0"
         else:
             print("Unknown wire protocol version")
             print("Available versions are: %s" % (PROTOCOL_1_0))
@@ -100,6 +108,7 @@ class PPRZXML(object):
 
         in_element_list = []
         self.current_class = ''
+        self.current_class_id = None
 
         def check_attrs(attrs, check, where):
             for c in check:
@@ -114,6 +123,11 @@ class PPRZXML(object):
             if in_element == "protocol.msg_class":
                 check_attrs(attrs, ['name'], 'msg_class')
                 self.current_class = attrs['name']
+                try:
+                    check_attrs(attrs, ['id'], 'msg_class')
+                    self.current_class_id = attrs['id']
+                except PPRZParseError:
+                    self.current_class_id = None
             elif in_element == "protocol.msg_class.message":
                 check_attrs(attrs, ['name', 'id'], 'message')
                 if self.current_class == self.class_name:
@@ -128,6 +142,10 @@ class PPRZXML(object):
             if in_element == "protocol.msg_class":
                 if self.current_class == self.class_name:
                     self.nb_messages = len(self.message)
+                    if self.current_class_id is not None:
+                        self.class_id = int(self.current_class_id)
+                    else:
+                        raise PPRZParseError('Cannot generate code for class (%s) without id' % self.current_class)
                 self.current_class = ''
             in_element_list.pop()
 

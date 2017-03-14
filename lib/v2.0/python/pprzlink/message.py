@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import sys
 import json
 import struct
-from . import messages_xml_map
+import messages_xml_map
 
 
 class PprzMessageError(Exception):
@@ -23,17 +23,25 @@ class PprzMessageError(Exception):
 class PprzMessage(object):
     """base Paparazzi message class"""
 
-    def __init__(self, class_name, msg):
-        self._class_name = class_name
+    def __init__(self, class_name, msg, component_id=0):
+        if isinstance(class_name, int):
+            # class_name is an integer, find the name
+            # TODO handle None case
+            self._class_id = class_name
+            self._class_name = messages_xml_map.get_class_name(self._class_id)
+        else:
+            self._class_name = class_name
+            self._class_id = messages_xml_map.get_class_id(class_name)
+        self._component_id = component_id
         if isinstance(msg, int):
             self._id = msg
-            self._name = messages_xml_map.get_msg_name(class_name, msg)
+            self._name = messages_xml_map.get_msg_name(self._class_name, msg)
         else:
             self._name = msg
-            self._id = messages_xml_map.get_msg_id(class_name, msg)
-        self._fieldnames = messages_xml_map.get_msg_fields(class_name, self._name)
-        self._fieldtypes = messages_xml_map.get_msg_fieldtypes(class_name, self._id)
-        self._fieldcoefs = messages_xml_map.get_msg_fieldcoefs(class_name, self._id)
+            self._id = messages_xml_map.get_msg_id(self._class_name, msg)
+        self._fieldnames = messages_xml_map.get_msg_fields(self._class_name, self._name)
+        self._fieldtypes = messages_xml_map.get_msg_fieldtypes(self._class_name, self._id)
+        self._fieldcoefs = messages_xml_map.get_msg_fieldcoefs(self._class_name, self._id)
         self._fieldvalues = []
         # set empty values according to type
         for t in self._fieldtypes:
@@ -57,6 +65,11 @@ class PprzMessage(object):
     def msg_id(self):
         """Get the message id."""
         return self._id
+
+    @property
+    def class_id(self):
+        """Get the class id."""
+        return self._class_id
 
     @property
     def msg_class(self):
@@ -121,9 +134,8 @@ class PprzMessage(object):
         self.set_value_by_name(key, value)
 
     def set_values(self, values):
-        # print("msg %s: %s" % (self.name, ", ".join(self.fieldnames)))
+        #print("msg %s: %s" % (self.name, ", ".join(self.fieldnames)))
         if len(values) == len(self.fieldnames):
-            # for idx in range(len(values)):
             self._fieldvalues = values
         else:
             raise PprzMessageError("Error: Msg %s has %d fields, tried to set %i values" %

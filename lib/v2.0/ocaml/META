@@ -1,0 +1,8 @@
+description = "PPRZLINK communication package for Paparazzi UAV System"
+requires = "unix,str,xml-light,glibivy"
+version = "2.0"
+directory = ""
+
+archive(byte) = "lib-pprzlink.cma"
+archive(native) = "lib-pprzlink.cmxa"
+
