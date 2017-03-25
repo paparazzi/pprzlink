@@ -1749,7 +1749,7 @@
 
     <message name="LIDAR" id="234">
       <field name="distance" type="float" unit="m"/>
-      <field name="status" type="uint8" values="REQ|READ|PARSE"/>
+      <field name="status" type="uint8" values="INIT|REQ|READ|PARSE"/>
       <field name="trans_status" type="uint8" values="Pending|Running|Success|Failed|Done"/>
     </message>
 
