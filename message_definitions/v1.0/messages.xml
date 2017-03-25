@@ -945,9 +945,9 @@
 
     <message name="CAMERA_SNAPSHOT" id="128">
       <field name="camera_id" type="uint16">Unique camera ID - consists of make,model and camera index</field>
-      <field anme="camera_state" type="uint8" values="UNKNOWN|OK|ERROR">State of the given camera</field>
+      <field name="camera_state" type="uint8" values="UNKNOWN|OK|ERROR">State of the given camera</field>
       <field name="snapshot_image_number" type="uint16">Snapshot number in sequence</field>
-      <field name="valid_snapshot" type="bool">Flag checking whether the last snapshot was valid</field>
+      <field name="valid_snapshot" type="uint8" unit="bool">Flag checking whether the last snapshot was valid</field>
       <field name="lens_temp" type="float" unit="deg_celsius" format="%.2f">Lens temperature (NaN if not measured</field>
     </message>
 
