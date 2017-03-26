@@ -809,7 +809,7 @@
 
     <message name="CAMERA_PAYLOAD" id="111">
       <field name="timestamp" type="float" unit="s">Payload computer timestamp</field>
-      <field name="used_memory" type="uint8" unit="%">Percentage of used memory of the payload computer (rounded up to whole percent)</field>
+      <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the payload computer (rounded up to whole percent)</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the payload computer (rounded up to whole percent)</field>
       <field name="door_status" type="uint8" values="UNKNOWN|CLOSE|OPEN">Payload door open/close</field>
       <field name="error_code" type="uint8" values="NONE|CAMERA_ERR|DOOR_ERR">Error codes of the payload</field>
@@ -949,6 +949,7 @@
       <field name="snapshot_image_number" type="uint16">Snapshot number in sequence</field>
       <field name="snapshot_valid" type="uint8" unit="bool">Flag checking whether the last snapshot was valid</field>
       <field name="lens_temp" type="float" unit="deg_celsius" format="%.2f">Lens temperature (NaN if not measured</field>
+      <field name="array_temp" type="float" unit="deg_celsius" format="%.2f">Imager sensor temperature (NaN if not measured</field>
     </message>
 
     <message name="TIMESTAMP" id="129">
