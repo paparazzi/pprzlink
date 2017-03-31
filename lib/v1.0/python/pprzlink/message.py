@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import sys
 import json
 import struct
-import messages_xml_map
+from . import messages_xml_map
 
 
 class PprzMessageError(Exception):
