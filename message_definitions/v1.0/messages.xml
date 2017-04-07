@@ -542,6 +542,7 @@
       <field name="error" type="float">Error index e, i.e. 'distance' to the trajectory</field>
       <field name="traj" type="uint8">Kind of trajectory</field>
       <field name="s" type="int8" values="1|-1">Direction to be followed</field>
+	  <field name="ke" type="float">Gain for the vector field convergence</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
     </message>
 
