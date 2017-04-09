@@ -1150,7 +1150,7 @@
       <field name="err_sum_y" type="int32"/>
       <field name="cmd_x"     type="int32"/>
       <field name="cmd_y"     type="int32"/>
-      <field name="cmd_heading" type="int32"/>
+      <field name="cmd_heading" type="float" unit="rad" alt_unit="deg"/>
     </message>
 
     <message name="ROTORCRAFT_FP" id="147">
