@@ -915,7 +915,13 @@
       <field name="climb" type="float"/>
     </message>
 
-    <!-- 125 is free -->
+    <message name="COPILOT_STATUS" id="125">
+      <field name="timestamp" type="float" unit="s">Mission computer timestamp</field>
+      <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
+      <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the mission computer rounded up to whole percent</field>
+      <field name="status" type="uint8" values="UNKNOWN|RUNNING|FAULT">Mission computer status</field>
+      <field name="error_code" type="uint8" values="NONE|IO_ERROR">Error codes of the mission computer</field>
+    </message>
 
     <message name="TEMP_TCOUPLE" id="126">
       <field name="fval0" type="float"/>
