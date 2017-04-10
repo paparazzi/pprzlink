@@ -2207,6 +2207,7 @@
     </message>
 
     <message name="COPILOT_STAT" id="33" link="forwarded">
+      <field name="ac_id" type="uint8"/>
       <field name="timestamp" type="float" unit="s">Mission computer timestamp</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the mission computer rounded up to whole percent</field>
@@ -2215,6 +2216,7 @@
     </message>
 
     <message name="CAMERA_PAYL" id="34" link="forwarded">
+      <field name="ac_id" type="uint8"/>
       <field name="timestamp" type="float" unit="s">Payload computer timestamp</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the payload computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the payload computer rounded up to whole percent</field>
@@ -2223,6 +2225,7 @@
     </message>
 
     <message name="CAMERA_SHOT" id="35" link="forwarded">
+      <field name="ac_id" type="uint8"/>
       <field name="camera_id" type="uint16">Unique camera ID - consists of make,model and camera index</field>
       <field name="camera_state" type="uint8" values="UNKNOWN|OK|ERROR">State of the given camera</field>
       <field name="snapshot_image_number" type="uint16">Snapshot number in sequence</field>
