@@ -2234,15 +2234,6 @@
       <field name="array_temp" type="float" unit="deg_celsius" format="%.2f">Imager sensor temperature, NaN if not measured</field>
     </message>
 
-    <message name="COPILOT_STAT" id="36" link="forwarded">
-      <field name="ac_id" type="uint8"/>
-      <field name="timestamp" type="float" unit="s">Mission computer timestamp</field>
-      <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
-      <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the mission computer rounded up to whole percent</field>
-      <field name="status" type="uint8" values="UNKNOWN|RUNNING|FAULT">Mission computer status</field>
-      <field name="error_code" type="uint8" values="NONE|IO_ERROR">Error codes of the mission computer</field>
-    </message>
-
     <message name="GUIDED_SETPOINT_NED" id="40" link="forwarded">
       <description>
         Set vehicle position or velocity in NED.
