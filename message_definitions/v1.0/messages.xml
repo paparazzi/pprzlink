@@ -808,7 +808,7 @@
     </message>
 
     <message name="CAMERA_PAYLOAD" id="111">
-      <field name="timestamp" type="float" unit="s">Payload computer timestamp</field>
+      <field name="timestamp" type="float" unit="s">Payload computer seconds since startup</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the payload computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the payload computer rounded up to whole percent</field>
       <field name="door_status" type="uint8" values="UNKNOWN|CLOSE|OPEN">Payload door open/close</field>
@@ -916,10 +916,10 @@
     </message>
 
     <message name="COPILOT_STATUS" id="125">
-      <field name="timestamp" type="float" unit="s">Mission computer timestamp</field>
+      <field name="timestamp" type="float" unit="s">Mission computer seconds since startup</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the mission computer rounded up to whole percent</field>
-      <field name="status" type="uint8" values="UNKNOWN|RUNNING|FAULT">Mission computer status</field>
+      <field name="status" type="uint8" values="UNKNOWN|INIT|LOGGING|FAULT">Mission computer status</field>
       <field name="error_code" type="uint8" values="NONE|IO_ERROR">Error codes of the mission computer</field>
     </message>
 
@@ -1704,9 +1704,8 @@
       <field name="id" type="uint8"/>
     </message>
 
-  <!-- Do we really need this? It is used in test_radio_control.c and test_adc.c only -->
     <message name="TIME" id="227">
-      <field name="t" type="uint32"/>
+      <field name="t" type="uint32">an integral value representing the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC</field>
     </message>
 
     <message name="OPTIC_FLOW_EST" id="228">
@@ -2208,16 +2207,16 @@
 
     <message name="COPILOT_STAT" id="33" link="forwarded">
       <field name="ac_id" type="uint8"/>
-      <field name="timestamp" type="float" unit="s">Mission computer timestamp</field>
+      <field name="timestamp" type="float" unit="s">Mission computer seconds since startup</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the mission computer rounded up to whole percent</field>
-      <field name="status" type="uint8" values="UNKNOWN|RUNNING|FAULT">Mission computer status</field>
+      <field name="status" type="uint8" values="UNKNOWN|INIT|LOGGING|FAULT">Mission computer status</field>
       <field name="error_code" type="uint8" values="NONE|IO_ERROR">Error codes of the mission computer</field>
     </message>
 
     <message name="CAMERA_PAYL" id="34" link="forwarded">
       <field name="ac_id" type="uint8"/>
-      <field name="timestamp" type="float" unit="s">Payload computer timestamp</field>
+      <field name="timestamp" type="float" unit="s">Payload computer seconds sice startup</field>
       <field name="used_memory" type="uint8" unit="%">Percentage of used memory (RAM) of the payload computer rounded up to whole percent</field>
       <field name="used_disk" type="uint8" unit="%">Percentage of used disk of the payload computer rounded up to whole percent</field>
       <field name="door_status" type="uint8" values="UNKNOWN|CLOSE|OPEN">Payload door open/close</field>
