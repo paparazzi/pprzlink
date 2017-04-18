@@ -182,12 +182,17 @@ restart:
 
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, bool *msg_available)
+void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans, uint8_t *buf, bool *msg_available, pprz_parse_byte parse_byte)
 {
   uint8_t i;
   if (dev->char_available(dev->periph)) {
     while (dev->char_available(dev->periph) && !trans->trans_rx.msg_received) {
-      parse_pprz(trans, dev->get_byte(dev->periph));
+      uint8_t c = dev->get_byte(dev->periph);
+      parse_pprz(trans, c);
+
+      if(parse_byte != NULL) {
+        (*parse_byte)(c);
+      }
     }
     if (trans->trans_rx.msg_received) {
       for (i = 0; i < trans->trans_rx.payload_len; i++) {
