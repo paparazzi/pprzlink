@@ -536,9 +536,9 @@
     </message>
 
     <message name="GVF" id="71">
-    <description>
-    Information about the trajectory followed by the Guidance Vector Field algorithm.
-    </description>
+      <description>
+      Information about the trajectory followed by the Guidance Vector Field algorithm.
+      </description>
       <field name="error" type="float">Error index e, i.e. 'distance' to the trajectory</field>
       <field name="traj" type="uint8">Kind of trajectory</field>
       <field name="s" type="int8" values="1|-1">Direction to be followed</field>
