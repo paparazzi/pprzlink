@@ -16,15 +16,16 @@ else:
     default_messages_file = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                           "../../../../message_definitions/v1.0/messages.xml"))
 # Define the pprzlink protocol version
-PROTOCOL_VERSION="1.0"
+PROTOCOL_VERSION="2.0"
 
 message_dictionary = {}
 message_dictionary_types = {}
 message_dictionary_coefs = {}
 message_dictionary_id_name = {}
 message_dictionary_name_id = {}
+message_dictionary_class_id_name = {}
+message_dictionary_class_name_id = {}
 message_dictionary_broadcast = {}
-
 
 class MessagesNotFound(Exception):
     def __init__(self, filename):
@@ -44,6 +45,15 @@ def parse_messages(messages_file=''):
     tree = etree.parse(messages_file)
     for the_class in tree.xpath("//msg_class[@name]"):
         class_name = the_class.attrib['name']
+        if 'id' in the_class.attrib:
+            class_id = int(the_class.attrib['id'])
+            message_dictionary_class_id_name[class_id] = class_name
+            message_dictionary_class_name_id[class_name] = class_id
+        elif 'ID' in the_class.attrib:
+            class_id = int(the_class.attrib['ID'])
+            message_dictionary_class_id_name[class_id] = class_name
+            message_dictionary_class_name_id[class_name] = class_id
+
         if class_name not in message_dictionary:
             message_dictionary_id_name[class_name] = {}
             message_dictionary_name_id[class_name] = {}
@@ -104,6 +114,25 @@ def get_msgs(msg_class):
     else:
         print("Error: msg_class %s not found." % msg_class)
     return []
+
+
+def get_class_name(class_id):
+    if not message_dictionary:
+        parse_messages()
+    if class_id in message_dictionary_class_id_name:
+        return message_dictionary_class_id_name[class_id]
+    else:
+        print("Error: class_id %d not found." % class_id)
+    return None
+
+def get_class_id(class_name):
+    if not message_dictionary:
+        parse_messages()
+    if class_name in message_dictionary_class_name_id:
+        return message_dictionary_class_name_id[class_name]
+    else:
+        print("Error: class_name %s not found." % class_name)
+    return None
 
 
 def get_msg_name(msg_class, msg_id):

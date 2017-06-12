@@ -1,0 +1,12 @@
+# uncomment to add debugging for all
+#true: debug
+
+#
+# packages for lib-pprzlink files
+#
+<*[xX]ml*.ml*>: package(xml-light)
+<pprzLink.ml*>: package(xml-light), package(ivy)
+
+# link C libs
+<lib-pprzlink.cm{x,}a>: linklib(pprzlink_stub.a)
+

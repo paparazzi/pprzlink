@@ -18,7 +18,7 @@ DOWNLINK_PORT = 4242
 class UdpMessagesInterface(threading.Thread):
     def __init__(self, callback, verbose=False,
                  uplink_port=UPLINK_PORT, downlink_port=DOWNLINK_PORT,
-                 msg_class='telemetry'):
+                 msg_class='telemetry', interface_id=0):
         threading.Thread.__init__(self)
         self.callback = callback
         self.verbose = verbose
@@ -26,6 +26,7 @@ class UdpMessagesInterface(threading.Thread):
         self.uplink_port = uplink_port
         self.downlink_port = downlink_port
         self.ac_downlink_status = {}
+        self.id = interface_id
         self.running = True
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -51,10 +52,11 @@ class UdpMessagesInterface(threading.Thread):
         except:
             pass
 
-    def send(self, msg, sender_id, address):
+    def send(self, msg, sender_id, address, receiver = 0, component= 0):
         """ Send a message over a UDP link"""
+#TODO use sender_id from constructor
         if isinstance(msg, PprzMessage):
-            data = self.trans.pack_pprz_msg(sender_id, msg)
+            data = self.trans.pack_pprz_msg(sender_id, msg, receiver, component)
             try:
                 self.server.sendto(data, address)
             except:
@@ -70,11 +72,12 @@ class UdpMessagesInterface(threading.Thread):
                     length = len(msg)
                     for c in msg:
                         if self.trans.parse_byte(c):
-                            (sender_id, msg) = self.trans.unpack()
+                            (sender_id, receiver_id, component_id, msg) = self.trans.unpack()
                             if self.verbose:
-                                print("New incoming message '%s' from %i (%s)" % (msg.name, sender_id, address))
-                            # Callback function on new message 
-                            self.callback(sender_id, address, msg, length)
+                                print("New incoming message '%s' from %i (%i, %s) to %i" % (msg.name, sender_id, component_id, address, receiver_id))
+                            # Callback function on new message
+                            if self.id == receiver_id:
+                                self.callback(sender_id, address, msg, length, receiver_id, component_id)
                 except socket.timeout:
                     pass
 
@@ -91,14 +94,15 @@ def test():
     parser.add_argument("-f", "--file", help="path to messages.xml file")
     parser.add_argument("-c", "--class", help="message class of incoming messages", dest='msg_class', default='telemetry')
     parser.add_argument("-a", "--address", help="destination address", dest='address', default='127.0.0.1')
-    parser.add_argument("-id", "--ac_id", help="aircraft id", dest='ac_id', default=42, type=int)
+    parser.add_argument("-id", "--ac_id", help="aircraft id (receiver)", dest='ac_id', default=42, type=int)
+    parser.add_argument("--interface_id", help="interface id (sender)", dest='id', default=0, type=int)
     parser.add_argument("-up", "--uplink_port", help="uplink port", dest='uplink', default=UPLINK_PORT, type=int)
     parser.add_argument("-dp", "--downlink_port", help="downlink port", dest='downlink', default=DOWNLINK_PORT, type=int)
     args = parser.parse_args()
     messages_xml_map.parse_messages(args.file)
     udp_interface = UdpMessagesInterface(lambda s, a, m: print("new message from %i (%s): %s" % (s, a, m)),
                                                uplink_port=args.uplink, downlink_port=args.downlink,
-                                               msg_class=args.msg_class, verbose=True)
+                                               msg_class=args.msg_class, interface_id=args.id, verbose=True)
 
     print("Starting UDP interface with '%s' with id '%d'" % (args.address, args.ac_id))
     address = (args.address, args.uplink)

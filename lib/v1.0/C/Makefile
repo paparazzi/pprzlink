@@ -1,6 +1,6 @@
 # Hey Emacs, this is a -*- makefile -*-
 #
-# Copyright (C) 2017 Gautier Hattenberger <gautier.hattenberger@enac.fr>
+# Copyright (C) 2017 Fabien Garcia <fabien.garcia@enac.fr>
 #
 # This file is part of paparazzi.
 #
@@ -19,5 +19,15 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-include ../../common/ocaml/Makefile
+MAKE = make
 
+all:
+
+install:
+#	$(Q)cp ../../common/C/*.c $(MESSAGES_LIB)
+	$(Q)cp ../../common/C/*.h $(MESSAGES_INCLUDE)
+	$(Q)cp ./*.h $(MESSAGES_INCLUDE)
+	$(Q)cp ./*.c $(MESSAGES_LIB)
+
+
+.PHONY: install

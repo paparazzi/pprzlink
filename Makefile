@@ -24,8 +24,11 @@ Q=@
 
 MAKE = make
 
-MESSAGES_XML ?= message_definitions/v1.0/messages.xml
-MESSAGES_DTD ?= message_definitions/v1.0/messages.dtd
+PPRZLINK_MSG_VERSION ?= 1.0
+PPRZLINK_LIB_VERSION ?= 1.0
+
+MESSAGES_XML ?= message_definitions/v$(PPRZLINK_MSG_VERSION)/messages.xml
+MESSAGES_DTD ?= message_definitions/v$(PPRZLINK_MSG_VERSION)/messages.dtd
 UNITS_XML ?= message_definitions/common/units.xml
 MESSAGES_INSTALL ?= var
 MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
@@ -43,49 +46,35 @@ else
   VALIDATE_FLAG =
 endif
 
-all: libs
+all: libpprzlink
 
-libs: ocaml_lib_v1
-
-generators: ocaml_lib_v1
-	$(Q)$(MAKE) -C tools/generator install
-
-ocaml_lib_v1:
-	$(Q)$(MAKE) -C lib/v1.0/ocaml
+libpprzlink:
+	$(Q)Q=$(Q) $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml
 
 libpprzlink-install:
-	$(Q)$(MAKE) -C lib/v1.0/ocaml install
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/ocaml $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml install
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/python $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/python install
 
 pre_messages_dir:
 	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
 	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
 
-gen_messages: generators pre_messages_dir
-	@echo 'Generate C messages (OCaml) at location $(MESSAGES_INCLUDE)'
-	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) telemetry $(TELEMETRY_H)
-	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) datalink $(DATALINK_H)
-	$(Q)./bin/gen_messages_c.byte $(MESSAGES_XML) intermcu $(INTERMCU_H)
-	$(Q)cp tools/generator/C/include_v1.0/*.h $(MESSAGES_INCLUDE)
-
 post_messages_install:
 	@echo 'Copy extra lib files'
 	$(Q)cp $(MESSAGES_XML) $(MESSAGES_DTD) $(UNITS_XML) $(MESSAGES_INSTALL)
-	$(Q)cp lib/v1.0/C/*.h $(MESSAGES_INCLUDE)
-	$(Q)cp lib/v1.0/C/*.c $(MESSAGES_LIB)
+	$(Q)Q=$(Q) MESSAGES_INCLUDE=$(MESSAGES_INCLUDE) MESSAGES_LIB=$(MESSAGES_LIB) $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C install
 
 pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
-
-messages: gen_messages post_messages_install
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
+	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
 
 pymessages: pygen_messages post_messages_install
 
 clean :
 	$(Q)$(MAKE) -C tools/generator clean
-	$(Q)$(MAKE) -C lib/v1.0/ocaml clean
+	$(Q)$(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml clean
 
 uninstall: clean
 	$(Q)rm -rf var bin build $(MESSAGES_INCLUDE) $(MESSAGES_LIB)
@@ -95,4 +84,4 @@ validate_messages:
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
 
-.PHONY: all libs generators ocaml_lib_v1 pre_messages_dir post_messages_install gen_messages pygen_messages messages pymessages clean uninstall validate_messages
+.PHONY: libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
