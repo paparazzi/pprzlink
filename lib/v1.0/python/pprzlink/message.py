@@ -7,6 +7,7 @@ from __future__ import division, print_function
 import sys
 import json
 import struct
+import re
 from . import messages_xml_map
 
 
@@ -183,17 +184,21 @@ class PprzMessage(object):
         length = 0
         for idx, t in enumerate(self.fieldtypes):
             bin_type = self.fieldbintypes(t)
-            struct_string += bin_type[0]
-            array_length = 1
-            if "char[" in t:
+            r = re.compile('[\[\]]')
+            s = r.split(t)
+            if len(s) > 1: # this is an array
                 array_length = len(self.fieldvalues[idx])
-                for c in self.fieldvalues[idx]:
-                    data.append(int(c))
-            elif '[' in t:
-                array_length = len(self.fieldvalues[idx])
+                if len(s[1]) == 0: # this is a variable length array
+                    struct_string += 'B'
+                    data.append(array_length)
+                    length += 1
+                struct_string += bin_type[0] * array_length
+                length += bin_type[1] * array_length
                 for x in self.fieldvalues[idx]:
                     data.append(x)
             else:
+                struct_string += bin_type[0]
+                length += bin_type[1]
                 # Assign the right type according to field description
                 if bin_type[0]=='f' or bin_type[0]== 'd':
                     data.append(float(self.fieldvalues[idx]))
@@ -201,7 +206,6 @@ class PprzMessage(object):
                     data.append(int(self.fieldvalues[idx]))
                 else:
                     data.append(self.fieldvalues[idx])
-            length += bin_type[1] * array_length
         msg = struct.pack(struct_string, *data)
         return msg
 
