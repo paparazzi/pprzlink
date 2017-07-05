@@ -66,9 +66,12 @@ def gen_messages(opts) :
         directory = os.path.dirname(fname)
         schemaFile = os.path.join(directory, schemaFileName)
         if not os.path.isfile(schemaFile):
-            print ("Schema file %s does not exist." % (schemaFile))
-            sys.exit(1);
-        print("Validating msg_class %s in %s with %s" % (opts.class_name, fname,schemaFile))
+            print ("Schema file %s does not exist. Trying default path." % (schemaFile))
+            schemaFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), schemaFileName)
+            if not os.path.isfile(schemaFile):
+                print ("Schema default file %s does not exist. Leaving." % (schemaFile))
+                sys.exit(1)
+        print("Validating msg_class %s in %s with %s" % (opts.class_name, fname, schemaFile))
 
         validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
     else:
