@@ -56,7 +56,7 @@ class UdpMessagesInterface(threading.Thread):
         if isinstance(msg, PprzMessage):
             data = self.trans.pack_pprz_msg(sender_id, msg)
             try:
-                self.server.sendto(data, address)
+                self.server.sendto(data, (address, self.uplink_port))
             except:
                 pass # TODO better error handling
 
