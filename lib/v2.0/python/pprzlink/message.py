@@ -190,6 +190,33 @@ class PprzMessage(object):
             ivy_str += sep
         return ivy_str
 
+    def ivy_string_to_payload(self, data):
+        """
+        parse Ivy data string to PPRZ values
+        header and message name should have been removed
+
+        Basically parts/args in string are separated by space, but char array can also contain a space:
+        ``|f,o,o, ,b,a,r|`` in old format or ``"foo bar"`` in new format
+
+        """
+        # first split on array delimiters
+        # then slip on spaces and remove empty stings
+        values = []
+        for el in re.split('([|\"][^|\"]*[|\"])', data):
+            if '|' not in el and '"' not in el:
+                # split non-array strings further up
+                for e in [d for d in el.split(' ') if d is not '']:
+                    if ',' in e:
+                        # array but not a string
+                        values.append([x for x in e.split(',') if x is not ''])
+                    else:
+                        # not an array
+                        values.append(e)
+            else:
+                # add string array (stripped)
+                values.append(str.strip(el))
+        self.set_values(values)
+
     def payload_to_binary(self):
         struct_string = "<"
         data = []
@@ -207,6 +234,11 @@ class PprzMessage(object):
                 struct_string += bin_type[0] * array_length
                 length += bin_type[1] * array_length
                 for x in self.fieldvalues[idx]:
+                    if bin_type[0]=='f' or bin_type[0]== 'd':
+                        data.append(float(x))
+                    elif bin_type[0]== 'B' or bin_type[0]== 'H' or bin_type[0]== 'L' or bin_type[0]== 'b' or bin_type[0]== 'h' or bin_type[0]== 'l':
+                        data.append(int(x))
+                    else:
                     data.append(x)
             else:
                 struct_string += bin_type[0]

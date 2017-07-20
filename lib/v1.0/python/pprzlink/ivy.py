@@ -108,54 +108,46 @@ class IvyMessagesInterface(object):
     def parse_pprz_msg(callback, ivy_msg):
         """
         Parse an Ivy message into a PprzMessage.
-        Basically parts/args in string are separated by space, but char array can also contain a space:
-        ``|f,o,o, ,b,a,r|`` in old format or ``"foo bar"`` in new format
-
         :param callback: function to call with ac_id and parsed PprzMessage as params
         :param ivy_msg: Ivy message string to parse into PprzMessage
         """
-        # first split on array delimiters
-        l = re.split('([|\"][^|\"]*[|\"])', ivy_msg)
-        # strip spaces and filter out emtpy strings
-        l = [str.strip(s) for s in l if str.strip(s) is not '']
-        data = []
-        for s in l:
-            # split non-array strings further up
-            if '|' not in s and '"' not in s:
-                data += s.split(' ')
-            else:
-                data.append(s)
-        # ignore ivy message with less than 3 elements
-        if len(data) < 3:
-            return
-
         # normal format is "sender_name msg_name msg_payload..."
         # advanced format has requests and answers (with request_id as 'pid_index')
         # request: "sender_name request_id msg_name_REQ msg_payload..."
         # answer:  "request_id sender_name msg_name msg_payload..."
 
+        data = re.search("(\S+) +(\S+) +(.*)", ivy_msg)
         # check for request_id in first or second string (-> advanced format with msg_name in third string)
-        advanced = False
-        if re.search("[0-9]+_[0-9]+", data[0]) or re.search("[0-9]+_[0-9]+", data[1]):
-            advanced = True
-        msg_name = data[2] if advanced else data[1]
+        if data is None:
+            return
+        if re.search("[0-9]+_[0-9]+", data.group(1)) or re.search("[0-9]+_[0-9]+", data.group(2)):
+            if re.search("[0-9]+_[0-9]+", data.group(1)):
+                sender_name = data.group(2)
+            else:
+                sender_name = data.group(1)
+            # this is an advanced type, split again
+            data = re.search("(\S+) +(.*)", data.group(3))
+            msg_name = data.group(1)
+            payload = data.group(2)
+        else:
+            # this was a normal message
+            sender_name = data.group(1)
+            msg_name = data.group(2)
+            payload = data.group(3)
         # check which message class it is
         msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
         if msg_class is None:
             print("Ignoring unknown message " + ivy_msg)
             return
-        payload = data[3:] if advanced else data[2:]
-        values = list(filter(None, payload))
         msg = PprzMessage(msg_class, msg_name)
-        msg.set_values(values)
+        msg.ivy_string_to_payload(payload)
         # pass non-telemetry messages with ac_id 0 or ac_id attrib value
         if msg_class == "telemetry":
             try:
-                sdata = data[0]
-                if(sdata[0:6] == 'replay'):
-                    ac_id = int(sdata[6:])
+                if(sender_name[0:6] == 'replay'):
+                    ac_id = int(sender_name[6:])
                 else:
-                    ac_id = int(sdata)
+                    ac_id = int(sender_name)
             except ValueError:
                 print("ignoring message " + ivy_msg)
                 sys.stdout.flush()
