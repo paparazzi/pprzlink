@@ -179,7 +179,7 @@ ${{fields:${fun_read_array_byte}
   * @param _payload : a pointer to the ${msg_name} message
   * @return ${description}
   */
-static inline ${return_type} pprzlink_get_DL_${msg_name}_${field_name}(uint8_t * _payload)
+static inline ${return_type} pprzlink_get_DL_${msg_name}_${field_name}(uint8_t * _payload __attribute__((unused)))
 {
     return _PPRZ_VAL_${read_type}(_payload, ${offset});
 }
@@ -195,7 +195,7 @@ ${{fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_payload) pprzl
 
 #endif // _VAR_MESSAGES_${class_name}_${msg_name}_H_
 
-            ''', {'msg_name' : m.msg_name, 'description' : m.description ,'class_id' : xml.class_id, 'class_name' : xml.class_name, 'id' : m.id, 'fields' : m.fields, 'message' : xml.message})
+''', {'msg_name' : m.msg_name, 'description' : m.description ,'class_id' : xml.class_id, 'class_name' : xml.class_name, 'id' : m.id, 'fields' : m.fields, 'message' : xml.message})
 
 
 def generate(output, xml):
@@ -239,10 +239,10 @@ def generate(output, xml):
                 f.read_type = f.type+'_array'
                 f.return_type = f.type + ' *'
                 if offset % min(4, int(f.type_length)) == 0: # data are aligned
-                    f.fun_read_array_byte = '/** Getter for length of array %s in message %s\n *\n * @return %s : %s\n */\n static inline uint8_t pprzlink_get_%s_%s_length(__attribute__ ((unused)) void* _payload) {\n    return %d;\n}\n' \
+                    f.fun_read_array_byte = '/** Getter for length of array %s in message %s\n *\n * @return %s : %s\n */\n static inline uint8_t pprzlink_get_%s_%s_length(void* _payload __attribute__ ((unused))) {\n    return %d;\n}\n' \
                                             % (f.field_name,m.msg_name, f.field_name, f.description, m.msg_name, f.field_name ,int(f.array_length))
                 else: # rely on arch capability to read or not
-                    f.fun_read_array_byte = '/** Getter for length of array %s in message %s\n *\n * @return %s : %s\n */\n static inline uint8_t pprzlink_get_%s_%s_length(__attribute__ ((unused)) void* _payload) {\n    return _PPRZ_VAL_fixed_len_aligned(%d);\n}\n' \
+                    f.fun_read_array_byte = '/** Getter for length of array %s in message %s\n *\n * @return %s : %s\n */\n static inline uint8_t pprzlink_get_%s_%s_length(void* _payload __attribute__ ((unused))) {\n    return _PPRZ_VAL_fixed_len_aligned(%d);\n}\n' \
                                             % (f.field_name,m.msg_name, f.field_name, f.description, m.msg_name, f.field_name ,int(f.array_length))
                 f.read_array_byte = '#define DL_%s_%s_length(_payload) pprzlink_get_%s_%s_length(_payload)\n' % (m.msg_name, f.field_name, m.msg_name, f.field_name)
                 f.offset = offset

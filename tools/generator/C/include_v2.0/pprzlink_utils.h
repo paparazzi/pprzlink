@@ -55,19 +55,6 @@ extern "C" {
 #define _PPRZ_VAL_int8_t_array(_payload, _offset) ((int8_t*)(_payload+_offset))
 #define _PPRZ_VAL_uint8_t_array(_payload, _offset) ((uint8_t*)(_payload+_offset))
 
-// Macros returning array pointers might not be aligned
-// but there is not much we can do about it.
-// To prevent errors, the array size should be forced to zero
-// on platforms where unaligned data is not supported.
-#define _PPRZ_VAL_int16_t_array(_payload, _offset) ((int16_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint16_t_array(_payload, _offset) ((uint16_t*)(_payload+_offset))
-#define _PPRZ_VAL_int32_t_array(_payload, _offset) ((int32_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint32_t_array(_payload, _offset) ((uint32_t*)(_payload+_offset))
-#define _PPRZ_VAL_int64_t_array(_payload, _offset) ((int64_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint64_t_array(_payload, _offset) ((uint64_t*)(_payload+_offset))
-#define _PPRZ_VAL_float_array(_payload, _offset) ((float*)(_payload+_offset))
-#define _PPRZ_VAL_double_array(_payload, _offset) ((double*)(_payload+_offset))
-
 // Use macros according to alignment capabilities
 // be conservative by default
 #ifndef PPRZLINK_UNALIGNED_ACCESS
@@ -89,6 +76,14 @@ typedef union __attribute__((packed)) {
   uint64_t  uint64;
   float     f32;
   double    f64;
+  int16_t*  int16_p;
+  uint16_t* uint16_p;
+  int32_t*  int32_p;
+  uint32_t* uint32_p;
+  int64_t*  int64_p;
+  uint64_t* uint64_p;
+  float*    f32_p;
+  double*   f64_p;
 } unaligned_t;
 
 #define _PPRZ_VAL_int16_t(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int16)
@@ -109,6 +104,14 @@ typedef union __attribute__((packed)) {
 #endif
 
 // In this case, data is not aligned but we are still able to read them
+#define _PPRZ_VAL_int16_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int16_p)
+#define _PPRZ_VAL_uint16_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint16_p)
+#define _PPRZ_VAL_int32_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int32_p)
+#define _PPRZ_VAL_uint32_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint32_p)
+#define _PPRZ_VAL_int64_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int64_p)
+#define _PPRZ_VAL_uint64_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint64_p)
+#define _PPRZ_VAL_float_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->f32_p)
+#define _PPRZ_VAL_double_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->f64_p)
 #define _PPRZ_VAL_len_aligned(_payload, _offset) _PPRZ_VAL_uint8_t(_payload, _offset)
 #define _PPRZ_VAL_fixed_len_aligned(_len) (_len)
 
@@ -170,8 +173,18 @@ typedef union __attribute__((packed)) {
     Swap32IfBigEndian(_f.u); \
     _f.f; })
 
-// In this case, data are not aligned so we force array len to 0
-// to notify users that the array should not be read
+// Macros returning array pointers might not be aligned
+// but there is not much we can do about it.
+// To prevent errors, the array size is forced to zero
+// on platforms where unaligned data is not supported.
+#define _PPRZ_VAL_int16_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_uint16_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_int32_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_uint32_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_int64_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_uint64_t_array(_payload, _offset) NULL
+#define _PPRZ_VAL_float_array(_payload, _offset) NULL
+#define _PPRZ_VAL_double_array(_payload, _offset) NULL
 #define _PPRZ_VAL_len_aligned(_payload, _offset) (0)
 #define _PPRZ_VAL_fixed_len_aligned(_len) (0)
 
