@@ -27,10 +27,14 @@ MAKE = make
 PPRZLINK_MSG_VERSION ?= 1.0
 PPRZLINK_LIB_VERSION ?= 1.0
 
+# by default make a local install in current directory
+# PREFIX should be an absolute path
+PREFIX ?= $(shell pwd)
+
 MESSAGES_XML ?= message_definitions/v$(PPRZLINK_MSG_VERSION)/messages.xml
 MESSAGES_DTD ?= message_definitions/v$(PPRZLINK_MSG_VERSION)/messages.dtd
 UNITS_XML ?= message_definitions/common/units.xml
-MESSAGES_INSTALL ?= var
+MESSAGES_INSTALL ?= $(PREFIX)/var
 MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
 MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
