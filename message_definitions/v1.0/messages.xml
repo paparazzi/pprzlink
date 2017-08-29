@@ -2868,6 +2868,16 @@
       <field name="heightObject"   		type="uint8"/>
       <field name="distanceToObject"    type="uint8"/>
     </message>
+    
+    <message name="STEREOCAM_GATE" id="84">
+      <description>Result of the gate detection algorithm on the stereocamera</description>
+      <field name="quality" type="uint8">Measure of how certainty of gate identificaiton, min 15, max 100</field>
+      <field name="width" 	type="float" unit="rad"/>
+      <field name="hieght"  type="float" unit="rad"/>
+      <field name="phi"     type="float" unit="rad">Bearing of the gate in the camera frame</field>
+      <field name="theta"   type="float" unit="rad"/>
+      <field name="depth"   type="float" unit="m">Set to 0 is not known</field>
+    </message>
 
     <message name="IMCU_DATALINK" id="113">
      <description>Forward FBW datalink to AP</description>
