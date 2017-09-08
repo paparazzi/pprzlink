@@ -26,7 +26,7 @@ class UdpMessagesInterface(threading.Thread):
         self.uplink_port = uplink_port
         self.downlink_port = downlink_port
         self.ac_downlink_status = {}
-        self.id = interface_id
+        self.id = interface_id # set to None to disable id filtering
         self.running = True
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -76,7 +76,7 @@ class UdpMessagesInterface(threading.Thread):
                             if self.verbose:
                                 print("New incoming message '%s' from %i (%i, %s) to %i" % (msg.name, sender_id, component_id, address, receiver_id))
                             # Callback function on new message
-                            if self.id == receiver_id:
+                            if self.id is None or self.id == receiver_id:
                                 self.callback(sender_id, address, msg, length, receiver_id, component_id)
                 except socket.timeout:
                     pass
