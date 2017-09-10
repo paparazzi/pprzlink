@@ -97,6 +97,9 @@ ${{message:${{fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_pay
     if name != 'stdout':
         f.close()
 
+def eval_int(expr):
+    import ast
+    return int(eval(compile(ast.parse(expr, mode='eval'), '<string>', 'eval')))
 def copy_fixed_headers(directory, protocol_version):
     '''copy the fixed protocol headers to the target directory'''
     import shutil
@@ -153,7 +156,7 @@ def generate(output, xml):
                 else: # rely on arch capability to read or not
                     f.read_array_byte = '#define DL_%s_%s_length(_payload) _PPRZ_VAL_fixed_len_aligned(%d)\n' % (m.msg_name, f.field_name, int(f.array_length))
                 f.offset = offset
-                offset += int(f.length)
+                offset += eval_int(f.length)                
                 f.dl_format = 'DL_FORMAT_ARRAY'
             else:
                 f.offset = offset
