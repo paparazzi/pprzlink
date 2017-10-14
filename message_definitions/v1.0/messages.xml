@@ -2499,8 +2499,8 @@
 
     <message name="CAM_STATUS" id="14">
       <field name="ac_id" type="string"/>
-      <field name="cam_lat" type="float" unit="deg"/>
-      <field name="cam_long" type="float" unit="deg"/>
+      <field name="lats" type="string" format="csv"/>
+      <field name="longs" type="string" format="csv"/>
       <field name="cam_target_lat" type="float" unit="deg"/>
       <field name="cam_target_long" type="float" unit="deg"/>
     </message>
