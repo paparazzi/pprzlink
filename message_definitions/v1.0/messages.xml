@@ -169,8 +169,8 @@
     </message>
 
     <message name="CAM" id="20">
-      <field name="phi" type="int16" unit="deg"/>
-      <field name="theta" type="int16" unit="deg"/>
+      <field name="pan" type="int16" unit="deg"/>
+      <field name="tilt" type="int16" unit="deg"/>
       <field name="target_x" type="int16" unit="m"/>
       <field name="target_y" type="int16" unit="m"/>
     </message>
@@ -2506,8 +2506,8 @@
 
     <message name="CAM_STATUS" id="14">
       <field name="ac_id" type="string"/>
-      <field name="cam_lat" type="float" unit="deg"/>
-      <field name="cam_long" type="float" unit="deg"/>
+      <field name="lats" type="string" format="csv"/>
+      <field name="longs" type="string" format="csv"/>
       <field name="cam_target_lat" type="float" unit="deg"/>
       <field name="cam_target_long" type="float" unit="deg"/>
     </message>
