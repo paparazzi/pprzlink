@@ -1351,6 +1351,8 @@
       <field name="yd"             type="float"/>
       <field name="xdd"            type="float"/>
       <field name="ydd"            type="float"/>
+      <field name="xbias"          type="float"/>
+      <field name="ybias"          type="float"/>
     </message>
 
     <message name="HFF_DBG" id="165">
@@ -1362,6 +1364,8 @@
       <field name="Pyy"            type="float"/>
       <field name="Pxdxd"          type="float"/>
       <field name="Pydyd"          type="float"/>
+      <field name="Pxbiasxbias"    type="float"/>
+      <field name="Pybiasybias"    type="float"/>
     </message>
 
     <message name="HFF_GPS" id="166">
