@@ -319,7 +319,13 @@
       <field name="power"   type="float" unit="W"/>
     </message>
 
-    <!-- 38 is free -->
+    <message name="DRAGSPEED" id="38">
+      <field name="u_est" type="float" unit="m/s">Estimated forward velocity</field>
+      <field name="v_est" type="float" unit="m/s">Estimated sideways velocity (right positive)</field>
+      <field name="u_ins" type="float" unit="m/s">Forward velocity from INS</field>
+      <field name="v_ins" type="float" unit="m/s">Sideways velocity from INS (right positive)</field>
+    </message>
+    
     <!-- 39 is free -->
     <!-- 40 is free -->
 
