@@ -319,7 +319,17 @@
       <field name="power"   type="float" unit="W"/>
     </message>
 
-    <!-- 38 is free -->
+    <message name="DRAGSPEED" id="38">
+      <description>
+        Velocities in body axes (assuming small pitch/roll angles) as measured
+        by the dragspeed module and by the INS.
+      </description>
+      <field name="u_est" type="float" unit="m/s">Estimated velocity along body +x axis</field>
+      <field name="v_est" type="float" unit="m/s">Estimated velocity along body +y axis</field>
+      <field name="u_ins" type="float" unit="m/s">INS velocity along body +x axis</field>
+      <field name="v_ins" type="float" unit="m/s">INS velocity along body +y axis</field>
+    </message>
+    
     <!-- 39 is free -->
     <!-- 40 is free -->
 
