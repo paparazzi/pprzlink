@@ -2,7 +2,7 @@
 <!DOCTYPE protocol SYSTEM "messages.dtd">
 <protocol>
  <!-- messages from modem or sim to server -->
- <msg_class name="telemetry" id="0">
+ <msg_class name="telemetry" id="1">
 
     <message name="AUTOPILOT_VERSION" id="1">
       <field name="version" type="uint32">version encoded as: MAJOR * 10000 + MINOR * 100 + PATCH</field>
@@ -1351,6 +1351,8 @@
       <field name="yd"             type="float"/>
       <field name="xdd"            type="float"/>
       <field name="ydd"            type="float"/>
+      <field name="xbias"          type="float"/>
+      <field name="ybias"          type="float"/>
     </message>
 
     <message name="HFF_DBG" id="165">
@@ -1362,6 +1364,8 @@
       <field name="Pyy"            type="float"/>
       <field name="Pxdxd"          type="float"/>
       <field name="Pydyd"          type="float"/>
+      <field name="Pxbiasxbias"    type="float"/>
+      <field name="Pybiasybias"    type="float"/>
     </message>
 
     <message name="HFF_GPS" id="166">
@@ -1946,7 +1950,7 @@
 
   </msg_class>
 
-  <msg_class name="datalink" id="1">
+  <msg_class name="datalink" id="2">
     <message name="ACINFO" id="1" link="broadcasted">
       <field name="course"    type="int16"  unit="decideg" alt_unit="deg"/>
       <field name="utm_east"  type="int32"  unit="cm"      alt_unit="m"/>
@@ -2407,7 +2411,7 @@
   </msg_class>
 
 
-  <msg_class name="ground">
+  <msg_class name="ground" id="3">
     <message name="NEW_AIRCRAFT" id="1">
       <field name="ac_id" type="string"/>
     </message>
@@ -2754,7 +2758,7 @@
     </message>
   </msg_class>
 
-  <msg_class name="alert">
+  <msg_class name="alert" id="4">
     <message name="BAT_LOW" id="1">
       <field name="ac_id" type="string"/>
       <field name="level" type="string" values="CATASTROPHIC|CRITIC|WARNING"/>
@@ -2766,7 +2770,7 @@
     </message>
   </msg_class>
 
-  <msg_class name="intermcu" id="2">
+  <msg_class name="intermcu" id="5">
 
 	<!-- KEEP INTERMCU MESSAGES BELOW 8 BYTES PER MESSAGES
 		 TO ALLOW TRANSFER OVER CAN BUS -->
@@ -2877,6 +2881,15 @@
       <field name="phi"     type="float" unit="rad">Bearing of the gate in the camera frame</field>
       <field name="theta"   type="float" unit="rad"/>
       <field name="depth"   type="float" unit="m">Set to 0 is not known</field>
+    </message>
+    
+    <message name="STEREOCAM_DROPLET" id="85">
+      <description>Result of the Droplet avoidance algorithm</description>
+      <field name="disparities_high" type="uint32">Num pixs with high disparity</field>
+      <field name="processed_pixels" 	type="uint32">Total pixels with enough texture to be processed</field>
+      <field name="hist_obs_sum"  type="uint32"></field>
+      <field name="count_disps_left"    type="uint32">Number of pixels with high disparity in the left half of the frame</field>
+      <field name="count_disps_right"   type="uint32">Number of pixels with high disparity in the right half of the frame</field>
     </message>
 
     <message name="IMCU_DATALINK" id="113">
