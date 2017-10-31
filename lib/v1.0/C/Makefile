@@ -25,6 +25,7 @@ all:
 
 install:
 	$(Q)cp ../../common/C/*.h $(MESSAGES_INCLUDE)
+	$(Q)cp ../../hacl-c/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp ./*.h $(MESSAGES_INCLUDE)
 	$(Q)cp ./*.c $(MESSAGES_LIB)
 	$(Q)test -d $(MESSAGES_LIB)/hacl-c || mkdir -p $(MESSAGES_LIB)/hacl-c
