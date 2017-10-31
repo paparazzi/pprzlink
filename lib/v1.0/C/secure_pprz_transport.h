@@ -77,7 +77,7 @@ extern void spprz_check_and_parse(struct link_device *dev, struct spprz_transpor
 
 // Parsing function, only needed for modules doing their own parsing
 // without using the pprz_check_and_parse function
-extern void parse_pprz(struct spprz_transport *t, uint8_t c);
+extern void parse_spprz(struct spprz_transport *t, uint8_t c);
 
 #ifdef __cplusplus
 } /* extern "C" */

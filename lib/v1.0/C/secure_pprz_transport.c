@@ -39,7 +39,7 @@
  */
 
 #include <inttypes.h>
-#include "pprzlink/spprz_transport.h"
+#include "pprzlink/secure_pprz_transport.h"
 
 // PPRZ parsing state machine
 #define UNINIT      0
@@ -131,7 +131,7 @@ void spprz_transport_init(struct spprz_transport *t)
 
 
 // Parsing function
-void parse_pprz(struct spprz_transport *t, uint8_t c)
+void parse_spprz(struct spprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
@@ -182,12 +182,12 @@ restart:
 
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void pprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans, uint8_t *buf, bool *msg_available)
+void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans, uint8_t *buf, bool *msg_available)
 {
   uint8_t i;
   if (dev->char_available(dev->periph)) {
     while (dev->char_available(dev->periph) && !trans->trans_rx.msg_received) {
-      parse_pprz(trans, dev->get_byte(dev->periph));
+      parse_spprz(trans, dev->get_byte(dev->periph));
     }
     if (trans->trans_rx.msg_received) {
       for (i = 0; i < trans->trans_rx.payload_len; i++) {
