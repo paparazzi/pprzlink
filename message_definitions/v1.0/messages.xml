@@ -330,7 +330,14 @@
       <field name="v_ins" type="float" unit="m/s">INS velocity along body +y axis</field>
     </message>
     
-    <!-- 39 is free -->
+    <message name="RSSI_COMBINED" id="39">
+      <field name="remote_rssi" type="uint8"/>
+      <field name="tx_power" type="uint8"/>
+      <field name="local_rssi" type="uint8"/>
+      <field name="local_noise" type="uint8"/>
+      <field name="remote_noise" type="uint8"/>
+    </message>
+
     <!-- 40 is free -->
 
     <message name="ALT_KALMAN" id="41">
