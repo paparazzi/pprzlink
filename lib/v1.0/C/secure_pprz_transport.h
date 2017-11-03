@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2003  Pascal Brisset, Antoine Drouin
  * Copyright (C) 2015  Gautier Hattenberger <gautier.hattenberger@enac.fr>
+ * Copyright (C) 2017  Michal Podhradsky <mpodhradsky@galois.com>
  *
  * This file is part of paparazzi.
  *
@@ -21,9 +22,11 @@
  */
 
 /**
- * @file pprzlink/pprz_transport.h
+ * @file pprzlink/secure_pprz_transport.h
  *
- * Building and parsing Paparazzi frames.
+ * Building and parsing Paparazzi frames with encryption.
+ * See https://wiki.paparazziuav.org/wiki/Messages_Format
+ * for more details
  *
  * Pprz frame:
  *
@@ -52,10 +55,31 @@ extern "C" {
 
 // Start byte
 #define PPRZ_STX  0x99
+#define PPRZ_KEY_LEN 32
+#define PPRZ_COUNTER_LEN 4
+#define PPRZ_MAC_LEN 16
+#define PPRZ_NONCE_LEN 12
+#define PPRZ_MAX_AAD_LEN 4
+#define PPRZ_HEADER_LEN 4
+#define PPRZ_CRYPTO_OVERHEAD (PPRZ_COUNTER_LEN + PPRZ_MAC_LEN)
+#define PPRZ_MAX_PAYLOAD_LEN (TRANSPORT_PAYLOAD_LEN - PPRZ_CRYPTO_OVERHEAD - PPRZ_HEADER_LEN)
 
-/* PPRZ Transport
+#define PPRZ_MSG_LEN_IDX 1
+#define PPRZ_COUNTER_IDX 2
+#define PPRZ_CIPHERTEXT_IDX 6
+
+struct spprz_message {
+  uint8_t msg[PPRZ_MAX_PAYLOAD_LEN]; // ciphertext/plaintext
+  uint8_t msg_idx; // msg length
+  uint8_t mac[PPRZ_MAC_LEN]; // message authentication tag
+  uint8_t nonce[PPRZ_NONCE_LEN]; // nonce (using only 4 bytes)
+  uint8_t aad[PPRZ_MAX_AAD_LEN]; // additional authentication data
+  uint8_t aad_idx; // aad length
+};
+
+/*
+ * PPRZ Transport
  */
-
 struct spprz_transport {
   // generic reception interface
   struct transport_rx trans_rx;
@@ -67,6 +91,16 @@ struct spprz_transport {
   struct transport_tx trans_tx;
   // specific pprz transport_tx variables
   uint8_t ck_a_tx, ck_b_tx;
+
+  struct spprz_message tx_msg; // aux variables for encryption
+  struct spprz_message rx_msg; // aux variables for decryption
+
+  uint8_t tx_buffer[TRANSPORT_PAYLOAD_LEN]; // temporary storage for outgoing messages
+  uint8_t tx_idx; // length of outgoing buffer
+  uint8_t rx_key[PPRZ_KEY_LEN]; // key to decrypt incoming messages
+  uint32_t rx_cnt; // counter (IV) for incoming messages
+  uint8_t tx_key[PPRZ_KEY_LEN]; // key to encrypt outgoing messages
+  uint32_t tx_cnt; // counter (IV) for outgoing messages
 };
 
 // Init function
