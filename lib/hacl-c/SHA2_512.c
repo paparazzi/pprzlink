@@ -1,4 +1,4 @@
-#include "SHA2_512.h"
+#include "pprzlink/hacl-c/SHA2_512.h"
 
 static void
 Hacl_Hash_Lib_LoadStore_uint64s_from_be_bytes(uint64_t *output, uint8_t *input, uint32_t len)

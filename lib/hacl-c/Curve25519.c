@@ -1,4 +1,4 @@
-#include "Curve25519.h"
+#include "pprzlink/hacl-c/Curve25519.h"
 
 static void Hacl_Bignum_Modulo_carry_top(uint64_t *b)
 {

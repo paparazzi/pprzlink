@@ -1,4 +1,4 @@
-#include "Chacha20.h"
+#include "pprzlink/hacl-c/Chacha20.h"
 
 static void
 Hacl_Lib_LoadStore32_uint32s_from_le_bytes(uint32_t *output, uint8_t *input, uint32_t len)

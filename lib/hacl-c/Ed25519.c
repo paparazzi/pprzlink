@@ -1,4 +1,4 @@
-#include "Ed25519.h"
+#include "pprzlink/hacl-c/Ed25519.h"
 
 static void
 Hacl_Lib_Create64_make_h64_5(

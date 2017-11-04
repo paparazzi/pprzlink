@@ -1,4 +1,4 @@
-#include "Hacl_Policies.h"
+#include "pprzlink/hacl-c/Hacl_Policies.h"
 
 uint8_t Hacl_Policies_declassify_u8(uint8_t x)
 {

@@ -1,4 +1,4 @@
-#include "AEAD_Poly1305_64.h"
+#include "pprzlink/hacl-c/AEAD_Poly1305_64.h"
 
 inline static void Hacl_Bignum_Modulo_reduce(uint64_t *b)
 {

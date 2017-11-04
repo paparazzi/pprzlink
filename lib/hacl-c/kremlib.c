@@ -1,4 +1,4 @@
-#include "kremlib.h"
+#include "pprzlink/hacl-c/kremlib.h"
 #include <stdlib.h>
 
 #ifdef KREMLIB_EMBEDDED_TARGET /* bare-metal targets */

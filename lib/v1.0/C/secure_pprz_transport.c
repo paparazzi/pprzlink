@@ -60,8 +60,8 @@
 #define GOT_CRC1    4
 
 #define msg_put_byte(_t,_b) {\
-    _t->msg[_t->msg_idx] = _b;\
-    _t->msg_idx++;\
+    _t.msg[_t.msg_idx] = _b;\
+    _t.msg_idx++;\
 }
 
 #define buffer_put_byte(_t,_b) {\
@@ -75,7 +75,7 @@ static void accumulate_checksum(struct spprz_transport *trans, const uint8_t byt
   trans->ck_b_tx += trans->ck_a_tx;
 }
 
-static void put_bytes(struct spprz_transport *trans, struct link_device *dev, long fd,
+static void put_bytes(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       const void *bytes, uint16_t len)
 {
@@ -87,7 +87,7 @@ static void put_bytes(struct spprz_transport *trans, struct link_device *dev, lo
   }
 }
 
-static void put_named_byte(struct spprz_transport *trans, struct link_device *dev, long fd,
+static void put_named_byte(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused))  ,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
 {
@@ -101,14 +101,14 @@ static uint8_t size_of(struct spprz_transport *trans __attribute__((unused)), ui
   return len + PPRZ_HEADER_LEN + PPRZ_CRYPTO_OVERHEAD;
 }
 
-static void start_message(struct spprz_transport *trans, struct link_device *dev, long fd, uint8_t payload_len)
+static void start_message(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)), uint8_t payload_len)
 {
   memset(&(trans->tx_msg),0,sizeof(trans->tx_msg)); // erase aux variables
   memset(&(trans->tx_buffer),0,sizeof(trans->tx_buffer)); // erase message buffer
   trans->tx_idx = 0; // reset counter
   buffer_put_byte(trans, PPRZ_STX); // insert STX
   const uint8_t msg_len = size_of(trans, payload_len); // length including crypto overhead and header
-  buffer_put_byte(trans->tx_msg, msg_len); // insert payload length
+  buffer_put_byte(trans, msg_len); // insert payload length
 }
 
 static void end_message(struct spprz_transport *trans, struct link_device *dev, long fd)
@@ -118,11 +118,11 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
   memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t)); // simply copy 4 byte counter
 
   // append counter to the buffer
-  memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_cnt, sizeof(uint32_t));
+  memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
   trans->tx_idx += sizeof(uint32_t);
 
   // we authenticate the counter
-  memcpy(trans->tx_msg.aad, trans->tx_cnt, sizeof(uint32_t));
+  memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
   trans->tx_msg.aad_idx += sizeof(uint32_t);
 
   // encrypt
@@ -173,8 +173,8 @@ static void count_bytes(struct spprz_transport *trans __attribute__((unused)), s
   dev->nb_bytes += bytes;
 }
 
-static int check_available_space(struct spprz_transport *trans __attribute__((unused)), struct link_device *dev,
-                                 long *fd, uint16_t bytes)
+static int check_available_space(struct spprz_transport *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)),
+                                 long *fd __attribute__((unused)), uint16_t bytes)
 {
   // check if we are attempting to send less than 255 bytes (TODO: handle overflows?)
   return bytes <= TRANSPORT_PAYLOAD_LEN;
