@@ -48,6 +48,7 @@
 #include "datalink/hacl-c/Chacha20Poly1305.h"
 #include "generated/keys_uav.h"
 
+// FIXME: Only temporary patch, switch to proper key exchange asap
 #define UAV_RX_KEY GCS_PUBLIC
 #define UAV_TX_KEY UAV_PUBLIC
 
