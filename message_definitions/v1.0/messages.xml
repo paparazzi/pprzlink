@@ -1982,7 +1982,12 @@
       <field name="bus_number"                  type="uint8"/>
     </message>
 
-  <!-- 254 is free -->
+    <message name="KEY_EXCHANGE_UAV" id="254">
+      <description>Message for key exchange during crypto initialization</description>
+      <field name="type" type="uint8" values="P_AE|P_BE|SIG"/>
+      <field name="data" type="uint8[]"/>
+    </message>
+
   <!-- 255 is free -->
 
   </msg_class>
@@ -2442,6 +2447,17 @@
 
     <message name="RTCM_INJECT" id="157" link="broadcasted">
       <field name="packet_id" type="uint8"/>
+      <field name="data" type="uint8[]"/>
+    </message>
+
+    <message name="SYNC_CHANNEL" id="158">
+      <description>Synchronization message for communication scheduling. Contains delay in ms before another command arrives</description>
+      <field name="delay" type="uint8"/>
+    </message>
+
+    <message name="KEY_EXCHANGE_GCS" id="159">
+      <description>Message for key exchange during crypto initialization</description>
+      <field name="type" type="uint8" values="P_AE|P_BE|SIG"/>
       <field name="data" type="uint8[]"/>
     </message>
 
