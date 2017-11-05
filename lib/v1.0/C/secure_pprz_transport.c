@@ -113,39 +113,45 @@ static void start_message(struct spprz_transport *trans, struct link_device *dev
 
 static void end_message(struct spprz_transport *trans, struct link_device *dev, long fd)
 {
-  // set nonce
-  trans->tx_cnt++; // increment first
-  memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t)); // simply copy 4 byte counter
-
-  // append counter to the buffer
-  memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
-  trans->tx_idx += sizeof(uint32_t);
-
-  // we authenticate the counter
-  memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
-  trans->tx_msg.aad_idx += sizeof(uint32_t);
-
-  // encrypt
-  uint32_t res = Chacha20Poly1305_aead_encrypt(&trans->tx_buffer[trans->tx_idx], // ciphertext
-                                               trans->tx_msg.mac, // mac
-                                               trans->tx_msg.msg, // plaintext
-                                               trans->tx_msg.msg_idx, // plaintext len
-                                               trans->tx_msg.aad, // aad
-                                               trans->tx_msg.aad_idx, // aad len
-                                               trans->tx_key, // key
-                                               trans->tx_msg.nonce); // nonce
-
-  // check result
-  if (res != 0) {
-    return;
+  // TODO: properly check which messages can be send
+  if (trans->crypto_ok != true) {
+    // allow to send only specific messages
   }
+  else {
+    // set nonce
+    trans->tx_cnt++; // increment first
+    memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t)); // simply copy 4 byte counter
 
-  // increment tx buffer index with the ciphertext
-  trans->tx_cnt += trans->tx_msg.msg_idx;
+    // append counter to the buffer
+    memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
+    trans->tx_idx += sizeof(uint32_t);
 
-  // append 16 byte tag to the tx buffer
-  memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.mac, PPRZ_MAC_LEN);
-  trans->tx_idx += PPRZ_MAC_LEN;
+    // we authenticate the counter
+    memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
+    trans->tx_msg.aad_idx += sizeof(uint32_t);
+
+    // encrypt
+    uint32_t res = Chacha20Poly1305_aead_encrypt(&trans->tx_buffer[trans->tx_idx], // ciphertext
+                                                 trans->tx_msg.mac, // mac
+                                                 trans->tx_msg.msg, // plaintext
+                                                 trans->tx_msg.msg_idx, // plaintext len
+                                                 trans->tx_msg.aad, // aad
+                                                 trans->tx_msg.aad_idx, // aad len
+                                                 trans->tx_key, // key
+                                                 trans->tx_msg.nonce); // nonce
+
+    // check result
+    if (res != 0) {
+      return;
+    }
+
+    // increment tx buffer index with the ciphertext
+    trans->tx_cnt += trans->tx_msg.msg_idx;
+
+    // append 16 byte tag to the tx buffer
+    memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.mac, PPRZ_MAC_LEN);
+    trans->tx_idx += PPRZ_MAC_LEN;
+  }
 
   // initialize checksum
   trans->ck_a_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
@@ -199,13 +205,17 @@ void spprz_transport_init(struct spprz_transport *t)
   t->rx_cnt = 0;
   t->tx_cnt = 0;
 
-  // init keys
+  // TODO: properly fix this and perhaps move it to the spprz module
+  // (we get the generated keys anyway)
+  //init keys
   uint8_t keyRx[PPRZ_KEY_LEN] = UAV_RX_KEY;
   uint8_t keyTx[PPRZ_KEY_LEN] = UAV_TX_KEY;
   for (uint8_t i=0;i<PPRZ_KEY_LEN;i++) {
     t->rx_key[i] = keyRx[i];
     t->tx_key[i] = keyTx[i];
   }
+
+  t->crypto_ok = false;
 }
 
 

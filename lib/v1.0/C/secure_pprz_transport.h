@@ -101,6 +101,8 @@ struct spprz_transport {
   uint32_t rx_cnt; // counter (IV) for incoming messages
   uint8_t tx_key[PPRZ_KEY_LEN]; // key to encrypt outgoing messages
   uint32_t tx_cnt; // counter (IV) for outgoing messages
+
+  bool crypto_ok; // when true it is ok to send encrypted messages (i.e. the key exchange happened)
 };
 
 // Init function
