@@ -1984,8 +1984,8 @@
 
     <message name="KEY_EXCHANGE_UAV" id="254">
       <description>Message for key exchange during crypto initialization</description>
-      <field name="type" type="uint8" values="P_AE|P_BE|SIG"/>
-      <field name="data" type="uint8[]"/>
+      <field name="msg_type" type="uint8" values="P_AE|P_BE|SIG"/>
+      <field name="msg_data" type="uint8[]"/>
     </message>
 
   <!-- 255 is free -->
@@ -2457,8 +2457,8 @@
 
     <message name="KEY_EXCHANGE_GCS" id="159">
       <description>Message for key exchange during crypto initialization</description>
-      <field name="type" type="uint8" values="P_AE|P_BE|SIG"/>
-      <field name="data" type="uint8[]"/>
+      <field name="msg_type" type="uint8" values="P_AE|P_BE|SIG"/>
+      <field name="msg_data" type="uint8[]"/>
     </message>
 
   </msg_class>
