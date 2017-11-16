@@ -2357,6 +2357,24 @@
       <field name="course"  type="int32"  alt_unit="deg" alt_unit_coef="0.0000057296"/>
     </message>
 
+    <message name="REMOTE_GPS_LOCAL" id="56" link="forwarded">
+      <description>
+        Position and speed in local frame from a remote GPS or motion capture system
+        Global position transformations are handled onboard if needed
+      </description>
+      <field name="ac_id"   type="uint8"/>
+      <field name="pad"     type="uint8"/>
+      <field name="enu_x"   type="float" unit="m"/>
+      <field name="enu_y"   type="float" unit="m"/>
+      <field name="enu_z"   type="float" unit="m"/>
+      <field name="enu_xd"  type="float" unit="m/s"/>
+      <field name="enu_yd"  type="float" unit="m/s"/>
+      <field name="enu_zd"  type="float" unit="m/s"/>
+      <field name="tow"     type="uint32"/>
+      <field name="course"  type="float" unit="deg"/>
+    </message>
+
+
     <message name="KITE_COMMAND" id="96">
       <field name="POWER"     type="uint16"/>
       <field name="TURN"      type="uint16"/>
