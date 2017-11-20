@@ -384,8 +384,8 @@ inline void spprz_handle_encrypted_message(struct spprz_transport *trans, uint8_
   memcpy(trans->trans_rx.payload, trans->rx_msg.msg,
       trans->trans_rx.payload_len);
 
-  // mark new message available
-  *msg_available = true;
+  // copy the message and mark new message available
+  spprz_handle_plaintext_message(trans, buf, msg_available);
 }
 
 
