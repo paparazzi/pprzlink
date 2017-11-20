@@ -104,6 +104,8 @@ struct spprz_transport {
   uint32_t tx_cnt; // counter (IV) for outgoing messages
 
   bool crypto_ok; // when true it is ok to send encrypted messages (i.e. the key exchange happened)
+  uint32_t decrypt_err;
+  uint32_t counter_err;
 };
 
 // Init function
@@ -115,6 +117,10 @@ extern void spprz_check_and_parse(struct link_device *dev, struct spprz_transpor
 // Parsing function, only needed for modules doing their own parsing
 // without using the pprz_check_and_parse function
 extern void parse_spprz(struct spprz_transport *t, uint8_t c);
+
+// send plaintext data
+// NOTE: Use with care!
+extern void spprz_send_plaintext(struct link_device *dev, struct spprz_transport *trans);
 
 #ifdef __cplusplus
 } /* extern "C" */

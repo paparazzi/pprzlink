@@ -44,13 +44,9 @@
 #include <inttypes.h>
 #include "pprzlink/secure_pprz_transport.h"
 
-// crypto
+// crypto library for encryption/decryption
+// NOTE: this could be abstracted into some more generic crypto function
 #include "datalink/hacl-c/Chacha20Poly1305.h"
-#include "generated/keys_uav.h"
-
-// FIXME: Only temporary patch, switch to proper key exchange asap
-#define UAV_RX_KEY GCS_PUBLIC
-#define UAV_TX_KEY UAV_PUBLIC
 
 // PPRZ parsing state machine
 #define UNINIT      0
@@ -69,11 +65,13 @@
     _t->tx_idx++;\
 }
 
+
 static void accumulate_checksum(struct spprz_transport *trans, const uint8_t byte)
 {
   trans->ck_a_tx += byte;
   trans->ck_b_tx += trans->ck_a_tx;
 }
+
 
 static void put_bytes(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
@@ -87,6 +85,7 @@ static void put_bytes(struct spprz_transport *trans, struct link_device *dev __a
   }
 }
 
+
 static void put_named_byte(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused))  ,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
@@ -95,12 +94,30 @@ static void put_named_byte(struct spprz_transport *trans, struct link_device *de
   msg_put_byte(trans->tx_msg, byte);
 }
 
-static uint8_t size_of(struct spprz_transport *trans __attribute__((unused)), uint8_t len)
+
+/**
+ * Determine size of the message
+ * The size changes based on whether we are sending encrypted or non-encrypted data
+ */
+static uint8_t size_of(struct spprz_transport *trans , uint8_t len)
 {
-  // message length: payload + protocol overhead (STX + len + ck_a + ck_b = 4) + crypto overhead (4 byte counter, 16 byte tag)
-  return len + PPRZ_HEADER_LEN + PPRZ_CRYPTO_OVERHEAD;
+  // this depends on whether we are encrypting data or not
+  if (trans->crypto_ok) {
+    // message length = payload +
+    // protocol overhead (STX + len + ck_a + ck_b = 4) +
+    // crypto overhead (4 byte counter, 16 byte tag)
+    return len + PPRZ_HEADER_LEN + PPRZ_CRYPTO_OVERHEAD;
+  } else {
+    // message length = payload +
+    // protocol overhead (STX + len + ck_a + ck_b = 4)
+    return len + PPRZ_HEADER_LEN;
+  }
 }
 
+
+/**
+ * Initiate a new message to be sent
+ */
 static void start_message(struct spprz_transport *trans, struct link_device *dev __attribute__((unused)), long fd __attribute__((unused)), uint8_t payload_len)
 {
   memset(&(trans->tx_msg),0,sizeof(trans->tx_msg)); // erase aux variables
@@ -111,63 +128,103 @@ static void start_message(struct spprz_transport *trans, struct link_device *dev
   buffer_put_byte(trans, msg_len); // insert payload length
 }
 
+
+/**
+ * Finalize and send message
+ * Note that unless the protocol status is CRYPTO_OK,
+ * no data encryption and message sending is performed.
+ * In such case the data are silently dropped.
+ *
+ * If you want to send unencrypted messages (for example during STS phase),
+ * after calling end_message(), `spprz_send_plaintext()` has to be explicitly called to
+ * calculate checksum and send the data.
+ *
+ * If status = CRYPTO_OK, message encryption is performend, and if successfull the counter
+ * is incremented and the encrypted message is sent.
+ */
 static void end_message(struct spprz_transport *trans, struct link_device *dev, long fd)
 {
   // TODO: properly check which messages can be send
   if (trans->crypto_ok != true) {
-    // allow to send only specific messages
+    // return immediately
+    return;
   }
-  else {
-    // set nonce
-    trans->tx_cnt++; // increment first
-    memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t)); // simply copy 4 byte counter
 
-    // append counter to the buffer
-    memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
-    trans->tx_idx += sizeof(uint32_t);
+  // set nonce
+  trans->tx_cnt++;  // increment first
+  memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t));  // simply copy 4 byte counter
 
-    // we authenticate the counter
-    memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
-    trans->tx_msg.aad_idx += sizeof(uint32_t);
+  // append counter to the buffer
+  memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
+  trans->tx_idx += sizeof(uint32_t);
 
-    // encrypt
-    uint32_t res = Chacha20Poly1305_aead_encrypt(&trans->tx_buffer[trans->tx_idx], // ciphertext
-                                                 trans->tx_msg.mac, // mac
-                                                 trans->tx_msg.msg, // plaintext
-                                                 trans->tx_msg.msg_idx, // plaintext len
-                                                 trans->tx_msg.aad, // aad
-                                                 trans->tx_msg.aad_idx, // aad len
-                                                 trans->tx_key, // key
-                                                 trans->tx_msg.nonce); // nonce
+  // we authenticate the counter
+  memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
+  trans->tx_msg.aad_idx += sizeof(uint32_t);
 
-    // check result
-    if (res != 0) {
-      return;
-    }
+  // encrypt
+  uint32_t res = Chacha20Poly1305_aead_encrypt(&trans->tx_buffer[trans->tx_idx],  // ciphertext
+      trans->tx_msg.mac,  // mac
+      trans->tx_msg.msg,  // plaintext
+      trans->tx_msg.msg_idx,  // plaintext len
+      trans->tx_msg.aad,  // aad
+      trans->tx_msg.aad_idx,  // aad len
+      trans->tx_key,  // key
+      trans->tx_msg.nonce);  // nonce
 
-    // increment tx buffer index with the ciphertext
-    trans->tx_cnt += trans->tx_msg.msg_idx;
-
-    // append 16 byte tag to the tx buffer
-    memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.mac, PPRZ_MAC_LEN);
-    trans->tx_idx += PPRZ_MAC_LEN;
+  // check result
+  if (res != 0) {
+    trans->encrypt_err++;
+    return;
   }
+
+  // increment tx buffer index with the ciphertext
+  trans->tx_cnt += trans->tx_msg.msg_idx;
+
+  // append 16 byte tag to the tx buffer
+  memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.mac, PPRZ_MAC_LEN);
+  trans->tx_idx += PPRZ_MAC_LEN;
 
   // initialize checksum
   trans->ck_a_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
   trans->ck_b_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
 
   // calculate checksum
-  for (uint8_t i=1; i< trans->tx_idx;i++) {
+  for (uint8_t i = 1; i < trans->tx_idx; i++) {
     accumulate_checksum(trans, trans->tx_buffer[i]);
   }
 
   // send everything
-  dev->put_buffer(dev->periph, 0, trans->tx_buffer, trans->tx_idx); // payload
-  dev->put_byte(dev->periph, fd, trans->ck_a_tx); // checksum
-  dev->put_byte(dev->periph, fd, trans->ck_b_tx); // checksum
-  dev->send_message(dev->periph, fd); // send
+  dev->put_buffer(dev->periph, 0, trans->tx_buffer, trans->tx_idx);  // payload
+  dev->put_byte(dev->periph, fd, trans->ck_a_tx);  // checksum
+  dev->put_byte(dev->periph, fd, trans->ck_b_tx);  // checksum
+  dev->send_message(dev->periph, fd);  // send
 }
+
+
+/**
+ * Send plaintext data from the buffer
+ * Only checksum calculation is performend
+ * Intended to be used during the STS phase
+ * NOTE: USE WITH CARE!
+ */
+extern void spprz_send_plaintext(struct link_device *dev, struct spprz_transport *trans){
+  // initialize checksum
+  trans->ck_a_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
+  trans->ck_b_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
+
+  // calculate checksum
+  for (uint8_t i = 1; i < trans->tx_idx; i++) {
+    accumulate_checksum(trans, trans->tx_buffer[i]);
+  }
+
+  // send everything
+  dev->put_buffer(dev->periph, 0, trans->tx_buffer, trans->tx_idx);  // payload
+  dev->put_byte(dev->periph, fd, trans->ck_a_tx);  // checksum
+  dev->put_byte(dev->periph, fd, trans->ck_b_tx);  // checksum
+  dev->send_message(dev->periph, fd);  // send
+}
+
 
 static void overrun(struct spprz_transport *trans __attribute__((unused)), struct link_device *dev)
 {
@@ -201,21 +258,21 @@ void spprz_transport_init(struct spprz_transport *t)
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
 
-  // cryptographic data
+  // counters
   t->rx_cnt = 0;
   t->tx_cnt = 0;
 
-  // TODO: properly fix this and perhaps move it to the spprz module
-  // (we get the generated keys anyway)
   //init keys
-  uint8_t keyRx[PPRZ_KEY_LEN] = UAV_RX_KEY;
-  uint8_t keyTx[PPRZ_KEY_LEN] = UAV_TX_KEY;
-  for (uint8_t i=0;i<PPRZ_KEY_LEN;i++) {
-    t->rx_key[i] = keyRx[i];
-    t->tx_key[i] = keyTx[i];
-  }
+  memset(t->rx_key, 0, PPRZ_KEY_LEN);
+  memset(t->tx_key, 0, PPRZ_KEY_LEN);
 
+  // comm status
   t->crypto_ok = false;
+
+  // error counters
+  t->counter_err = 0;
+  t->decrypt_err = 0;
+  t->encrypt_err = 0;
 }
 
 
@@ -269,6 +326,67 @@ restart:
   return;
 }
 
+/**
+ * Process unencrypted message
+ * To be called before CRYPTO_OK status is achieved
+ */
+inline void spprz_handle_plaintext_message(struct spprz_transport *trans, uint8_t *buf, bool *msg_available) {
+  for (i = 0; i < trans->trans_rx.payload_len; i++) {
+    buf[i] = trans->trans_rx.payload[i];
+  }
+  *msg_available = true;
+}
+
+
+/**
+ * Process encrypted messages.
+ * Attempt to decrypt, can fail.
+ */
+inline void spprz_handle_encrypted_message(struct spprz_transport *trans, uint8_t *buf, bool *msg_available) {
+  // check counter
+  uint32_t new_cnt = 0;
+  memcpy(&new_cnt, trans->trans_rx.payload, PPRZ_COUNTER_LEN);
+
+  if (new_cnt <= trans->rx_cnt) {
+    *msg_available = false;
+    trans->counter_err++;
+    return;  // counter has to be monotonically increasing
+  }
+
+  // update nonce
+  memcpy(trans->rx_msg.nonce, &new_cnt, PPRZ_COUNTER_LEN);
+
+  // authenticate and decrypt
+  memset(&(trans->rx_msg), 0, sizeof(trans->rx_msg));  // erase aux variables
+
+  uint32_t clen = trans->trans_rx.payload_len - PPRZ_CRYPTO_OVERHEAD;
+  uint32_t res = Chacha20Poly1305_aead_decrypt(trans->rx_msg.msg,  // plaintext
+      &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX],  // ciphertext
+      clen,  // ciphertext len
+      &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX + clen],  // mac
+      &trans->trans_rx.payload[PPRZ_COUNTER_IDX],  // aad (counter)
+      PPRZ_COUNTER_LEN,  // aad len
+      trans->rx_key,  // key
+      trans->rx_msg.nonce);  // nonce
+
+  if (res != 0) {
+    *msg_available = false;
+    trans->decrypt_err++;
+    return;  // either decryption or authentication failed
+  }
+
+  // update the counter
+  trans->rx_cnt = new_cnt;
+
+  // copy decrypted payload and sender ID and message ID to the buffer
+  trans->trans_rx.payload_len = (uint8_t) clen;
+  memcpy(trans->trans_rx.payload, trans->rx_msg.msg,
+      trans->trans_rx.payload_len);
+
+  // mark new message available
+  *msg_available = true;
+}
+
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
 void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans, uint8_t *buf, bool *msg_available)
@@ -279,48 +397,17 @@ void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *tran
       parse_spprz(trans, dev->get_byte(dev->periph));
     }
     if (trans->trans_rx.msg_received) {
-      // check counter
-      uint32_t new_cnt = 0;
-      memcpy(&new_cnt, trans->trans_rx.payload, PPRZ_COUNTER_LEN);
-
-      if (new_cnt <= trans->rx_cnt) {
-        trans->trans_rx.msg_received = false;
-        return; // counter has to be monotonically increasing
+      // differentiate between handling encrypted and unecrypted messages
+      if (trans->crypto_ok) {
+        // attempt to decrypt and pass the result
+        spprz_handle_encrypted_message(trans, buf, msg_available);
+      } else {
+        // simply copy buffer over and let the upper layers handle the data
+        spprz_handle_plaintext_message(trans, buf, msg_available);
       }
-
-      // update nonce
-      memcpy(trans->rx_msg.nonce, &new_cnt, PPRZ_COUNTER_LEN);
-
-      // authenticate and decrypt
-      memset(&(trans->rx_msg),0,sizeof(trans->rx_msg)); // erase aux variables
-
-      uint32_t clen = trans->trans_rx.payload_len - PPRZ_CRYPTO_OVERHEAD;
-      uint32_t res = Chacha20Poly1305_aead_decrypt(trans->rx_msg.msg, // plaintext
-                                                   &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX], // ciphertext
-                                                   clen, // ciphertext len
-                                                   &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX+clen], // mac
-                                                   &trans->trans_rx.payload[PPRZ_COUNTER_IDX], // aad (counter)
-                                                   PPRZ_COUNTER_LEN, // aad len
-                                                   trans->rx_key, // key
-                                                   trans->rx_msg.nonce); // nonce
-
-      if (res != 0) {
-        trans->trans_rx.msg_received = false;
-        return; // either decryption or authentication failed
-      }
-
-      // update the counter
-      trans->rx_cnt = new_cnt;
-
-      // copy decrypted payload and sender ID and message ID to the buffer
-      trans->trans_rx.payload_len = (uint8_t) clen;
-      memcpy(trans->trans_rx.payload, trans->rx_msg.msg, trans->trans_rx.payload_len);
-
-      for (i = 0; i < trans->trans_rx.payload_len; i++) {
-        buf[i] = trans->trans_rx.payload[i];
-      }
-      *msg_available = true;
-      trans->trans_rx.msg_received = false;
     }
+
+    // either way mark the received message as processed
+    trans->trans_rx.msg_received = false;
   }
 }
