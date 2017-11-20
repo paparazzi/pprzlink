@@ -220,9 +220,9 @@ extern void spprz_send_plaintext(struct link_device *dev, struct spprz_transport
 
   // send everything
   dev->put_buffer(dev->periph, 0, trans->tx_buffer, trans->tx_idx);  // payload
-  dev->put_byte(dev->periph, fd, trans->ck_a_tx);  // checksum
-  dev->put_byte(dev->periph, fd, trans->ck_b_tx);  // checksum
-  dev->send_message(dev->periph, fd);  // send
+  dev->put_byte(dev->periph, 0, trans->ck_a_tx);  // checksum
+  dev->put_byte(dev->periph, 0, trans->ck_b_tx);  // checksum
+  dev->send_message(dev->periph, 0);  // send
 }
 
 
@@ -331,6 +331,7 @@ restart:
  * To be called before CRYPTO_OK status is achieved
  */
 inline void spprz_handle_plaintext_message(struct spprz_transport *trans, uint8_t *buf, bool *msg_available) {
+  uint8_t i;
   for (i = 0; i < trans->trans_rx.payload_len; i++) {
     buf[i] = trans->trans_rx.payload[i];
   }
@@ -391,7 +392,6 @@ inline void spprz_handle_encrypted_message(struct spprz_transport *trans, uint8_
 /** Parsing a frame data and copy the payload to the datalink buffer */
 void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans, uint8_t *buf, bool *msg_available)
 {
-  uint8_t i;
   if (dev->char_available(dev->periph)) {
     while (dev->char_available(dev->periph) && !trans->trans_rx.msg_received) {
       parse_spprz(trans, dev->get_byte(dev->periph));

@@ -105,6 +105,7 @@ struct spprz_transport {
 
   bool crypto_ok; // when true it is ok to send encrypted messages (i.e. the key exchange happened)
   uint32_t decrypt_err;
+  uint32_t encrypt_err;
   uint32_t counter_err;
 };
 
