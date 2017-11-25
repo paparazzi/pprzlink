@@ -72,7 +72,7 @@ static void put_named_byte(struct pprzlink_msg *msg, long fd,
                            enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                            uint8_t byte, const char *name __attribute__((unused)))
 {
-  accumulate_checksum(get_pprzlog_trans(trans), byte);
+  accumulate_checksum(get_pprzlog_trans(msg), byte);
   msg->dev->put_byte(msg->dev->periph, fd, byte);
 }
 
