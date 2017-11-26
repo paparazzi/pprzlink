@@ -209,6 +209,9 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
  * NOTE: USE WITH CARE!
  */
 extern void spprz_send_plaintext(struct link_device *dev, struct spprz_transport *trans){
+  // update the message length
+  trans->tx_idx = trans->tx_idx + trans->tx_msg.msg_idx;
+
   // initialize checksum
   trans->ck_a_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
   trans->ck_b_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
