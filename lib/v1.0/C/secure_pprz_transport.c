@@ -148,8 +148,9 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
   if (trans->crypto_ok != true) {
     // copy message to the tx buffer
     memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.msg, trans->tx_msg.msg_idx);
+    trans->tx_idx += trans->tx_msg.msg_idx;
 
-    // return immediately
+    // return without sending anything
     return;
   }
 
