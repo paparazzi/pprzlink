@@ -67,13 +67,12 @@ extern "C" {
 
 #define PPRZ_MSG_LEN_IDX 1
 #define PPRZ_COUNTER_IDX 2
-#define PPRZ_CIPHERTEXT_IDX 6
+#define PPRZ_CIPHERTEXT_IDX 4
 
 struct spprz_message {
   uint8_t msg[PPRZ_MAX_PAYLOAD_LEN]; // ciphertext/plaintext
   uint8_t msg_idx; // msg length
   uint8_t mac[PPRZ_MAC_LEN]; // message authentication tag
-  uint8_t nonce[PPRZ_NONCE_LEN]; // nonce (using only 4 bytes)
   uint8_t aad[PPRZ_MAX_AAD_LEN]; // additional authentication data
   uint8_t aad_idx; // aad length
 };
@@ -100,8 +99,10 @@ struct spprz_transport {
   uint8_t tx_idx; // length of outgoing buffer
   uint8_t rx_key[PPRZ_KEY_LEN]; // key to decrypt incoming messages
   uint32_t rx_cnt; // counter (IV) for incoming messages
+  uint8_t rx_nonce[PPRZ_NONCE_LEN]; // nonce
   uint8_t tx_key[PPRZ_KEY_LEN]; // key to encrypt outgoing messages
   uint32_t tx_cnt; // counter (IV) for outgoing messages
+  uint8_t tx_nonce[PPRZ_NONCE_LEN]; // nonce
 
   bool crypto_ok; // when true it is ok to send encrypted messages (i.e. the key exchange happened)
   uint32_t decrypt_err;

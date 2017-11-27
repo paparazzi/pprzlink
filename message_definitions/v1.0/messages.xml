@@ -1988,10 +1988,13 @@
       <field name="msg_data" type="uint8[]"/>
     </message>
 
-    <message name="SPRRZ_STATUS" id="255">
-      <description>Message for monitoring ket exchange status</description>
+    <message name="SPPRZ_STATUS" id="255">
+      <description>Message for monitoring key exchange status</description>
       <field name="sts_stage" type="uint8" values="INIT|WAIT_MSG1|WAIT_MSG2|WAIT_MSG3|CRYPTO_OK"/>
       <field name="sts_error" type="uint8" values="NONE|MSG1_TIMEOUT|MSG1_ENCRYPT|MSG3_TIMEOUT|MSG3_DECRYPT|MSG3_SIGNVERIFY|MSG2_TIMEOUT|MSG2_DECRYPT|MSG2_SIGNVERIFY|MSG3_ENCRYPT|UNEXPECTED_TYPE|UNEXPECTED_STAGE|UNEXPECTED_MSG"/>
+      <field name="counter_err"      type="uint32"/>
+      <field name="decrypt_err"      type="uint32"/>
+      <field name="encrypt_err"      type="uint32"/>
     </message>
 
   </msg_class>

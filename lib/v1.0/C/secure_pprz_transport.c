@@ -149,32 +149,32 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
     // copy message to the tx buffer
     memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.msg, trans->tx_msg.msg_idx);
     trans->tx_idx += trans->tx_msg.msg_idx;
-
     // return without sending anything
     return;
   }
 
   // set nonce
   trans->tx_cnt++;  // increment first
-  memcpy(trans->tx_msg.nonce, &trans->tx_cnt, sizeof(uint32_t));  // simply copy 4 byte counter
+  memcpy(trans->tx_nonce, &trans->tx_cnt, sizeof(uint32_t));  // simply copy 4 byte counter
+  trans->tx_idx = 2; // explicitly set the value
 
   // append counter to the buffer
   memcpy(&trans->tx_buffer[trans->tx_idx], &trans->tx_cnt, sizeof(uint32_t));
   trans->tx_idx += sizeof(uint32_t);
 
-  // we authenticate the counter
-  memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
-  trans->tx_msg.aad_idx += sizeof(uint32_t);
+  // // we authenticate the counter
+  //memcpy(trans->tx_msg.aad, &trans->tx_cnt, sizeof(uint32_t));
+  //trans->tx_msg.aad_idx += sizeof(uint32_t);
 
   // encrypt
   uint32_t res = Chacha20Poly1305_aead_encrypt(&trans->tx_buffer[trans->tx_idx],  // ciphertext
       trans->tx_msg.mac,  // mac
       trans->tx_msg.msg,  // plaintext
       trans->tx_msg.msg_idx,  // plaintext len
-      trans->tx_msg.aad,  // aad
-      trans->tx_msg.aad_idx,  // aad len
+      NULL,//trans->tx_msg.aad,  // aad
+      0,//trans->tx_msg.aad_idx,  // aad len
       trans->tx_key,  // key
-      trans->tx_msg.nonce);  // nonce
+      trans->tx_nonce);  // nonce
 
   // check result
   if (res != 0) {
@@ -183,7 +183,7 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
   }
 
   // increment tx buffer index with the ciphertext
-  trans->tx_cnt += trans->tx_msg.msg_idx;
+  trans->tx_idx += trans->tx_msg.msg_idx;
 
   // append 16 byte tag to the tx buffer
   memcpy(&trans->tx_buffer[trans->tx_idx], trans->tx_msg.mac, PPRZ_MAC_LEN);
@@ -194,7 +194,7 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
   trans->ck_b_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
 
   // calculate checksum
-  for (uint8_t i = 1; i < trans->tx_idx; i++) {
+  for (uint8_t i = 2; i < trans->tx_idx; i++) {
     accumulate_checksum(trans, trans->tx_buffer[i]);
   }
 
@@ -218,7 +218,7 @@ extern void spprz_send_plaintext(struct link_device *dev, struct spprz_transport
   trans->ck_b_tx = trans->tx_buffer[PPRZ_MSG_LEN_IDX];
 
   // calculate checksum
-  for (uint8_t i = 1; i < trans->tx_idx; i++) {
+  for (uint8_t i = 2; i < trans->tx_idx; i++) {
     accumulate_checksum(trans, trans->tx_buffer[i]);
   }
 
@@ -359,7 +359,7 @@ inline void spprz_handle_encrypted_message(struct spprz_transport *trans, uint8_
   }
 
   // update nonce
-  memcpy(trans->rx_msg.nonce, &new_cnt, PPRZ_COUNTER_LEN);
+  memcpy(trans->rx_nonce, &new_cnt, PPRZ_COUNTER_LEN);
 
   // authenticate and decrypt
   memset(&(trans->rx_msg), 0, sizeof(trans->rx_msg));  // erase aux variables
@@ -369,10 +369,10 @@ inline void spprz_handle_encrypted_message(struct spprz_transport *trans, uint8_
       &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX],  // ciphertext
       clen,  // ciphertext len
       &trans->trans_rx.payload[PPRZ_CIPHERTEXT_IDX + clen],  // mac
-      &trans->trans_rx.payload[PPRZ_COUNTER_IDX],  // aad (counter)
-      PPRZ_COUNTER_LEN,  // aad len
+      NULL,//&trans->trans_rx.payload[PPRZ_COUNTER_IDX],  // aad (counter)
+      0,//PPRZ_COUNTER_LEN,  // aad len
       trans->rx_key,  // key
-      trans->rx_msg.nonce);  // nonce
+      trans->rx_nonce);  // nonce
 
   if (res != 0) {
     *msg_available = false;
