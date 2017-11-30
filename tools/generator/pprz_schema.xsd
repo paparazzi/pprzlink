@@ -68,6 +68,7 @@
         <xs:attribute ref="name" use="required"/>
         <xs:attribute ref="id" use="required"/>
         <xs:attribute ref="link"/>
+        <xs:attribute ref="priority"/>
     </xs:complexType>
 </xs:element>
 
