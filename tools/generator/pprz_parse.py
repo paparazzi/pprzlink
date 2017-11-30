@@ -79,7 +79,6 @@ class PPRZMsg(object):
     def __init__(self, name, id, linenumber, description='',  priority=1):
         self.msg_name = name
         self.linenumber = linenumber
-        print(priority)
         self.msg_priority = priority
         self.id = int(id)
         self.description = description
@@ -134,7 +133,7 @@ class PPRZXML(object):
                 check_attrs(attrs, ['name', 'id'], 'message')
                 if self.current_class == self.class_name:
                     priority = attrs['priority'] if 'priority' in attrs else 1
-                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber, priority=priority))
+                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber, priority=int(priority)))
             elif in_element == "protocol.msg_class.message.field":
                 check_attrs(attrs, ['name', 'type'], 'field')
                 if self.current_class == self.class_name:

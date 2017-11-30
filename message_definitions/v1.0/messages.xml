@@ -4,7 +4,7 @@
  <!-- messages from modem or sim to server -->
  <msg_class name="telemetry" id="1">
 
-    <message name="AUTOPILOT_VERSION" id="1">
+    <message name="AUTOPILOT_VERSION" id="1" priority="2">
       <field name="version" type="uint32">version encoded as: MAJOR * 10000 + MINOR * 100 + PATCH</field>
       <field name="desc" type="char[]">version description as string from paparazzi_version</field>
     </message>
@@ -14,7 +14,7 @@
       <field name="md5sum" type="uint8[]"/>
     </message>
 
-    <message name="PONG" id="3" priority="1">
+    <message name="PONG" id="3" priority="2">
      <description>Answer to PING datalink message, to measure latencies</description>
     </message>
 
