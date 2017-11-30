@@ -89,7 +89,7 @@ typedef void (*start_message_t)(struct pprzlink_msg *, long, uint8_t);
 typedef void (*end_message_t)(struct pprzlink_msg *, long);
 typedef void (*overrun_t)(struct pprzlink_msg *);
 typedef void (*count_bytes_t)(struct pprzlink_msg *, uint8_t);
-typedef void (*put_priority_t)(void *, struct link_device *, long, uint8_t);
+typedef void (*put_priority_t)(struct pprzlink_msg *, long, uint8_t);
 
 /** Generic transmission transport header
  */
