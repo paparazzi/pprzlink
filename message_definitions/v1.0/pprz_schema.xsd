@@ -19,6 +19,7 @@
 <xs:attribute name="link" type="xs:string"/> <!-- message -->
 <xs:attribute name="format" type="xs:string"/> <!-- field -->
 <xs:attribute name="unit" type="xs:string"/> <!-- field -->
+<xs:attribute name="priority" type="xs:byte"/> <!-- field -->
 <xs:attribute name="alt_unit" type="xs:string"/> <!-- field -->
 <xs:attribute name="alt_unit_coef" type="xs:string"/> <!-- field (FIXME: should be decimal AND scientific notation, allow all strings as workaround for now -->
 <xs:attribute name="values" type="xs:string"/> <!-- field -->

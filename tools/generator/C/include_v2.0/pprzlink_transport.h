@@ -89,6 +89,7 @@ typedef void (*start_message_t)(struct pprzlink_msg *, long, uint8_t);
 typedef void (*end_message_t)(struct pprzlink_msg *, long);
 typedef void (*overrun_t)(struct pprzlink_msg *);
 typedef void (*count_bytes_t)(struct pprzlink_msg *, uint8_t);
+typedef void (*put_priority_t)(void *, struct link_device *, long, uint8_t);
 
 /** Generic transmission transport header
  */
@@ -102,6 +103,7 @@ struct transport_tx {
   overrun_t overrun;                              ///< overrun
   count_bytes_t count_bytes;                      ///< count bytes to send
   void *impl;                                     ///< pointer to parent implementation
+  put_priority_t put_priority;                    ///< set a message priority
 };
 
 #ifdef __cplusplus

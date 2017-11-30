@@ -134,6 +134,7 @@ static inline void pprzlink_msg_v2_send_${msg_name}(struct pprzlink_msg * msg${{
   if (msg->trans->check_available_space(msg, _FD_ADDR, size)) {
     msg->trans->count_bytes(msg, size);
     msg->trans->start_message(msg, _FD, /* msg header overhead */4${{fields:${array_extra_length}+${length}}});
+    msg->trans->put_priority(trans->impl, dev, _FD, DL_TYPE_UINT8, ${msg_priority} /* msg priority */);
     msg->trans->put_bytes(msg, _FD, DL_TYPE_UINT8, DL_FORMAT_SCALAR, &(msg->sender_id), 1);
     msg->trans->put_named_byte(msg, _FD, DL_TYPE_UINT8, DL_FORMAT_SCALAR, msg->receiver_id, NULL);
     uint8_t comp_class = (msg->component_id & 0x0F) << 4 | (${class_id} & 0x0F);

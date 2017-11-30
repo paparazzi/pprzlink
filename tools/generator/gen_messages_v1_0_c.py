@@ -69,6 +69,7 @@ static inline void pprz_msg_send_${msg_name}(struct transport_tx *trans, struct 
   if (trans->check_available_space(trans->impl, dev, _FD_ADDR, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */))) {
     trans->count_bytes(trans->impl, dev, trans->size_of(trans->impl, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */));
     trans->start_message(trans->impl, dev, _FD, 0${{fields:${array_extra_length}+${length}}} +2 /* msg header overhead */);
+    trans->put_priority(trans->impl, dev, _FD, DL_TYPE_UINT8, ${msg_priority} /* msg priority */);
     trans->put_bytes(trans->impl, dev, _FD, DL_TYPE_UINT8, DL_FORMAT_SCALAR, &ac_id, 1);
     trans->put_named_byte(trans->impl, dev, _FD, DL_TYPE_UINT8, DL_FORMAT_SCALAR, DL_${msg_name}, "${msg_name}");
     ${{fields:${array_byte}trans->put_bytes(trans->impl, dev, _FD, DL_TYPE_${type_upper}, ${dl_format}, (void *) _${field_name}, ${length});
