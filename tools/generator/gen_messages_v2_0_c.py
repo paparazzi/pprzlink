@@ -196,7 +196,7 @@ ${{fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_payload) pprzl
 
 #endif // _VAR_MESSAGES_${class_name}_${msg_name}_H_
 
-''', {'msg_name' : m.msg_name, 'description' : m.description ,'class_id' : xml.class_id, 'class_name' : xml.class_name, 'id' : m.id, 'fields' : m.fields, 'message' : xml.message})
+''', {'msg_name' : m.msg_name, 'description' : m.description ,'class_id' : xml.class_id, 'class_name' : xml.class_name, 'id' : m.id, 'fields' : m.fields, 'message' : xml.message, 'msg_priority': m.msg_priority})
 
 
 def generate(output, xml):
