@@ -20,3 +20,9 @@
 /build
 /var
 /.idea/
+
+# Eclipse IDE settings files
+.cproject
+.project
+.pydevproject
+.settings/*
