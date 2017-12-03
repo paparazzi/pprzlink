@@ -27,6 +27,7 @@
  */
 #include "pprzlink/spprz_utils.h"
 
+
 /**
  * Trivial implementation of the processing function
  * Shall be replaced by user implementation!
@@ -49,5 +50,5 @@ bool WEAK spprz_process_incoming_packet(struct spprz_transport *trans, uint8_t *
  */
 bool WEAK spprz_process_outgoing_packet(struct spprz_transport *trans __attribute__((unused)))
 {
-  return true ;
+  return true;
 }

@@ -115,6 +115,10 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
     trans->ck_a_tx = trans->tx_msg[PPRZ_MSG_LEN_IDX];
     trans->ck_b_tx = trans->tx_msg[PPRZ_MSG_LEN_IDX];
 
+    // send first two bytes
+    dev->put_byte(dev->periph, fd, trans->tx_msg[0]);
+    dev->put_byte(dev->periph, fd, trans->tx_msg[1]);
+
     // we start counting checksum at byte 2
     for (uint8_t i=2; i<trans->tx_msg_idx; i++) {
       accumulate_checksum(trans, trans->tx_msg[i]);
