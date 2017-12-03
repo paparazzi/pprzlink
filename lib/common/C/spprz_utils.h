@@ -24,7 +24,7 @@
  * Secure link utilities
  *
  */
-
+#pragma once
 #ifndef SPPRZ_UTILS_H
 #define SPRRZ_UTILS_H
 
@@ -32,31 +32,12 @@
 extern "C" {
 #endif
 
-#include "std.h";
+#include "std.h"
+#include "pprzlink/spprz_transport.h"
 
-// mutexes
 #define PPRZ_STX_SECURE 0xAA
 #define PPRZ_MSG_LEN_IDX 1
 
-#ifndef PPRZ_MUTEX
-#define PPRZ_MUTEX(_mtx)
-#endif
-
-#ifndef PPRZ_MUTEX_DECL
-#define PPRZ_MUTEX_DECL(_mtx)
-#endif
-
-#ifndef PPRZ_MUTEX_INIT
-#define PPRZ_MUTEX_INIT(_mtx) {}
-#endif
-
-#ifndef PPRZ_MUTEX_LOCK
-#define PPRZ_MUTEX_LOCK(_mtx) {}
-#endif
-
-#ifndef PPRZ_MUTEX_UNLOCK
-#define PPRZ_MUTEX_UNLOCK(_mtx) {}
-#endif
 
 /* Function shall be provided implementation */
 
@@ -82,7 +63,7 @@ extern "C" {
  *
  * Note: in case the function returns false, it is expected to log an error
  */
-extern bool spprz_process_incoming_packet(struct spprz_transport *trans, uint8_t *buf);
+bool spprz_process_incoming_packet(struct spprz_transport *trans, uint8_t *buf);
 
 /**
  * Process outgoing packet
@@ -109,36 +90,7 @@ extern bool spprz_process_incoming_packet(struct spprz_transport *trans, uint8_t
  *
  * Note: in case the function returns false, it is expected to log an error
  */
-extern bool spprz_process_outgoing_packet(struct spprz_transport *trans);
-
-
-
-
-
-/**
- * Trivial implementation of the processing function
- * Shall be replaced by user implementation!
- *
- * This function only copies trans->trans_rx.payload into provided buf
- */
-bool WEAK spprz_process_incoming_packet(struct spprz_transport *trans, uint8_t *buf)
-{
-  for (uint8_t i = 0; i < trans->trans_rx.payload_len; i++) {
-    buf[i] = trans->trans_rx.payload[i];
-  }
-  return true;
-}
-
-/**
- * Trivial implementation of the processing function
- * Shall be replaced by user implementation!
- *
- * This function is only a pass-through.
- */
-bool WEAK spprz_process_outgoing_packet(struct spprz_transport *trans)
-{
-  return true;
-}
+bool spprz_process_outgoing_packet(struct spprz_transport *trans);
 
 #ifdef __cplusplus
 } /* extern "C" */

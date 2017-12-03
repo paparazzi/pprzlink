@@ -52,7 +52,7 @@ extern "C" {
 #include <stdbool.h>
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
-#include "pprzlink/spprz_utils.h"
+#include "pprz_mutex.h" // mutex definitions
 
 // Start byte
 #define PPRZ_STX        0x99
@@ -77,6 +77,9 @@ struct spprz_transport {
   bool packet_encrypted;
   PPRZ_MUTEX(spprz_mtx_tx); // mutex is a part of the transport
 };
+
+// include after defining the spprz_stransport struct
+#include "pprzlink/spprz_utils.h"
 
 // Init function
 extern void spprz_transport_init(struct spprz_transport *t);

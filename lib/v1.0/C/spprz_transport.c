@@ -42,6 +42,7 @@
  */
 
 #include <inttypes.h>
+#include <string.h> // for memset()
 #include "pprzlink/spprz_transport.h"
 
 // PPRZ parsing state machine
@@ -148,7 +149,7 @@ static int check_available_space(struct spprz_transport *trans __attribute__((un
 }
 
 // Init pprz transport structure
-void pprz_transport_init(struct spprz_transport *t)
+void spprz_transport_init(struct spprz_transport *t)
 {
   t->status = UNINIT;
   t->trans_rx.msg_received = false;
@@ -231,7 +232,7 @@ void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *tran
 {
   if (dev->char_available(dev->periph)) {
     while (dev->char_available(dev->periph) && !trans->trans_rx.msg_received) {
-      parse_pprz(trans, dev->get_byte(dev->periph));
+      parse_spprz(trans, dev->get_byte(dev->periph));
     }
     if (trans->trans_rx.msg_received) {
       if (spprz_process_incoming_packet(trans, buf)) {
