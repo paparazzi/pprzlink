@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2006  Pascal Brisset, Antoine Drouin
- * Copyright (C) 2014-2015  Gautier Hattenberger <gautier.hattenberger@enac.fr>
- * Copyright (C) 2017 Michal Podhradsky <mpodhradsky@galois.com>
+ * Copyright (C) 2014-2017  Gautier Hattenberger <gautier.hattenberger@enac.fr>
  *
  * This file is part of paparazzi.
  *
@@ -22,11 +21,9 @@
  */
 
 /**
- * @file pprzlink/spprz_transport.c
+ * @file pprzlink/pprz_transport.c
  *
- * Building and parsing secure Paparazzi frames.
- * Provides only basic hooks, the majority of work (encryption/decryption)
- * is done in an external user-supplied file.
+ * Building and parsing Paparazzi frames.
  *
  * Pprz frame:
  *
@@ -42,8 +39,7 @@
  */
 
 #include <inttypes.h>
-#include <string.h> // for memset()
-#include "pprzlink/spprz_transport.h"
+#include "pprzlink/pprz_transport.h"
 
 // PPRZ parsing state machine
 #define UNINIT      0
@@ -52,9 +48,9 @@
 #define GOT_PAYLOAD 3
 #define GOT_CRC1    4
 
-static struct spprz_transport * get_pprz_trans(struct pprzlink_msg *msg)
+static struct pprz_transport * get_pprz_trans(struct pprzlink_msg *msg)
 {
-  return (struct pprz_transport *)(msg->trans->impl);
+  return (struct spprz_transport *)(msg->trans->impl);
 }
 
 static void accumulate_checksum(struct spprz_transport *trans, const uint8_t byte)
@@ -68,8 +64,7 @@ static inline void insert_byte(struct spprz_transport *trans, const uint8_t byte
   trans->tx_msg_idx++;
 }
 
-static void put_bytes(struct spprz_transport *trans,
-                      struct link_device *dev __attribute__((unused)),
+static void put_bytes(struct pprzlink_msg *msg,
                       long fd __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)),
                       enum TransportDataFormat format __attribute__((unused)),
@@ -78,86 +73,82 @@ static void put_bytes(struct spprz_transport *trans,
   const uint8_t *b = (const uint8_t *) bytes;
   int i;
   for (i = 0; i < len; i++) {
-    insert_byte(trans, b[i]);
+    insert_byte(get_pprz_trans(msg), b[i]);
   }
 }
 
-static void put_named_byte(struct spprz_transport *trans,
-                           struct link_device *dev __attribute__((unused)),
+static void put_named_byte(struct pprzlink_msg *msg,
                            long fd __attribute__((unused)),
                            enum TransportDataType type __attribute__((unused)),
                            enum TransportDataFormat format __attribute__((unused)),
-                           uint8_t byte,
-                           const char *name __attribute__((unused)))
+                           uint8_t byte, const char *name __attribute__((unused)))
 {
-  insert_byte(trans, byte);
+  insert_byte(get_pprz_trans(msg), byte);
 }
 
-static uint8_t size_of(struct spprz_transport *trans __attribute__((unused)), uint8_t len)
+static uint8_t size_of(struct pprzlink_msg *msg __attribute__((unused)), uint8_t len)
 {
   // message length: payload + protocol overhead (STX + len + ck_a + ck_b = 4)
   return len + 4;
 }
 
-static void start_message(struct spprz_transport *trans,
-                          struct link_device *dev __attribute__((unused)),
-                          long fd __attribute__((unused)),
-                          uint8_t payload_len)
+static void start_message(struct pprzlink_msg *msg, long fd, uint8_t payload_len)
 {
-  PPRZ_MUTEX_LOCK(trans->spprz_mtx_tx); // lock mutex
-  memset(trans->tx_msg, 0, TRANSPORT_PAYLOAD_LEN);
-  trans->tx_msg_idx = 0;
+  PPRZ_MUTEX_LOCK(get_pprz_trans(msg)->spprz_mtx_tx); // lock mutex
+  memset(get_pprz_trans(msg)->tx_msg, 0, TRANSPORT_PAYLOAD_LEN);
+  get_pprz_trans(msg)->tx_msg_idx = 0;
 
-  insert_byte(trans, PPRZ_STX);
-  const uint8_t msg_len = size_of(trans, payload_len);
-  insert_byte(trans, msg_len);
+  insert_byte(get_pprz_trans(msg), PPRZ_STX);
+  const uint8_t msg_len = size_of(msg, payload_len);
+  insert_byte(get_pprz_trans(msg), msg_len);
 }
 
-static void end_message(struct spprz_transport *trans, struct link_device *dev, long fd)
+static void end_message(struct pprzlink_msg *msg, long fd)
 {
-  if (spprz_process_outgoing_packet(trans)) {
-    trans->ck_a_tx = trans->tx_msg[PPRZ_MSG_LEN_IDX];
-    trans->ck_b_tx = trans->tx_msg[PPRZ_MSG_LEN_IDX];
+  msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_a_tx);
+  msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_b_tx);
+  msg->dev->send_message(msg->dev->periph, fd);
+
+
+  if (spprz_process_outgoing_packet(get_pprz_trans(msg))) {
+    get_pprz_trans(msg)->ck_a_tx = get_pprz_trans(msg)->tx_msg[PPRZ_MSG_LEN_IDX];
+    get_pprz_trans(msg)->ck_b_tx = get_pprz_trans(msg)->tx_msg[PPRZ_MSG_LEN_IDX];
 
     // send first two bytes
-    dev->put_byte(dev->periph, fd, trans->tx_msg[0]);
-    dev->put_byte(dev->periph, fd, trans->tx_msg[1]);
+    msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->tx_msg[0]);
+    msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->tx_msg[1]);
 
     // we start counting checksum at byte 2
-    for (uint8_t i=2; i<trans->tx_msg_idx; i++) {
-      accumulate_checksum(trans, trans->tx_msg[i]);
-      dev->put_byte(dev->periph, fd, trans->tx_msg[i]);
+    for (uint8_t i=2; i<get_pprz_trans(msg)->tx_msg_idx; i++) {
+      accumulate_checksum(get_pprz_trans(msg), get_pprz_trans(msg)->tx_msg[i]);
+      msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->tx_msg[i]);
     }
 
     // append checksum & send message
-    dev->put_byte(dev->periph, fd, trans->ck_a_tx);
-    dev->put_byte(dev->periph, fd, trans->ck_b_tx);
-    dev->send_message(dev->periph, fd);
+    msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_a_tx);
+    msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_b_tx);
+    msg->dev->send_message(msg->dev->periph, fd);
   }
-  PPRZ_MUTEX_UNLOCK(trans->spprz_mtx_tx); // unlock mutex
+  PPRZ_MUTEX_UNLOCK(get_pprz_trans(msg)->spprz_mtx_tx); // unlock mutex
 }
 
-static void overrun(struct spprz_transport *trans __attribute__((unused)), struct link_device *dev)
+static void overrun(struct pprzlink_msg *msg)
 {
-  dev->nb_ovrn++;
+  msg->dev->nb_ovrn++;
 }
 
-static void count_bytes(struct spprz_transport *trans __attribute__((unused)),
-                        struct link_device *dev, uint8_t bytes)
+static void count_bytes(struct pprzlink_msg *msg, uint8_t bytes)
 {
-  dev->nb_bytes += bytes;
+  msg->dev->nb_bytes += bytes;
 }
 
-static int check_available_space(struct spprz_transport *trans __attribute__((unused)),
-                                 struct link_device *dev,
-                                 long *fd, uint16_t bytes)
+static int check_available_space(struct pprzlink_msg *msg, long *fd, uint16_t bytes)
 {
-  // TODO: might not be necessary
-  return dev->check_free_space(dev->periph, fd, bytes);
+  return msg->dev->check_free_space(msg->dev->periph, fd, bytes);
 }
 
 // Init pprz transport structure
-void spprz_transport_init(struct spprz_transport *t)
+void pprz_transport_init(struct pprz_transport *t)
 {
   t->status = UNINIT;
   t->trans_rx.msg_received = false;
@@ -175,7 +166,7 @@ void spprz_transport_init(struct spprz_transport *t)
 
 
 // Parsing function
-void parse_spprz(struct spprz_transport *t, uint8_t c)
+void parse_pprz(struct pprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
@@ -235,8 +226,8 @@ restart:
 
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans,
-                           uint8_t *buf, bool *msg_available)
+void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans,
+                          uint8_t *buf, bool *msg_available)
 {
   if (dev->char_available(dev->periph)) {
     while (dev->char_available(dev->periph) && !trans->trans_rx.msg_received) {
