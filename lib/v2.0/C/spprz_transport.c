@@ -39,7 +39,8 @@
  */
 
 #include <inttypes.h>
-#include "pprzlink/pprz_transport.h"
+#include <string.h> // for memset
+#include "pprzlink/spprz_transport.h"
 
 // PPRZ parsing state machine
 #define UNINIT      0
@@ -92,7 +93,8 @@ static uint8_t size_of(struct pprzlink_msg *msg __attribute__((unused)), uint8_t
   return len + 4;
 }
 
-static void start_message(struct pprzlink_msg *msg, long fd, uint8_t payload_len)
+static void start_message(struct pprzlink_msg *msg,
+                          long fd __attribute__((unused)), uint8_t payload_len)
 {
   PPRZ_MUTEX_LOCK(get_pprz_trans(msg)->spprz_mtx_tx); // lock mutex
   memset(get_pprz_trans(msg)->tx_msg, 0, TRANSPORT_PAYLOAD_LEN);
@@ -105,11 +107,6 @@ static void start_message(struct pprzlink_msg *msg, long fd, uint8_t payload_len
 
 static void end_message(struct pprzlink_msg *msg, long fd)
 {
-  msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_a_tx);
-  msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_b_tx);
-  msg->dev->send_message(msg->dev->periph, fd);
-
-
   if (spprz_process_outgoing_packet(get_pprz_trans(msg))) {
     get_pprz_trans(msg)->ck_a_tx = get_pprz_trans(msg)->tx_msg[PPRZ_MSG_LEN_IDX];
     get_pprz_trans(msg)->ck_b_tx = get_pprz_trans(msg)->tx_msg[PPRZ_MSG_LEN_IDX];
@@ -148,7 +145,7 @@ static int check_available_space(struct pprzlink_msg *msg, long *fd, uint16_t by
 }
 
 // Init pprz transport structure
-void pprz_transport_init(struct pprz_transport *t)
+void spprz_transport_init(struct spprz_transport *t)
 {
   t->status = UNINIT;
   t->trans_rx.msg_received = false;
@@ -166,7 +163,7 @@ void pprz_transport_init(struct pprz_transport *t)
 
 
 // Parsing function
-void parse_pprz(struct pprz_transport *t, uint8_t c)
+void parse_spprz(struct spprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
@@ -226,7 +223,7 @@ restart:
 
 
 /** Parsing a frame data and copy the payload to the datalink buffer */
-void pprz_check_and_parse(struct link_device *dev, struct pprz_transport *trans,
+void spprz_check_and_parse(struct link_device *dev, struct spprz_transport *trans,
                           uint8_t *buf, bool *msg_available)
 {
   if (dev->char_available(dev->periph)) {
