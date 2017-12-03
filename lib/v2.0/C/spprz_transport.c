@@ -48,7 +48,7 @@
 #define GOT_PAYLOAD 3
 #define GOT_CRC1    4
 
-static struct pprz_transport * get_pprz_trans(struct pprzlink_msg *msg)
+static struct spprz_transport * get_pprz_trans(struct pprzlink_msg *msg)
 {
   return (struct spprz_transport *)(msg->trans->impl);
 }

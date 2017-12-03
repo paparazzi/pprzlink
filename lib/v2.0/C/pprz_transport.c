@@ -39,7 +39,7 @@
  */
 
 #include <inttypes.h>
-#include "pprzlink/pprz_transport.h"
+#include "pprzlink/spprz_transport.h"
 
 // PPRZ parsing state machine
 #define UNINIT      0
