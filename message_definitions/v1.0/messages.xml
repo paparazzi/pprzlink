@@ -339,8 +339,9 @@
     </message>
 
     <message name="DCF" id="40">
-      <field name="table" type="int16[]"/>
-      <field name="errors" type="int16[]"/>
+      <description>Telemetry message for monitoring the status of the Distributed Circular Formation</description>
+      <field name="table" type="int16[]"> 1. ID of the neighbor, 2. Theta of the neighbor (degrees x 100), 3. Desired inter-vehicle angle (degrees x 100), 4. Last time in ms we received a msg from the neighbor</field>
+      <field name="errors" type="int16[]"> Errors w.r.t. desired inter-vehicle angles (degrees x 100)</field>
     </message>
 
     <message name="ALT_KALMAN" id="41">
@@ -1985,7 +1986,11 @@
       <field name="bus_number"                  type="uint8"/>
     </message>
 
-  <!-- 254 is free -->
+    <message name="DCF_THETA" id="254">
+      <description>Air-to-air message for the Distributed Circular Formation algorithm. It transmits the ac's theta to its neighborg
+      </description>
+      <field name="theta" type="float"/>
+    </message>
   <!-- 255 is free -->
 
   </msg_class>
@@ -2467,9 +2472,10 @@
     </message>
 
     <message name="DCF_REG_TABLE" id="158" link="forwarded">
-      <field name="ac_id" type="uint8"/>
-      <field name="nei_id" type="uint8"/>
-      <field name="desired_sigma" type="int16"/>
+      <description>Init the table of an aircraft for the Distributed Circular Formation algorithm</description>
+      <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
+      <field name="nei_id" type="uint8">ID of the neighborh for the table</field>
+      <field name="desired_sigma" type="int16"/>Desired angle to have w.r.t. the neighborh</field>
     </message>
 
   </msg_class>
