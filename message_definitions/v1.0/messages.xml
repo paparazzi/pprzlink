@@ -339,9 +339,9 @@
     </message>
 
     <message name="DCF" id="40">
-      <description>Telemetry message for monitoring the status of the Distributed Circular Formation</description>
-      <field name="table" type="int16[]"> 1. ID of the neighbor, 2. Theta of the neighbor (degrees x 100), 3. Desired inter-vehicle angle (degrees x 100), 4. Last time in ms we received a msg from the neighbor</field>
-      <field name="errors" type="int16[]"> Errors w.r.t. desired inter-vehicle angles (degrees x 100)</field>
+      <description>Telemetry message for monitoring the status of the Distributed Circular Formation.</description>
+      <field name="table" type="int16[]"> The size of the array is 4 x (maximum number of possible neighbors). The elements per each neighbor are: 1. ID of the neighbor, 2. Theta of the neighbor (degrees x 100), 3. Desired inter-vehicle angle (degrees x 100), 4. Last time in ms we received a msg from the neighbor</field>
+      <field name="errors" type="int16[]"> The size of the array is the maximum number of possible neighbors. Errors w.r.t. desired inter-vehicle angles (degrees x 100)</field>
     </message>
 
     <message name="ALT_KALMAN" id="41">
@@ -1987,7 +1987,7 @@
     </message>
 
     <message name="DCF_THETA" id="254">
-      <description>Air-to-air message for the Distributed Circular Formation algorithm. It transmits the ac's theta to its neighborg
+      <description>Air-to-air message for the Distributed Circular Formation algorithm. It transmits the ac's theta to its neighbor
       </description>
       <field name="theta" type="float"/>
     </message>
@@ -2472,10 +2472,10 @@
     </message>
 
     <message name="DCF_REG_TABLE" id="158" link="forwarded">
-      <description>Init the table of an aircraft for the Distributed Circular Formation algorithm</description>
+      <description>Init the table of an aircraft for the Distributed Circular Formation algorithm. If the nei_id is equal to zero, then you wipe out (clean) the whole table of the aircraft.</description>
       <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
-      <field name="nei_id" type="uint8">ID of the neighborh for the table</field>
-      <field name="desired_sigma" type="int16"/>Desired angle to have w.r.t. the neighborh</field>
+      <field name="nei_id" type="uint8">ID of the neighbor for the table</field>
+      <field name="desired_sigma" type="int16">Desired angle to have w.r.t. the neighbor</field>
     </message>
 
   </msg_class>
