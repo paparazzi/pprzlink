@@ -338,7 +338,10 @@
       <field name="remote_noise" type="uint8"/>
     </message>
 
-    <!-- 40 is free -->
+    <message name="DCF" id="40">
+      <field name="table" type="int16[]"/>
+      <field name="errors" type="int16[]"/>
+    </message>
 
     <message name="ALT_KALMAN" id="41">
       <field name="p00" type="float"/>
@@ -2461,6 +2464,12 @@
     <message name="RTCM_INJECT" id="157" link="broadcasted">
       <field name="packet_id" type="uint8"/>
       <field name="data" type="uint8[]"/>
+    </message>
+
+    <message name="DCF_REG_TABLE" id="158" link="forwarded">
+      <field name="ac_id" type="uint8"/>
+      <field name="nei_id" type="uint8"/>
+      <field name="desired_sigma" type="int16"/>
     </message>
 
   </msg_class>
