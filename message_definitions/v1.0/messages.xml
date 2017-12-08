@@ -2105,6 +2105,15 @@
       <field name="ac_id"  type="uint8"/>
     </message>
 
+   <message name="FC_ROTOR" id="15" link="forwarded">
+     <description>If a vehicle is running the guidance_INDI and receives this message, then it tracks the accelerations provided from the ground.</description>
+     <field name="ac_id" type= "uint8">AC_ID of the vehicle</field>
+     <field name="dim" type= "uint8" values="0|1">If 0 the vehicles ommits the provided acceleration in the z axis (the vertical axis is controlled by the on-board guidance). If 1 the vehicle tracks the provided 3D acceleration</field>
+     <field name="ux" type= "float" unit="m/s^2">Acceleration to be tracked in the X axis</field>
+     <field name="uy" type= "float" unit="m/s^2">Acceleration to be tracked in the Y axis</field>
+     <field name="uz" type= "float" unit="m/s^2">Acceleration to be tracked in the Z axis. Omitted if dim is equal to 0.</field>
+   </message>
+
     <message name="GET_SETTING" id="16" link="forwarded">
       <field name="index" type="uint8"/>
       <field name="ac_id" type="uint8"/>
