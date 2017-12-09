@@ -24,7 +24,7 @@ MAKE = make
 all:
 
 install:
-#	$(Q)cp ../../common/C/*.c $(MESSAGES_LIB)
+	$(Q)cp ../../common/C/*.c $(MESSAGES_LIB)
 	$(Q)cp ../../common/C/*.h $(MESSAGES_INCLUDE)
 	$(Q)cp ./*.h $(MESSAGES_INCLUDE)
 	$(Q)cp ./*.c $(MESSAGES_LIB)
