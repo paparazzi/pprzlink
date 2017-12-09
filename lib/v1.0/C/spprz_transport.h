@@ -52,7 +52,6 @@ extern "C" {
 #include <stdbool.h>
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_device.h"
-#include "pprz_mutex.h" // mutex definitions
 
 // Start byte
 #define PPRZ_STX        0x99
@@ -66,16 +65,16 @@ struct spprz_transport {
   uint8_t status;
   uint8_t payload_idx;
   uint8_t ck_a_rx, ck_b_rx;
-
   // generic transmission interface
   struct transport_tx trans_tx;
   // specific pprz transport_tx variables
   uint8_t ck_a_tx, ck_b_tx;
+
+  // secure link specific:
   // buffered tx message
   uint8_t tx_msg[TRANSPORT_PAYLOAD_LEN];
   volatile uint8_t tx_msg_idx;
-  bool packet_encrypted;
-  PPRZ_MUTEX(spprz_mtx_tx); // mutex is a part of the transport
+  uint8_t packet_type;
 };
 
 // include after defining the spprz_stransport struct

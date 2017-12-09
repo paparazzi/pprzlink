@@ -100,7 +100,6 @@ static void start_message(struct spprz_transport *trans,
                           long fd __attribute__((unused)),
                           uint8_t payload_len)
 {
-  PPRZ_MUTEX_LOCK(trans->spprz_mtx_tx); // lock mutex
   memset(trans->tx_msg, 0, TRANSPORT_PAYLOAD_LEN);
   trans->tx_msg_idx = 0;
 
@@ -130,7 +129,6 @@ static void end_message(struct spprz_transport *trans, struct link_device *dev, 
     dev->put_byte(dev->periph, fd, trans->ck_b_tx);
     dev->send_message(dev->periph, fd);
   }
-  PPRZ_MUTEX_UNLOCK(trans->spprz_mtx_tx); // unlock mutex
 }
 
 static void overrun(struct spprz_transport *trans __attribute__((unused)), struct link_device *dev)
@@ -166,7 +164,6 @@ void spprz_transport_init(struct spprz_transport *t)
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
-  PPRZ_MUTEX_INIT(t->spprz_mtx_tx); // init mutex, check if correct pointer
 }
 
 
@@ -175,17 +172,10 @@ void parse_spprz(struct spprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
-      switch (c) {
-        case PPRZ_STX:
-          t->status++;
-          t->packet_encrypted = false;
-          break;
-        case PPRZ_STX_SECURE:
-          t->status++;
-          t->packet_encrypted = true;
-          break;
-        default:
-          break;
+      if (c == PPRZ_STX || c == PPRZ_STX_SECURE)
+      {
+        t->status++;
+        t->packet_type = c;
       }
       break;
     case GOT_STX:
