@@ -90,6 +90,9 @@
 
 /** Xbee protocol implementation */
 
+static void put_priority(struct xbee_transport *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)),
+                         long fd __attribute__((unused)), uint8_t prio __attribute__((unused))) {}
+
 static void accumulate_checksum(struct xbee_transport *trans, const uint8_t byte)
 {
   trans->cs_tx += byte;
@@ -218,6 +221,7 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
+  t->trans_tx.put_priority = (put_priority_t) put_priority;
 
   // Empty buffer before init process
   while (dev->char_available(dev->periph)) {
