@@ -1996,7 +1996,7 @@
       <field name="theta" type="float"/>
     </message>
 
-    <message name="SPPRZ_STATUS" id="255">
+    <message name="SECURE_LINK_STATUS" id="255">
       <description>Message for monitoring key exchange status</description>
       <field name="sts_stage" type="uint8" values="INIT|WAIT_MSG1|WAIT_MSG2|WAIT_MSG3|CRYPTO_OK"/>
       <field name="sts_error" type="uint8" values="NONE|MSG1_TIMEOUT|MSG1_ENCRYPT|MSG3_TIMEOUT|MSG3_DECRYPT|MSG3_SIGNVERIFY|MSG2_TIMEOUT|MSG2_DECRYPT|MSG2_SIGNVERIFY|MSG3_ENCRYPT|UNEXPECTED_TYPE|UNEXPECTED_STAGE|UNEXPECTED_MSG"/>
