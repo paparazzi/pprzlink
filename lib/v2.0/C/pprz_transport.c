@@ -138,8 +138,9 @@ void parse_pprz(struct pprz_transport *t, uint8_t c)
 {
   switch (t->status) {
     case UNINIT:
-      if (c == PPRZ_STX) {
+      if (c == PPRZ_STX || c == PPRZ_STX_CRYPTO) {
         t->status++;
+        t->stx_type = c;
       }
       break;
     case GOT_STX:

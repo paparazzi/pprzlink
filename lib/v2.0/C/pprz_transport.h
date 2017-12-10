@@ -52,6 +52,7 @@ extern "C" {
 
 // Start byte
 #define PPRZ_STX  0x99
+#define PPRZ_STX_CRYPTO 0xAA
 
 /* PPRZ Transport
  */
@@ -67,6 +68,7 @@ struct pprz_transport {
   struct transport_tx trans_tx;
   // specific pprz transport_tx variables
   uint8_t ck_a_tx, ck_b_tx;
+  uint8_t stx_type;
 };
 
 // Init function
