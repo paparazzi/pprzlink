@@ -1824,7 +1824,11 @@
       <field name="asl"        type="float" unit="m"/>
     </message>
 
-    <!-- 239 is free -->
+    <message name="KEY_EXCHANGE_UAV" id="239">
+      <description>Message for key exchange during crypto initialization</description>
+      <field name="msg_type" type="uint8" values="P_AE|P_BE|SIG"/>
+      <field name="msg_data" type="uint8[]"/>
+    </message>
 
     <message name="NPS_SPEED_POS" id="240">
       <field name="ltpp_xdd" type="float" unit="m/s2"/>
@@ -1925,7 +1929,14 @@
       <field name="safety_plug"   type="uint16" values="mV">Safety plug voltage</field>
     </message>
 
-  <!-- 249 is free -->
+    <message name="GPS_RXMRTCM" id="249">
+      <field name="Msg1005"      type="uint32" />
+      <field name="Msg1077"  	 type="uint32" />
+      <field name="Msg1087"      type="uint32" />
+      <field name="Crc1005"      type="uint32" />
+      <field name="Crc1077"      type="uint32" />
+      <field name="Crc1087"      type="uint32"  />
+    </message>
 
     <message name="INDI_G" id="250">
       <field name="G1_roll" type="float[]" unit="none"/>
@@ -1952,17 +1963,6 @@
       <field name="diffSoln"      type="uint8"  values="NONE|DGPS"/>
       <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
     </message>
-
-    <message name="GPS_RXMRTCM" id="249">
-      <field name="Msg1005"      type="uint32" />
-      <field name="Msg1077"  	 type="uint32" />
-      <field name="Msg1087"      type="uint32" />
-      <field name="Crc1005"      type="uint32" />
-      <field name="Crc1077"      type="uint32" />
-      <field name="Crc1087"      type="uint32"  />
-    </message>
-
-  <!-- 250 is free -->
 
     <message name="GPS_SMALL" id="252">
       <field name="multiplex_speed"  type="uint32">bits 31-21 course in decideg : bits 20-10 ground speed in cm/s : bits 9-0 climb speed in cm/s</field>
@@ -1991,7 +1991,15 @@
       </description>
       <field name="theta" type="float"/>
     </message>
-  <!-- 255 is free -->
+
+    <message name="SECURE_LINK_STATUS" id="255">
+      <description>Message for monitoring key exchange status</description>
+      <field name="sts_stage" type="uint8" values="INIT|WAIT_MSG1|WAIT_MSG2|WAIT_MSG3|CRYPTO_OK"/>
+      <field name="sts_error" type="uint8" values="NONE|MSG1_TIMEOUT|MSG1_ENCRYPT|MSG3_TIMEOUT|MSG3_DECRYPT|MSG3_SIGNVERIFY|MSG2_TIMEOUT|MSG2_DECRYPT|MSG2_SIGNVERIFY|MSG3_ENCRYPT|UNEXPECTED_TYPE|UNEXPECTED_STAGE|UNEXPECTED_MSG"/>
+      <field name="counter_err"      type="uint32"/>
+      <field name="decrypt_err"      type="uint32"/>
+      <field name="encrypt_err"      type="uint32"/>
+    </message>
 
   </msg_class>
 
@@ -2476,6 +2484,13 @@
       <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
       <field name="nei_id" type="uint8">ID of the neighbor for the table</field>
       <field name="desired_sigma" type="int16">Desired angle to have w.r.t. the neighbor</field>
+    </message>
+
+    <message name="KEY_EXCHANGE_GCS" id="159" link="forwarded">
+      <description>Message for key exchange during crypto initialization</description>
+      <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
+      <field name="msg_type" type="uint8" values="P_AE|P_BE|SIG"/>
+      <field name="msg_data" type="uint8[]"/>
     </message>
 
   </msg_class>
