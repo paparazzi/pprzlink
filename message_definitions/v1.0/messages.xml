@@ -2113,6 +2113,15 @@
       <field name="ac_id"  type="uint8"/>
     </message>
 
+   <message name="DESIRED_SET_POINT" id="15" link="forwarded">
+     <description>This message is used to set 3D desired vehicle's states such as accelerations or velocities.</description>
+     <field name="ac_id" type= "uint8">AC_ID of the vehicle</field>
+     <field name="flag" type= "uint8">Up to the user, for example to distinguish between ENU or NED.</field>
+     <field name="ux" type= "float">Quantity to be tracked in the X axis.</field>
+     <field name="uy" type= "float">Quantity to be tracked in the Y axis.</field>
+     <field name="uz" type= "float">Quantity to be tracked in the Z axis.</field>
+   </message>
+
     <message name="GET_SETTING" id="16" link="forwarded">
       <field name="index" type="uint8"/>
       <field name="ac_id" type="uint8"/>
