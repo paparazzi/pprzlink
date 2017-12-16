@@ -2849,6 +2849,35 @@
       <field name="cmd" type="uint8" values="KILL|STANDBY|LAND"/>
     </message>
 
+    <message name="GROUND_REF" id="40">
+      <description>
+        Ground reference provided by an external positioning system for instance
+      </description>
+      <field name="frame" type="string" values="LLA|ECEF|UTM|LTP_NED|LTP_ENU">position reference frame</field>
+      <field name="pos" type="float[3]" unit="SI (m or deg)">position in selected frame</field>
+      <field name="speed" type="float[3]" unit="m/s">speed in selected frame (LTP_NED in case of LLA frame)</field>
+      <field name="quat" type="float[4]">Unitary quaternion representing LTP to BODY orientation (qi, qx, qy, qz)</field>
+      <field name="rate" type="float[3]" unit="rad/s" alt_unit="deg/s">Rotation speeds in body frame</field>
+    </message>
+
+    <message name="JOYSTICK" id="41">
+      <description>
+        Generic 4 axis and 4 buttons joystick or joypad.
+        This message can be provided by the 'input2ivy' tool for other ground agents.
+        Standard joystick axis values are on 16 bits signed integers, but tools like 'input2ivy' may
+        scale them on int8 type.
+      </description>
+      <field name="id" type="uint8">Joystick ID</field>
+      <field name="axis1" type="int16">axis 1 position</field>
+      <field name="axis2" type="int16">axis 2 position</field>
+      <field name="axis3" type="int16">axis 3 position</field>
+      <field name="axis4" type="int16">axis 4 position</field>
+      <field name="button1" type="uint8" unit="bool">button 1 status</field>
+      <field name="button2" type="uint8" unit="bool">button 2 status</field>
+      <field name="button3" type="uint8" unit="bool">button 3 status</field>
+      <field name="button4" type="uint8" unit="bool">button 4 status</field>
+    </message>
+
     <message name="PLUMES" id="100">
       <field name="ids" type="string" format="csv"/>
       <field name="lats" type="string" format="csv"/>
