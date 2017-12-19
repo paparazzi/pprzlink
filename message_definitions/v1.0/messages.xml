@@ -2853,11 +2853,13 @@
       <description>
         Ground reference provided by an external positioning system for instance
       </description>
+      <field name="ac_id" type="string">Aircraft ID</field>
       <field name="frame" type="string" values="LLA|ECEF|UTM|LTP_NED|LTP_ENU">position reference frame</field>
       <field name="pos" type="float[3]" unit="SI (m or deg)">position in selected frame</field>
       <field name="speed" type="float[3]" unit="m/s">speed in selected frame (LTP_NED in case of LLA frame)</field>
       <field name="quat" type="float[4]">Unitary quaternion representing LTP to BODY orientation (qi, qx, qy, qz)</field>
       <field name="rate" type="float[3]" unit="rad/s" alt_unit="deg/s">Rotation speeds in body frame</field>
+      <field name="timestamp" type="float" unit="s">Timestamp</field>
     </message>
 
     <message name="JOYSTICK" id="41">
