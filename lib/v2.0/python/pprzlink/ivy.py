@@ -21,6 +21,9 @@ else:
 
 
 class IvyMessagesInterface(object):
+    """
+    This class is the interface between the paparazzi messages and the Ivy bus.
+    """
     def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
         if agent_name is None:
             agent_name = "IvyMessagesInterface %i" % os.getpid()
@@ -95,7 +98,7 @@ class IvyMessagesInterface(object):
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg
         else:
-            regex = '^([^ ]* +%s(.*|$))'%(regex_or_msg.name)
+            regex = '^([^ ]* +%s(.*|$))'%(regex_or_msg.name)    #TODO: verify if a whitespace is not missing (after '%s')
 
         bind_id = IvyBindMsg(lambda agent, *larg: self.parse_pprz_msg(callback, larg[0]), regex)
         self.bindings[bind_id] = (callback, regex)
