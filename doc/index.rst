@@ -9,12 +9,13 @@ PPRZLINK is a messages toolkit (message definition, code generators, libraries) 
 
 .. _`Flying Robot Commander`: https://github.com/paparazzi/flyingrobotcommander
 
-TODO: Overview extension => explain code generation and libraries
+.. TODO: Overview extension => explain code generation and libraries
 
-File organisation
-=================
-
-files and directory organisation
+.. TBD
+  File organisation
+  =================
+  
+  files and directory organisation
 
 Contents
 ========

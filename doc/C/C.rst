@@ -2,9 +2,7 @@
 C Library
 ==============
 
-.. toctree::
-   :maxdepth: 2
-   :glob:
-	
-   self
+General description of the C library
+
+TBD
 

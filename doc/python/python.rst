@@ -17,7 +17,7 @@ The following interfaces are available :
 Supported protocols
 -------------------
 
-- pprz binary format
+- `pprz binary format <http://wiki.paparazziuav.org/wiki/Messages_Format>`_
 - ascii (ivy)
 
 The XBee binary protocol is not supported at the moment.
@@ -30,8 +30,11 @@ On bask-like shells: `export PYTHONPATH=<path/to/this/directory>:$PYTHONPATH`
 
 Then you can run test programs with `python -m pprzlink.serial` in the case of the serial interface.
 
+API documentation
+-----------------
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
 	
    messages

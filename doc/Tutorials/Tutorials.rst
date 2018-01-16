@@ -9,7 +9,10 @@ Ivy
 
 These tutorials explain how to send and receive messages to and from an Ivy bus.
 
-- :doc:`IvyPythonBasic`
+.. toctree::
+    :maxdepth: 1
+
+    IvyPythonBasic
 
 
 .. _SerialTutorials:
@@ -19,7 +22,10 @@ Serial
 
 These tutorials explain how to send and receive messages to and from a serial device.
 
-- :doc:`SerialPythonBasic`
+.. toctree::
+    :maxdepth: 1
+
+    SerialPythonBasic
 
 
 .. _UdpTutorials:
@@ -29,16 +35,10 @@ UDP
 
 These tutorials explain how to send and receive messages to and from an udp socket???
 
-- :doc:`UdpPythonBasic`
-
-
-References
-==========
 .. toctree::
-    :maxdepth: 2
-    :glob:
-    
-    IvyPythonBasic
-    SerialPythonBasic
+    :maxdepth: 1
+
     UdpPythonBasic
+
+
 
