@@ -1,19 +1,35 @@
+====================================
 Welcome to PprzLink's documentation!
 ====================================
 
-Contents:
+Overview
+========
+
+PPRZLINK is a messages toolkit (message definition, code generators, libraries) to be used with **Paparazzi UAV System** (https://paparazziuav.org) and compatible systems. One tool that uses PPRZLINK is the `Flying Robot Commander`_, a web based, RESTful application for controlling multiple aircraft.
+
+.. _`Flying Robot Commander`: https://github.com/paparazzi/flyingrobotcommander
+
+.. TODO: Overview extension => explain code generation and libraries
+
+.. TBD
+  File organisation
+  =================
+  
+  files and directory organisation
+
+Contents
+========
 
 .. toctree::
-   :maxdepth: 2
-
-   python/messages
-   python/transport
-   python/ivy
-   python/serial
-
-PprzLink is a message toolkit (message definition, code generators, libraries) to be used with `Paparazzi UAV <http://paparazziuav.org>`_ and compatible systems.
-
-
+    :maxdepth: 2
+    :includehidden:
+	
+    messages/messages
+    generators/generators
+    python/python
+    C/C
+    Ocaml/Ocaml
+    Tutorials/Tutorials
 
 Indices and tables
 ==================
