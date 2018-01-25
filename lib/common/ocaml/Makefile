@@ -55,6 +55,9 @@ BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
 ifeq ($(shell test $(OCAMLC_MINOR) -ge 2; echo $$?),0)
 # the Bytes module is available since OCaml 4.02.0
 CAMLP4_DEFS += -DHAS_BYTES_MODULE
+ifeq ($(shell test $(OCAMLC_MINOR) -ge 4; echo $$?),0)
+CAMLP4_DEFS += -DOCAML_V404
+endif
 endif
 endif
 

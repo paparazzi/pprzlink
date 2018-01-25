@@ -240,7 +240,7 @@ let scale_of_units = fun ?auto from_unit to_unit ->
         and a = try Some (Xml.attrib u "auto") with _ -> None in
         let a = match auto, a with
           | Some _, None | None, None -> "" (* No auto conversion *)
-          | Some t, Some _ | None, Some t -> CompatPL.bytes_lowercase t (* param auto is used before attribute *)
+          | Some t, Some _ | None, Some t -> CompatPL.lowercase_ascii t (* param auto is used before attribute *)
         in
         if (f = from_unit || a = "display") && (t = to_unit || a = "code") then true else false
       ) (Xml.children units_xml) in
@@ -248,7 +248,7 @@ let scale_of_units = fun ?auto from_unit to_unit ->
       float_of_string (Xml.attrib _unit "coef")
     with Xml.File_not_found _ -> raise (Unit_conversion_error ("Parse error of conf/units.xml"))
       | Xml.No_attribute _ | Xml.Not_element _ -> raise (Unit_conversion_error ("File conf/units.xml has errors"))
-      | Failure "float_of_string" -> raise (Unit_conversion_error ("Unit coef is not numerical value"))
+      | Failure _ -> raise (Unit_conversion_error ("Unit coef is not numerical value"))
       | Not_found ->
         if from_unit = "" || to_unit = "" then raise (No_automatic_conversion (from_unit, to_unit))
         else raise (Unknown_conversion (from_unit, to_unit))
@@ -314,7 +314,7 @@ let xml_child xml ?select c =
   let children = Xml.children xml in
   (* Let's try with a numeric index *)
   try (Array.of_list children).(Pervasives.int_of_string c) with
-    Failure "int_of_string" -> (* Bad luck. Go through the children *)
+    Failure _ -> (* Bad luck. Go through the children *)
       find children
 
 let pipe_regexp = Str.regexp "|"
@@ -327,14 +327,14 @@ let field_of_xml = fun xml ->
   let auc = alt_unit_coef_of_xml xml in
   let values = try Str.split pipe_regexp (Xml.attrib xml "values") with _ -> [] in
 
-  ( CompatPL.bytes_lowercase (xml_attrib xml "name"),
+  ( CompatPL.lowercase_ascii (xml_attrib xml "name"),
     { _type = t; fformat = f; alt_unit_coef = auc; enum=values })
 
 let string_of_values = fun vs ->
   CompatPL.bytes_concat " " (List.map (fun (a,v) -> sprintf "%s=%s" a (string_of_value v)) vs)
 
 let assoc = fun a vs ->
-  try List.assoc (CompatPL.bytes_lowercase a) vs with Not_found ->
+  try List.assoc (CompatPL.lowercase_ascii a) vs with Not_found ->
     failwith (sprintf "Attribute '%s' not found in '%s'" a (string_of_values vs))
 
 let float_assoc = fun (a:string) vs ->
@@ -647,7 +647,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
             (field_name, value) :: loop (index+n) fs in
       (id, sender_id, loop offset_fields message.fields)
     with
-        Invalid_argument("index out of bounds") ->
+        Invalid_argument _ ->
           failwith (sprintf "PprzLink.values_of_payload, wrong argument: %s" (DebugPL.xprint buffer))
 
 
@@ -701,7 +701,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
               let values = List.map2 (fun (field_name, field) v -> (field_name, value field._type v)) msg.fields args in
               (msg_id, values)
             with
-                Invalid_argument "List.map2" -> failwith (sprintf "PprzLink.values_of_string: incorrect number of fields in '%s'" s)
+                Invalid_argument _ -> failwith (sprintf "PprzLink.values_of_string: incorrect number of fields in '%s'" s)
           end
       | [] -> invalid_arg (sprintf "PprzLink.values_of_string: %s" s)
 
