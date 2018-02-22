@@ -59,7 +59,7 @@ class IvyMessagesInterface(object):
     def unsubscribe_all(self):
         for b in self.bindings.keys():
             IvyUnBindMsg(b)
-            del self.bindings[b]
+        self.bindings = {}
 
     def shutdown(self):
         try:
