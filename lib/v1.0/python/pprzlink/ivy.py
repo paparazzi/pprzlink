@@ -95,7 +95,7 @@ class IvyMessagesInterface(object):
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg
         else:
-            regex = '^([^ ]* +%s(.*|$))'%(regex_or_msg.name)
+            regex = '^([^ ]* +%s( .*|$))'%(regex_or_msg.name)
 
         bind_id = IvyBindMsg(lambda agent, *larg: self.parse_pprz_msg(callback, larg[0]), regex)
         self.bindings[bind_id] = (callback, regex)
