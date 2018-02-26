@@ -5,7 +5,7 @@ Paparazzi transport encoding utilities
 
 from __future__ import absolute_import, division, print_function
 import struct
-from .message import PprzMessage
+from pprzlink.message import PprzMessage
 
 # use Enum from python 3.4 if available (https://www.python.org/dev/peps/pep-0435/)
 # (backports as enum34 on pypi)

@@ -8,8 +8,8 @@ import sys
 import re
 import platform
 
-from .message import PprzMessage
-from . import messages_xml_map
+from pprzlink.message import PprzMessage
+from pprzlink import messages_xml_map
 
 
 if os.getenv('IVY_BUS') is not None:

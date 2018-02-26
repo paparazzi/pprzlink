@@ -7,8 +7,8 @@ import threading
 import socket
 
 # load pprzlink messages and transport
-from .message import PprzMessage
-from .pprz_transport import PprzTransport
+from pprzlink.message import PprzMessage
+from pprzlink.pprz_transport import PprzTransport
 
 # default port
 UPLINK_PORT = 4243

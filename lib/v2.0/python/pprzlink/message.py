@@ -8,7 +8,7 @@ import sys
 import json
 import struct
 import re
-import messages_xml_map
+from pprzlink import messages_xml_map
 
 
 class PprzMessageError(Exception):
