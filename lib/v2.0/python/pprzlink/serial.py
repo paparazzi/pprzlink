@@ -56,7 +56,7 @@ class SerialMessagesInterface(threading.Thread):
                         if self.verbose:
                             print("New incoming message '%s' from %i (%i) to %i" % (msg.name, sender_id, component_id, receiver_id))
                         # Callback function on new message
-                        if self.id == receiver_id
+                        if self.id == receiver_id:
                             self.callback(sender_id, msg)
 
         except StopIteration:
