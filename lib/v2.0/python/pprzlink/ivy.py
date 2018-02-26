@@ -186,7 +186,7 @@ class IvyMessagesInterface(object):
         Send a message
 
         :param msg: PprzMessage or simple string
-        :param ac_id: Needed if sending a PprzMessage of telemetry msg_class
+        :param sender_id: Needed if sending a PprzMessage of telemetry msg_class, otherwise message class might be used instead
         :returns: Number of clients the message sent to, None if msg was invalid
         """
         if not self._running:
@@ -200,6 +200,9 @@ class IvyMessagesInterface(object):
                 else:
                     return IvySendMsg("%d %s %s" % (sender_id, msg.name, msg.payload_to_ivy_string()))
             else:
-                return IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
+                if sender_id is None:
+                    return IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
+                else:
+                    return IvySendMsg("%s %s %s" % (str(sender_id), msg.name, msg.payload_to_ivy_string()))
         else:
             return IvySendMsg(msg)
