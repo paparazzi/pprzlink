@@ -329,7 +329,7 @@
       <field name="u_ins" type="float" unit="m/s">INS velocity along body +x axis</field>
       <field name="v_ins" type="float" unit="m/s">INS velocity along body +y axis</field>
     </message>
-    
+
     <message name="RSSI_COMBINED" id="39">
       <field name="remote_rssi" type="uint8"/>
       <field name="tx_power" type="uint8"/>
@@ -1769,6 +1769,7 @@
       <field name="ap_mode"      type="uint8" values="KILL|FAILSAFE|HOME|RATE_DIRECT|ATTITUDE_DIRECT|RATE_RC_CLIMB|ATTITUDE_RC_CLIMB|ATTITUDE_CLIMB|RATE_Z_HOLD|ATTITUDE_Z_HOLD|HOVER_DIRECT|HOVER_CLIMB|HOVER_Z_HOLD|NAV|RC_DIRECT|CARE_FREE|FORWARD|MODULE|FLIP|GUIDED"/>
       <field name="ap_in_flight" type="uint8" values="ON_GROUND|IN_FLIGHT"/>
       <field name="ap_motors_on" type="uint8" values="MOTORS_OFF|MOTORS_ON"/>
+      <field name="arming_status" type="uint8" values="NO_RC|WAITING|ARMING|ARMED|DISARMING|KILLED|YAW_CENTERED|THROTTLE_DOWN|NOT_MODE_MANUAL|UNARMED_IN_AUTO|THROTTLE_NOT_DOWN|STICKS_NOT_CENTERED|PITCH_NOT_CENTERED|ROLL_NOT_CENTERED|YAW_NOT_CENTERED|AHRS_NOT_ALLIGNED|OUT_OF_GEOFENCE|LOW_BATTERY"/>
       <field name="ap_h_mode"    type="uint8" values="KILL|RATE|ATTITUDE|HOVER|NAV|RC_DIRECT|CF|FORWARD|MODULE|FLIP|GUIDED"/>
       <field name="ap_v_mode"    type="uint8" values="KILL|RC_DIRECT|RC_CLIMB|CLIMB|HOVER|NAV|MODULE|FLIP|GUIDED"/>
       <field name="vsupply"      type="uint16" unit="decivolt"/>
@@ -2902,8 +2903,8 @@
 
   <msg_class name="intermcu" id="5">
 
-	<!-- KEEP INTERMCU MESSAGES BELOW 8 BYTES PER MESSAGES
-		 TO ALLOW TRANSFER OVER CAN BUS -->
+  <!-- KEEP INTERMCU MESSAGES BELOW 8 BYTES PER MESSAGES
+     TO ALLOW TRANSFER OVER CAN BUS -->
 
     <message name="IMCU_COMMANDS" id="1">
       <field name="status" type="uint8"/>
@@ -2962,8 +2963,8 @@
       <field name="numsv"   type="uint8"/>
       <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
     </message>
-    
-    
+
+
     <message name="STEREOCAM_ARRAY" id="80">
       <description>Raw data fromt the stereocamera. Type defines what kind of data it is. This can be raw image, disparity map, obstacle histogram, ect.</description>
       <field name="type" type="uint8" values="DIST_MATRIX|HISTOGRAM|DISPARITY_MAP|RAW"/>
@@ -2972,7 +2973,7 @@
       <field name="package_nb" type="uint8">If the data being sent is too large for one message (e.g when sending a full image) this will indicate which package of the total data is contained in this message</field>
       <field name="image_data" type="uint8[]"/>
     </message>
-    
+
     <message name="STEREOCAM_VELOCITY" id="81">
       <description>Velocity measured using optical flow and stereovision. All parameters are in the camera frame</description>
       <field name="resolution" type="uint8">Resolution of the vel and pos messages</field>
@@ -2988,7 +2989,7 @@
       <field name="posRMS"     type="uint8">RMS of the position</field>
       <field name="avg_dist"   type="uint16">Average distance to scene</field>
     </message>
-    
+
     <message name="STEREOCAM_STATE" id="82">
       <description>Estimated state of the camera. As the stereocamera has no inertial sensors, this data should be sent to the stereocamera to enable onboard derotation of the optical flow</description>
       <field name="phi" 	type="float" unit="rad">Pitch, roll and yaw angles of the camera</field>
@@ -2996,7 +2997,7 @@
       <field name="psi"     type="float" unit="rad"/>
       <field name="agl"     type="float" unit="m">Altitude above the ground. If not looking down, set to 0</field>
     </message>
-    
+
     <message name="STEREOCAM_FOLLOW_ME" id="83">
       <field name="headingToFollow" 	type="uint8"/>
       <field name="heightObject"   		type="uint8"/>
@@ -3022,5 +3023,5 @@
     </message>
 
   </msg_class>
-  
+
 </protocol>
