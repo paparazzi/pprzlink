@@ -20,6 +20,7 @@ PPRZLINK libraries are available for the following programming languages:
 - [C](lib/v1.0/C)
 - [ocaml](lib/v1.0/ocaml)
 - [python](lib/v1.0/python)
+- [Rust](https://github.com/paparazzi/pprzlink-rust)
 
 ## Messages
 
