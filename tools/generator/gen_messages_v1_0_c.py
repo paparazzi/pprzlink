@@ -42,6 +42,10 @@ extern "C" {
 #include "pprzlink/pprzlink_transport.h"
 #include "pprzlink/pprzlink_utils.h"
 
+#ifndef PPRZLINK_DEFAULT_VER
+#define PPRZLINK_DEFAULT_VER 1
+#endif
+
 #ifndef PPRZLINK_ENABLE_FD
 #define PPRZLINK_ENABLE_FD FALSE
 #endif
