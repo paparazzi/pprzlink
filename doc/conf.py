@@ -58,9 +58,15 @@ author = u'Paparazzi UAV Team'
 
 # "cv1": "_xml/c/v1.0",
 breathe_projects = { 	
-						"cv2": "_xml/c/v2.0",
- }
+    "cv2": "_xml/c/v2.0",
+}
 breathe_default_project = "cv2"
+
+import subprocess
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+    subprocess.call('doxygen C_lib_v2.0.doxyconf', shell=True)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
