@@ -4,7 +4,7 @@ Messages
 
 Messages are defined in the `messages.xml`_ file and are grouped into the following message classes:
 
-.. _`messages.xml`: https://github.com/paparazzi/pprzlink/blob/master/message_definitions/v1.0/messages.xml
+.. _`messages.xml`: https://github.com/enacuavlab/pprzlink/blob/sphinx_doc/message_definitions/v1.0/messages.xml
 
     * telemetry
     * datalink

@@ -90,10 +90,9 @@ class IvyMessagesInterface(object):
     def subscribe(self, callback, regex_or_msg='(.*)'):
         """
         Subscribe to Ivy message matching regex and call callback with ac_id and PprzMessage
-        TODO: possibility to directly specify PprzMessage instead of regex
 
         :param callback: function called on new message with ac_id and PprzMessage as params
-        :param regex: regular expression for matching message
+        :param regex_or_msg: regular expression for matching message or a PprzMessage object to subscribe to
         """
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg

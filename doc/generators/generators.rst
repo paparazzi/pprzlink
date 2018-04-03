@@ -4,5 +4,9 @@ Generating code
 
 Generating code standard documentation
 
-TBD
+.. toctree::
+   :maxdepth: 2
+   :glob:
+	
+   self
 
