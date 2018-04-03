@@ -26,7 +26,7 @@ sys.path.append( "/usr/lib/python2.7/dist-packages/breathe" )
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 if read_the_docs_build:
     import subprocess
-    subprocess.call('mkdir -p _xml/c/v2.0', shell=True
+    subprocess.call('mkdir -p _xml/c/v2.0', shell=True)
     subprocess.call('doxygen C_lib_v2.0.doxyconf', shell=True)
 
 # -- General configuration ------------------------------------------------
