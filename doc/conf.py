@@ -21,6 +21,14 @@ import os
 sys.path.insert(0, os.path.abspath('../lib/v2.0/python'))
 sys.path.append( "/usr/lib/python2.7/dist-packages/breathe" )
 
+# hack for readthedocs to cause it to run doxygen first
+# https://github.com/rtfd/readthedocs.org/issues/388
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+    import subprocess
+    subprocess.call('mkdir -p _xml/c/v2.0', shell=True
+    subprocess.call('doxygen C_lib_v2.0.doxyconf', shell=True)
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -61,12 +69,6 @@ breathe_projects = {
     "cv2": "_xml/c/v2.0",
 }
 breathe_default_project = "cv2"
-
-import subprocess
-
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-if read_the_docs_build:
-    subprocess.call('doxygen C_lib_v2.0.doxyconf', shell=True)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
