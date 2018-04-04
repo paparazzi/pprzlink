@@ -96,14 +96,14 @@ typedef union __attribute__((packed)) {
 #endif
 
 // In this case, data is not aligned but we are still able to read them
-#define _PPRZ_VAL_int16_t_array(_payload, _offset) ((int16_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint16_t_array(_payload, _offset) ((uint16_t*)(_payload+_offset))
-#define _PPRZ_VAL_int32_t_array(_payload, _offset) ((int32_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint32_t_array(_payload, _offset) ((uint32_t*)(_payload+_offset))
-#define _PPRZ_VAL_int64_t_array(_payload, _offset) ((int64_t*)(_payload+_offset))
-#define _PPRZ_VAL_uint64_t_array(_payload, _offset) ((uint64_t*)(_payload+_offset))
-#define _PPRZ_VAL_float_array(_payload, _offset) ((float*)(_payload+_offset))
-#define _PPRZ_VAL_double_array(_payload, _offset) ((double*)(_payload+_offset))
+#define _PPRZ_VAL_int16_t_array(_payload, _offset) (&_PPRZ_VAL_int16_t(_payload, _offset))
+#define _PPRZ_VAL_uint16_t_array(_payload, _offset) (&_PPRZ_VAL_uint16_t(_payload, _offset))
+#define _PPRZ_VAL_int32_t_array(_payload, _offset) (&_PPRZ_VAL_int32_t(_payload, _offset))
+#define _PPRZ_VAL_uint32_t_array(_payload, _offset) (&_PPRZ_VAL_uint32_t(_payload, _offset))
+#define _PPRZ_VAL_int64_t_array(_payload, _offset) (&_PPRZ_VAL_int64_t(_payload, _offset))
+#define _PPRZ_VAL_uint64_t_array(_payload, _offset) (&_PPRZ_VAL_uint64_t(_payload, _offset))
+#define _PPRZ_VAL_float_array(_payload, _offset) (&_PPRZ_VAL_float(_payload, _offset))
+#define _PPRZ_VAL_double_array(_payload, _offset) (&_PPRZ_VAL_double(_payload, _offset))
 #define _PPRZ_VAL_len_aligned(_payload, _offset) _PPRZ_VAL_uint8_t(_payload, _offset)
 #define _PPRZ_VAL_fixed_len_aligned(_len) (_len)
 
