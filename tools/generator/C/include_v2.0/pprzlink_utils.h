@@ -76,14 +76,6 @@ typedef union __attribute__((packed)) {
   uint64_t  uint64;
   float     f32;
   double    f64;
-  int16_t*  int16_p;
-  uint16_t* uint16_p;
-  int32_t*  int32_p;
-  uint32_t* uint32_p;
-  int64_t*  int64_p;
-  uint64_t* uint64_p;
-  float*    f32_p;
-  double*   f64_p;
 } unaligned_t;
 
 #define _PPRZ_VAL_int16_t(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int16)
@@ -104,14 +96,14 @@ typedef union __attribute__((packed)) {
 #endif
 
 // In this case, data is not aligned but we are still able to read them
-#define _PPRZ_VAL_int16_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int16_p)
-#define _PPRZ_VAL_uint16_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint16_p)
-#define _PPRZ_VAL_int32_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int32_p)
-#define _PPRZ_VAL_uint32_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint32_p)
-#define _PPRZ_VAL_int64_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->int64_p)
-#define _PPRZ_VAL_uint64_t_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->uint64_p)
-#define _PPRZ_VAL_float_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->f32_p)
-#define _PPRZ_VAL_double_array(_payload, _offset) (((unaligned_t*)(_payload+_offset))->f64_p)
+#define _PPRZ_VAL_int16_t_array(_payload, _offset) (&_PPRZ_VAL_int16_t(_payload, _offset))
+#define _PPRZ_VAL_uint16_t_array(_payload, _offset) (&_PPRZ_VAL_uint16_t(_payload, _offset))
+#define _PPRZ_VAL_int32_t_array(_payload, _offset) (&_PPRZ_VAL_int32_t(_payload, _offset))
+#define _PPRZ_VAL_uint32_t_array(_payload, _offset) (&_PPRZ_VAL_uint32_t(_payload, _offset))
+#define _PPRZ_VAL_int64_t_array(_payload, _offset) (&_PPRZ_VAL_int64_t(_payload, _offset))
+#define _PPRZ_VAL_uint64_t_array(_payload, _offset) (&_PPRZ_VAL_uint64_t(_payload, _offset))
+#define _PPRZ_VAL_float_array(_payload, _offset) (&_PPRZ_VAL_float(_payload, _offset))
+#define _PPRZ_VAL_double_array(_payload, _offset) (&_PPRZ_VAL_double(_payload, _offset))
 #define _PPRZ_VAL_len_aligned(_payload, _offset) _PPRZ_VAL_uint8_t(_payload, _offset)
 #define _PPRZ_VAL_fixed_len_aligned(_len) (_len)
 
