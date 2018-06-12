@@ -1769,7 +1769,18 @@
       <field name="image_data" type="uint8[]"/>
     </message>
 
-    <!-- 230 is free -->
+    <message name="ROVER_STATUS" id="230">
+      <description>
+        Rover status message
+      </description>
+      <field name="rc_status"    type="uint8" values="OK|LOST|REALLY_LOST"/>
+      <field name="frame_rate"   type="uint8" unit="Hz"/>
+      <field name="gps_status"   type="uint8" values="NO_FIX|NA|2D|3D|DGPS|RTK"/>
+      <field name="ap_mode"      type="uint8">Rover AP modes are generated from XML file</field>
+      <field name="ap_motors_on" type="uint8" values="MOTORS_OFF|MOTORS_ON"/>
+      <field name="vsupply"      type="uint16" unit="decivolt"/>
+      <field name="cpu_time"     type="uint16" unit="s"/>
+    </message>
 
     <message name="ROTORCRAFT_STATUS" id="231">
       <field name="link_imu_nb_err" type="uint32"/>
