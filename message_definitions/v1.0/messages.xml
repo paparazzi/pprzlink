@@ -3016,12 +3016,12 @@
     </message>
 
     <message name="IMCU_DATALINK" id="113">
-     <description>Forward FBW datalink to AP</description>
+      <description>Forward FBW datalink to AP</description>
       <field name="msg" type="uint8[]"/>
     </message>
 
     <message name="IMCU_TELEMETRY" id="114">
-      <field name="msg_id" type="uint8"/>
+      <description>Forward AP telemetry to FBW</description>
       <field name="msg" type="uint8[]"/>
     </message>
 
