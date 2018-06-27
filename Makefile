@@ -25,7 +25,7 @@ Q=@
 MAKE = make
 
 PPRZLINK_MSG_VERSION ?= 1.0
-PPRZLINK_LIB_VERSION ?= 1.0
+PPRZLINK_LIB_VERSION ?= 2.0
 
 # by default make a local install in current directory
 # PREFIX should be an absolute path
