@@ -449,7 +449,18 @@
       <field name="scaled" type="float"/>
     </message>
 
-    <!-- 58 is free -->
+    <message name="VISION_OUTBACK" id="58">
+      <field name="status" type="uint8"/>
+      <field name="het_moment" type="uint8"/>
+      <field name="timeoutcount" type="uint8"/>
+      <field name="vision_timeout" type="uint8"/>
+      <field name="height" type="float"/>
+      <field name="out_of_range" type="float"/>
+      <field name="marker_enu_x" type="float"/>
+      <field name="marker_enu_y" type="float"/>
+      <field name="flow_x" type="float"/>
+      <field name="flow_y" type="float"/>
+    </message>
 
     <message name="GPS_LLA" id="59">
       <field name="lat"        type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
