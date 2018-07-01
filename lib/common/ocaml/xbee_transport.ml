@@ -169,8 +169,11 @@ let at_set_baud_rate = fun baud ->
       Not_found -> invalid_arg "at_set_baud_rate"
 
 let at_set_channel = fun ch ->
-  assert (ch >= 0x0C && ch <= 0x17);
-  Printf.sprintf "ATCH%X\r" ch
+  match ch with
+       0 -> ""
+    |  c ->
+        assert (ch >= 0x0C && ch <= 0x17);
+        Printf.sprintf "ATCH%X\r" c
 
 let at_exit = "ATCN\r"
 let at_api_enable = "ATAP1\r"
