@@ -40,6 +40,7 @@
 #define AT_COMMAND_SEQUENCE "+++"
 #define AT_SET_MY "ATMY"
 #define AT_AP_MODE "ATAP1\r"
+#define AT_CH "ATCH"
 #define AT_EXIT "ATCN\r"
 
 /** XBEE 2.4 specific parameters */
@@ -203,7 +204,7 @@ static bool xbee_try_to_enter_api(struct link_device *dev, void (*wait)(uint32_t
 }
 
 // Init function
-void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, uint32_t baudrate, void (*wait)(uint32_t), char *xbee_init)
+void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, uint32_t baudrate, uint8_t channel, void (*wait)(uint32_t), char *xbee_init)
 {
   t->status = XBEE_UNINIT;
   t->type = type;
@@ -273,6 +274,13 @@ void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint
     print_string(dev, 0, "\r");
 
     print_string(dev, 0, AT_AP_MODE);
+    
+    /** Set channel if given*/
+    if(channel != 0) {
+      print_string(dev, 0, AT_CH);
+      print_hex(dev, 0, channel);
+      print_string(dev, 0, "\r");
+    }
 
     // Extra configuration AT commands
     if (xbee_init != NULL) {
