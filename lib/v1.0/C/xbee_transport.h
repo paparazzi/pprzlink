@@ -61,7 +61,7 @@ struct xbee_transport {
 
 /** Initialisation in API mode and setting of the local address
  * FIXME: busy wait */
-extern void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, uint32_t baudrate, void (*wait)(uint32_t), char *xbee_init);
+extern void xbee_transport_init(struct xbee_transport *t, struct link_device *dev, uint16_t addr, enum XBeeType type, uint32_t baudrate, uint8_t channel, void (*wait)(uint32_t), char *xbee_init);
 
 
 extern void xbee_check_and_parse(struct link_device *dev, struct xbee_transport *trans, uint8_t *buf, bool *msg_available);
