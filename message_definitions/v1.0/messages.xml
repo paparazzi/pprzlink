@@ -1368,6 +1368,12 @@
       <field name="zdd"            type="float"/>
       <field name="bias"           type="float"/>
       <field name="offset"         type="float"/>
+      <field name="obs_height"     type="float"/>
+      <field name="Pzz"            type="float"/>
+      <field name="Pzdzd"          type="float"/>
+      <field name="Pbb"            type="float"/>
+      <field name="Poffsetoffset"  type="float"/>
+      <field name="Pobsobs"        type="float"/>
     </message>
 
     <message name="VFF" id="162">
