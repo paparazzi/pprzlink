@@ -167,6 +167,14 @@ let rec value = fun t v ->
         Array (Array.map (value (Scalar t')) (Array.of_list (split_array v)))
     | Scalar t -> failwith (sprintf "PprzLink.value: Unexpected type: %s" t)
 
+let rec string_type_of_value = function
+    Int _ -> "Int"
+  | Float _ -> "Float"
+  | Int32 _ -> "Int32"
+  | Int64 _ -> "Int64"
+  | Char _ -> "Char"
+  | String _ -> "String"
+  | Array _ -> "Array"
 
 let rec string_of_value = function
     Int x -> string_of_int x
@@ -498,14 +506,25 @@ let rec sprint_value = fun buf i _type v ->
         done;
         1 + n * s
     | FixedArrayType (t,l), Array values ->
-        (** Put the size first, then the values *)
-        let n = Array.length values in
+        (** Don't put size, only the values *)
+        let n = min (Array.length values) l in
         let type_of_elt = Scalar t in
         let s = sizeof type_of_elt in
         for j = 0 to n - 1 do
           ignore (sprint_value buf (i+0+j*s) type_of_elt values.(j))
         done;
-        0 + n * s
+        (* add padding 0 at the end if needed *)
+        if l > n then
+          for j = n*s to l*s-1 do
+            CompatPL.bytes_set buf (i+j) (Char.chr 0)
+        done;
+        0 + l * s
+    | ArrayType "char", String value ->
+        sprint_value buf i (ArrayType "char")
+          (Array (Array.init (String.length value) (fun i -> Char (String.get value i))))
+    | FixedArrayType ("char",l), String value ->
+        sprint_value buf i (FixedArrayType ("char",l))
+          (Array (Array.init (String.length value) (fun i -> Char (String.get value i))))
     | Scalar "string", String s ->
       let n = CompatPL.bytes_length s in
       assert (n < 256);
@@ -517,8 +536,8 @@ let rec sprint_value = fun buf i _type v ->
       1 + n
     | Scalar "char", Char c ->
         CompatPL.bytes_set buf i c; sizeof _type
-    | (Scalar x|ArrayType x), _ -> failwith (sprintf "PprzLink.sprint_value (%s)" x)
-    | FixedArrayType (x,l), _ -> failwith (sprintf "PprzLink.sprint_value (%s)" x)
+    | (Scalar x|ArrayType x), v -> failwith (sprintf "PprzLink.sprint_value (%s):%s,%s" x (string_of_value v) (string_type_of_value v))
+    | FixedArrayType (x,l), v -> failwith (sprintf "PprzLink.sprint_value (%s[%d]:%s,%s)" x l (string_of_value v) (string_type_of_value v))
 
 
 

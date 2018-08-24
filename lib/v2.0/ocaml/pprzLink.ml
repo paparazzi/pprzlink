@@ -170,6 +170,14 @@ let rec value = fun t v ->
         Array (Array.map (value (Scalar t')) (Array.of_list (split_array v)))
     | Scalar t -> failwith (sprintf "PprzLink.value: Unexpected type: %s" t)
 
+let rec string_type_of_value = function
+    Int _ -> "Int"
+  | Float _ -> "Float"
+  | Int32 _ -> "Int32"
+  | Int64 _ -> "Int64"
+  | Char _ -> "Char"
+  | String _ -> "String"
+  | Array _ -> "Array"
 
 let rec string_of_value = function
     Int x -> string_of_int x
@@ -460,21 +468,21 @@ let rec sprint_value = fun buf i _type v ->
           failwith (sprintf "Value too large to fit in a uint8: %d" x);
         CompatPL.bytes_set buf i (Char.chr x); sizeof _type
     | Scalar "int8", Int x ->
-      if x < -0x7f || x > 0x7f then
-        failwith (sprintf "Value too large to fit in a int8: %d" x);
-      sprint_int8 buf i x; sizeof _type
+        if x < -0x7f || x > 0x7f then
+          failwith (sprintf "Value too large to fit in a int8: %d" x);
+          sprint_int8 buf i x; sizeof _type
     | Scalar "float", Float f -> sprint_float buf i f; sizeof _type
     | Scalar "double", Float f -> sprint_double buf i f; sizeof _type
     | Scalar "int32", Int32 x -> sprint_int32 buf i x; sizeof _type
     | Scalar ("int64"|"uint64"|"uint32"), Int64 x -> sprint_int64 buf i x; sizeof _type
     | Scalar "int16", Int x -> sprint_int16 buf i x; sizeof _type
     | Scalar ("int32" | "uint32"), Int value ->
-      assert (_type <> Scalar "uint32" || value >= 0);
-      CompatPL.bytes_set buf (i+3) (byte (value asr 24));
-      CompatPL.bytes_set buf (i+2) (byte (value lsr 16));
-      CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
-      CompatPL.bytes_set buf (i+0) (byte value);
-      sizeof _type
+        assert (_type <> Scalar "uint32" || value >= 0);
+        CompatPL.bytes_set buf (i+3) (byte (value asr 24));
+        CompatPL.bytes_set buf (i+2) (byte (value lsr 16));
+        CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
+        CompatPL.bytes_set buf (i+0) (byte value);
+        sizeof _type
     | Scalar ("int64" | "uint64"), Int value ->
         assert (_type <> Scalar "uint64" || value >= 0);
         CompatPL.bytes_set buf (i+7) (byte (value asr 56));
@@ -487,42 +495,53 @@ let rec sprint_value = fun buf i _type v ->
         CompatPL.bytes_set buf (i+0) (byte value);
         sizeof _type
     | Scalar "uint16", Int value ->
-      assert (value >= 0);
-      CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
-      CompatPL.bytes_set buf (i+0) (byte value);
-      sizeof _type
+        assert (value >= 0);
+        CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
+        CompatPL.bytes_set buf (i+0) (byte value);
+        sizeof _type
     | ArrayType t, Array values ->
-      (** Put the size first, then the values *)
-      let n = Array.length values in
-      ignore (sprint_value buf i (Scalar "uint8") (Int n));
-      let type_of_elt = Scalar t in
-      let s = sizeof type_of_elt in
-      for j = 0 to n - 1 do
-        ignore (sprint_value buf (i+1+j*s) type_of_elt values.(j))
+        (** Put the size first, then the values *)
+        let n = Array.length values in
+        ignore (sprint_value buf i (Scalar "uint8") (Int n));
+        let type_of_elt = Scalar t in
+        let s = sizeof type_of_elt in
+        for j = 0 to n - 1 do
+          ignore (sprint_value buf (i+1+j*s) type_of_elt values.(j))
         done;
         1 + n * s
     | FixedArrayType (t,l), Array values ->
-        (** Put the size first, then the values *)
-        let n = Array.length values in
+        (** Don't put size, only the values *)
+        let n = min (Array.length values) l in
         let type_of_elt = Scalar t in
         let s = sizeof type_of_elt in
         for j = 0 to n - 1 do
           ignore (sprint_value buf (i+0+j*s) type_of_elt values.(j))
         done;
-        0 + n * s
+        (* add padding 0 at the end if needed *)
+        if l > n then
+          for j = n*s to l*s-1 do
+            CompatPL.bytes_set buf (i+j) (Char.chr 0)
+        done;
+        0 + l * s
+    | ArrayType "char", String value ->
+        sprint_value buf i (ArrayType "char")
+          (Array (Array.init (String.length value) (fun i -> Char (String.get value i))))
+    | FixedArrayType ("char",l), String value ->
+        sprint_value buf i (FixedArrayType ("char",l))
+          (Array (Array.init (String.length value) (fun i -> Char (String.get value i))))
     | Scalar "string", String s ->
-      let n = CompatPL.bytes_length s in
-      assert (n < 256);
-      (** Put the length first, then the bytes *)
-      CompatPL.bytes_set buf i (Char.chr n);
-      if (i + n >= CompatPL.bytes_length buf) then
-        failwith "Error in sprint_value: message too long";
-      CompatPL.bytes_blit s 0 buf (i+1) n;
-      1 + n
+        let n = CompatPL.bytes_length s in
+        assert (n < 256);
+        (** Put the length first, then the bytes *)
+        CompatPL.bytes_set buf i (Char.chr n);
+        if (i + n >= CompatPL.bytes_length buf) then
+          failwith "Error in sprint_value: message too long";
+          CompatPL.bytes_blit s 0 buf (i+1) n;
+          1 + n
     | Scalar "char", Char c ->
         CompatPL.bytes_set buf i c; sizeof _type
-    | (Scalar x|ArrayType x), _ -> failwith (sprintf "PprzLink.sprint_value (%s)" x)
-    | FixedArrayType (x,l), _ -> failwith (sprintf "PprzLink.sprint_value (%s)" x)
+    | (Scalar x|ArrayType x), v -> failwith (sprintf "PprzLink.sprint_value (%s):%s,%s" x (string_of_value v) (string_type_of_value v))
+    | FixedArrayType (x,l), v -> failwith (sprintf "PprzLink.sprint_value (%s[%d]:%s,%s)" x l (string_of_value v) (string_type_of_value v))
 
 
 

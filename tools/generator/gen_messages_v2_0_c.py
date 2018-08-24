@@ -246,7 +246,7 @@ def generate(output, xml):
                                             % (f.field_name,m.msg_name, f.field_name, f.description, m.msg_name, f.field_name ,int(f.array_length))
                 f.read_array_byte = '#define DL_%s_%s_length(_payload) pprzlink_get_%s_%s_length(_payload)\n' % (m.msg_name, f.field_name, m.msg_name, f.field_name)
                 f.offset = offset
-                offset += int(f.length)
+                offset += int(eval(f.length))
                 f.dl_format = 'DL_FORMAT_ARRAY'
             else:
                 f.offset = offset
