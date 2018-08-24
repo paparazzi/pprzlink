@@ -2282,28 +2282,17 @@
       <field name="index" type="uint8"/>
     </message>
 
-    <message name="MISSION_SURVEY" id="28" link="forwarded">
-      <field name="ac_id" type="uint8"/>
-      <field name="insert" type="uint8" values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL"/>
-      <field name="survey_east_1" type="float" unit="m"/>
-      <field name="survey_north_1" type="float" unit="m"/>
-      <field name="survey_east_2" type="float" unit="m"/>
-      <field name="survey_north_2" type="float" unit="m"/>
-      <field name="survey_alt" type="float" unit="m">altitude above geoid (MSL)</field>
-      <field name="duration" type="float" unit="s"/>
-      <field name="index" type="uint8"/>
-    </message>
-
-    <message name="MISSION_SURVEY_LLA" id="29" link="forwarded">
-      <field name="ac_id" type="uint8"/>
-      <field name="insert" type="uint8" values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL"/>
-      <field name="survey_lat_1" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="survey_lon_1" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="survey_lat_2" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="survey_lon_2" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="survey_alt" type="int32" unit="mm" alt_unit="m">altitude above geoid (MSL)</field>
-      <field name="duration" type="float" unit="s"/>
-      <field name="index" type="uint8"/>
+    <message name="MISSION_CUSTOM" id="28" link="forwarded">
+      <description>
+        Custom navigation pattern or action for mission controller.
+        This will add the mission element correspond to the string identifier 'type' if it has been registered.
+      </description>
+      <field name="ac_id" type="uint8">Aircraft ID</field>
+      <field name="insert" type="uint8" values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL|REPLACE_NEXT">Insertion mode</field>
+      <field name="index" type="uint8">Mission element index, should be unique</field>
+      <field name="type" type="char[5]">String identifier of the custom pattern</field>
+      <field name="duration" type="float" unit="s">Duration of the element or -1 for unlimited</field>
+      <field name="params" type="float[]">List of parameters, 12 max</field>
     </message>
 
     <message name="GOTO_MISSION" id="30" link="forwarded">
