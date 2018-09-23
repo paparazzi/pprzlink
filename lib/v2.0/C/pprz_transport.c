@@ -162,13 +162,13 @@ void parse_pprz(struct pprz_transport *t, uint8_t c)
       break;
     case GOT_PAYLOAD:
       if (c != t->ck_a_rx) {
-        goto error;
+        goto crc_error;
       }
       t->status++;
       break;
     case GOT_CRC1:
       if (c != t->ck_b_rx) {
-        goto error;
+        goto crc_error;
       }
       t->trans_rx.msg_received = true;
       goto restart;
@@ -176,6 +176,33 @@ void parse_pprz(struct pprz_transport *t, uint8_t c)
       goto error;
   }
   return;
+crc_error:
+{
+  // Save the info we have
+  uint8_t parsed_bytes[TRANSPORT_PAYLOAD_LEN];
+  uint16_t parsed_cnt = t->payload_idx;
+  uint8_t ck_a = t->ck_a_rx;
+  uint8_t status = t->status;
+
+  for(uint8_t i = 0; i < t->payload_idx; i++)
+    parsed_bytes[i+1] = t->trans_rx.payload[i];
+  
+  // Parse again
+  t->trans_rx.error++;
+  t->status = UNINIT;
+  parse_pprz(t, t->trans_rx.payload_len+4);
+  for(uint8_t i = 0; i < parsed_cnt; i++)
+    parse_pprz(t, parsed_bytes[i]);
+
+  if(status == GOT_PAYLOAD)
+    parse_pprz(t, c);
+  else {
+    parse_pprz(t, ck_a);
+    parse_pprz(t, c);
+  }
+
+  return;
+}
 error:
   t->trans_rx.error++;
 restart:
