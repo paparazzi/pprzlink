@@ -185,7 +185,7 @@ crc_error:
   uint8_t status = t->status;
 
   for(uint8_t i = 0; i < t->payload_idx; i++)
-    parsed_bytes[i+1] = t->trans_rx.payload[i];
+    parsed_bytes[i] = t->trans_rx.payload[i];
   
   // Parse again
   t->trans_rx.error++;
