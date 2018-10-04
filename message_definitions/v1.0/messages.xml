@@ -723,12 +723,13 @@
       <field name="temp"   type="float" unit="deg_celsius" format="%.2f"/>
     </message>
 
-    <message name="ENOSE_STATUS" id="90">
-      <field name="val1" type="uint16"/>
-      <field name="val2" type="uint16"/>
-      <field name="val3" type="uint16"/>
-      <field name="PID" type="uint16"/>
-      <field name="heat" type="uint8[]"/>
+    <message name="VISION_POSITION_ESTIMATE" id="90">
+      <field name="cnt" type="uint16"/>
+      <field name="x" type="float"/>
+      <field name="y" type="float"/>
+      <field name="z" type="float"/>
+      <field name="quality" type="float"/>
+      <field name="extra" type="float"/>
     </message>
 
     <message name="DPICCO_STATUS" id="91">
@@ -1839,8 +1840,12 @@
     </message>
 
     <message name="VISUALTARGET" id="235">
-      <field name="x" type="uint16"></field>
-      <field name="y" type="uint16"></field>
+      <field name="cnt" type="uint16"></field>
+      <field name="x" type="int16"></field>
+      <field name="y" type="int16"></field>
+      <field name="w" type="int16"></field>
+      <field name="h" type="int16"></field>
+      <field name="source" type="uint16"></field>
     </message>
 
     <message name="SONAR" id="236">
