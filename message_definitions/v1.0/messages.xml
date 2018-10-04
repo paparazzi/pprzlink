@@ -724,12 +724,13 @@
     </message>
 
     <message name="VISION_POSITION_ESTIMATE" id="90">
-      <field name="cnt" type="uint16"/>
-      <field name="x" type="float"/>
-      <field name="y" type="float"/>
-      <field name="z" type="float"/>
-      <field name="quality" type="float"/>
-      <field name="extra" type="float"/>
+      <description>Generic message to send position measurement from computer vision</description>
+      <field name="cnt" type="uint16">Counter</field>
+      <field name="x" type="float">X</field>
+      <field name="y" type="float">Y</field>
+      <field name="z" type="float">Z</field>
+      <field name="quality" type="float">Detection Quality or Uncertainty</field>
+      <field name="extra" type="float">In case the default message does not suit you</field>
     </message>
 
     <message name="DPICCO_STATUS" id="91">
@@ -1840,12 +1841,13 @@
     </message>
 
     <message name="VISUALTARGET" id="235">
-      <field name="cnt" type="uint16"></field>
-      <field name="x" type="int16"></field>
-      <field name="y" type="int16"></field>
-      <field name="w" type="int16"></field>
-      <field name="h" type="int16"></field>
-      <field name="source" type="uint16"></field>
+      <description>Generic message with pixel coordinates of detected targets</description>
+      <field name="cnt" type="uint16">Counter</field>
+      <field name="x" type="int16">Center pixel X</field>
+      <field name="y" type="int16">Center pixel X</field>
+      <field name="w" type="int16">Width in pixels</field>
+      <field name="h" type="int16">height in pixels</field>
+      <field name="source" type="uint16">In case many detectors run, which one did find this target</field>
     </message>
 
     <message name="SONAR" id="236">
