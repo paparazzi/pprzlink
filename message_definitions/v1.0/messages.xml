@@ -1960,7 +1960,7 @@
       <field name="nb_threads"  type="uint8">Number of running threads</field>
       <field name="cpu_load"    type="uint8" unit="%">Global CPU load</field>
       <field name="core_free"   type="uint32" unit="Bytes">Core free memory</field>
-      <field name="heap_free"   type="uint32" unit="Bytes">Heap total fragmented free memory</field>
+      <field name="heap_free"   type="uint32" unit="Bytes">Total fragmented free memory in the heap</field>
       <field name="heap_frags"   type="uint32" unit="Fragments">Number of fragments in the heap</field>
       <field name="heap_largest"   type="uint32" unit="Bytes">Largest free block in the heap</field>
       <field name="cpu_time"  type="float" unit="s"/>
