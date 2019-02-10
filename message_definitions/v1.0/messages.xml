@@ -369,10 +369,10 @@
     </message>
 
     <message name="CHIRP" id="45">
-      <field name="chirp_active"        type="uint8">Chirp is active</field>
+      <field name="active"        type="uint8">Chirp is active</field>
       <field name="percentage_done"     type="float">Percentage done</field>
       <field name="current_frequency"   type="float">Current frequency</field>
-      <field name="chirp_axis"          type="uint8">Current chirp axis</field>
+      <field name="axis"          type="uint8">Current chirp axis</field>
       <field name="amplitude"           type="int16">Amplitude</field>
       <field name="fstart"              type="float">Start frequency</field>
       <field name="fstop"               type="float">Stop frequency</field>
