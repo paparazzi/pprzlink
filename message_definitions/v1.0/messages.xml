@@ -1441,7 +1441,23 @@
       <field name="save_cnt"    type="int16"/>
     </message>
 
-    <!-- 167 is free -->
+    <message name="INS_EKF2" id="167">
+      <description>
+        Extended Kalman Filter 2 status message which gives feedback about the input- and output states of the filter.
+      </description>
+      <field name="control_mode"          type="uint32">description of the control status (bitfields from common.h)</field>
+      <field name="filter_fault_status"   type="uint16">numerical errors in output states (bitfields from common.h)</field>
+      <field name="gps_check_status"      type="uint16">quality check of the GPS feedback (bitfields from common.h)</field>
+      <field name="soln_status"           type="uint16">which output states are valid or has an error (bitfields from common.h)</field>
+      <field name="innov_test_status"     type="uint16">which inputs exceed the innovation test</field>
+      <field name="innov_mag"             type="float"/>
+      <field name="innov_vel"             type="float"/>
+      <field name="innov_pos"             type="float"/>
+      <field name="innov_hgt"             type="float"/>
+      <field name="innov_tas"             type="float"/>
+      <field name="innov_hagl"            type="float"/>
+      <field name="innov_beta"            type="float"/>
+    </message>
 
     <message name="ROTORCRAFT_CAM" id="168">
       <field name="tilt" type="int16" unit="2^12rad" alt_unit="deg" alt_unit_coef="0.0139882"/>
