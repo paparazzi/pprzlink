@@ -2480,7 +2480,7 @@
       <field name="course"  type="float" unit="deg"/>
     </message>
 
-    <message name="GROUND_GPS" id="57" link="forwarded">
+    <message name="TARGET_POS" id="57" link="forwarded">
       <description>
         Ground station GPS position for functions like Follow Me
       </description>
