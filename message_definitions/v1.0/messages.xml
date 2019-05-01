@@ -659,7 +659,18 @@
       <field name="index_list" type="uint8[]"/>
     </message>
 
-    <!-- 80 is free -->
+    <message name="JEVOIS" id="80">
+      <description>
+        Debug message for the JeVois smart camera
+        corresponding to the standardized messages
+      </description>
+      <field name="type" type="uint8">Standardized message type JEVOIS_MSG_[T1|N1|D1|T2|N2|D2|F2|T3|N3|D3|F3]</field>
+      <field name="id" type="char[]">Text string describing the reported object</field>
+      <field name="nb" type="uint8">Number of elements in the coordinates array</field>
+      <field name="coord" type="int16[]">List of coordinates corresponding to 1D, 2D or 3D messages</field>
+      <field name="dim" type="uint16[3]">1, 2 or 3D dimension</field>
+      <field name="quat" type="float[4]">Quaternion that relates the object's frame to the camera's frame, if appropriate</field>
+    </message>
 
     <message name="GENERIC_COM" id="81">
       <field name="lat"      type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
