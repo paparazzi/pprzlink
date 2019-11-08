@@ -1,0 +1,77 @@
+@startuml
+
+package pprzlink {
+class Message {
+    name : string
+    class : int
+    id : int
+}
+
+class MessageDefinition {
+    name : string
+    class : int
+    id : int
+}
+
+enum FieldType
+
+class MessageField {
+    name : string
+    type : FieldType
+}
+
+class MessageDictionary {
+    +GetFromName(string msgName) : MessageDefinition
+    +GetFromId(int classId, int msgId) : MessageDefinition
+}
+
+class PprzLink {
+    +SendMessage(Message)
+    +BindMessage(string name, Callback)
+    +BindMessage(int classId, int msgId, Callback)
+}
+
+interface Device <SerializedMessage> {
+    +SendMessage(SerializedMessage)
+    +GetAvailableBytes () : SerializedMessage
+}
+note right
+Emission/
+réception
+end note
+
+interface Transport <SerializedMessage> {
+    +Serialise (Message) : SerializedMessage
+    +Check (SerializedMessage) : Message
+    +Decode (SerializedMessage) : Message
+}
+note right
+Encapsulation
+et serialisation
+end note
+
+package ivy {
+class IvyTransport
+class IvyDevice
+}
+
+package modems{
+class PprzTransport
+class TransparentModemDevice
+}
+
+}
+
+PprzLink o-- Transport : transport
+PprzLink o-- Device : device
+
+Device <|-- IvyDevice
+Device <|-- TransparentModemDevice
+Transport <|-- IvyTransport
+Transport <|-- PprzTransport
+
+MessageDictionary o-- MessageDefinition
+MessageDefinition o-- MessageField : fields
+MessageField --> FieldType
+
+@enduml
