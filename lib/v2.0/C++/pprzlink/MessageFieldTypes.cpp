@@ -25,7 +25,7 @@
 #include <map>
 #include <sstream>
 #include <iostream>
-#include <src/pprzlink/exceptions/pprzlink_exception.h>
+#include <pprzlink/exceptions/pprzlink_exception.h>
 #include "MessageFieldTypes.h"
 
 namespace pprzlink {

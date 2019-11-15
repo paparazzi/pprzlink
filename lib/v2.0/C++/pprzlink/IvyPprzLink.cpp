@@ -191,6 +191,8 @@ namespace pprzlink {
     for (int i = 2; i < argc; ++i)
     {
       const auto& field = def.getField(i - 2);
+      // Need deserializing string to build FieldValue
+
       // For char arrays and strings remove possible quotes
       if ((field.getType().getBaseType()==BaseType::STRING || (field.getType().getBaseType()==BaseType::CHAR && field.getType().isArray())) && argv[i][0]=='"')
       {
@@ -200,8 +202,79 @@ namespace pprzlink {
       }
       else
       {
-        // FIXME Need deserializing string to build FieldValue
-        msg.addField(field.getName(),argv[i]);
+        std::stringstream sstr(argv[i]);
+        if (field.getType().isArray())
+        {
+          switch (field.getType().getBaseType())
+          {
+            case BaseType::NOT_A_TYPE:
+              throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
+              break;
+            case BaseType::CHAR:
+              throw wrong_message_format("Wrong field format for a char[] "+std::string(argv[i]));
+              break;
+            case BaseType::INT8:
+            case BaseType::INT16:
+            case BaseType::INT32:
+            case BaseType::UINT8:
+            case BaseType::UINT16:
+            case BaseType::UINT32:
+            case BaseType::FLOAT:
+            {
+              // Parse all numbers as a double
+              std::vector<double> values;
+              while (!sstr.eof())
+              {
+                double val;
+                char c;
+                sstr >> val >> c;
+                if (c!=',')
+                {
+                  throw wrong_message_format("Wrong format for array "+std::string(argv[i]));
+                }
+                values.push_back(val);
+              }
+              msg.addField(field.getName(), values); // The value will be statically cast to the right type
+            }
+              break;
+            case BaseType::STRING:
+              msg.addField(field.getName(), argv[i]);
+              break;
+          }
+        }
+        else
+        {
+          switch (field.getType().getBaseType())
+          {
+            case BaseType::NOT_A_TYPE:
+              throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
+              break;
+            case BaseType::CHAR:
+            {
+              char val;
+              sstr >> val;
+              msg.addField(field.getName(), val);
+            }
+              break;
+            case BaseType::INT8:
+            case BaseType::INT16:
+            case BaseType::INT32:
+            case BaseType::UINT8:
+            case BaseType::UINT16:
+            case BaseType::UINT32:
+            case BaseType::FLOAT:
+            {
+              // Parse all numbers as a double
+              double val;
+              sstr >> val;
+              msg.addField(field.getName(), val); // The value will be statically cast to the right type
+            }
+              break;
+            case BaseType::STRING:
+              msg.addField(field.getName(), argv[i]);
+              break;
+          }
+        }
       }
     }
     std::string sender(argv[0]);
