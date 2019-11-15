@@ -26,7 +26,7 @@
 #define PPRZLINKCPP_MESSAGEDEFINITION_H
 
 #include <vector>
-#include "MessageField.h"
+#include <pprzlink/MessageField.h>
 #include <tinyxml2.h>
 #include <map>
 

@@ -22,9 +22,8 @@
  *
  */
 
-#include <sstream>
 #include <iostream>
-#include "Message.h"
+#include <pprzlink/Message.h>
 
 namespace pprzlink {
 
@@ -152,12 +151,12 @@ namespace pprzlink {
       }
       else
       {
-        if (found->second.getType().isArray())
+        if (found->second.getType().isArray() && found->second.getType().getBaseType()!=BaseType::CHAR)
           sstr << "{";
         auto val =found->second;
         val.setOutputInt8AsInt(true);
           sstr << val;
-        if (found->second.getType().isArray())
+        if (found->second.getType().isArray() && found->second.getType().getBaseType()!=BaseType::CHAR)
           sstr << "}";
       }
     }

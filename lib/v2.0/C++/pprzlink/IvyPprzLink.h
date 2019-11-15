@@ -27,9 +27,9 @@
 #define PPRZLINKCPP_IVYPPRZLINK_H
 
 #include <string>
-#include "MessageDictionary.h"
-#include "../ivy-c++/Ivy.h"
-#include "Message.h"
+#include <pprzlink/MessageDictionary.h>
+#include <ivy-c++/Ivy.h>
+#include <pprzlink/Message.h>
 
 namespace pprzlink {
   class MessageCallback;

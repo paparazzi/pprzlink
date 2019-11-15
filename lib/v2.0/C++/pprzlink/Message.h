@@ -27,9 +27,9 @@
 
 #include <map>
 #include <cassert>
-#include "MessageDefinition.h"
+#include <pprzlink/MessageDefinition.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
-#include "FieldValue.h"
+#include <pprzlink/FieldValue.h>
 
 namespace pprzlink {
   class Message {

@@ -22,10 +22,12 @@
  *
  */
 
-#include "MessageDictionary.h"
+#include <pprzlink/MessageDictionary.h>
 #include <tinyxml2.h>
 #include <iostream>
 #include <pprzlink/exceptions/pprzlink_exception.h>
+
+// TODO Implement the dictionnary as a singleton !
 
 namespace pprzlink {
 

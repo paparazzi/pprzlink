@@ -23,10 +23,10 @@
  */
 
 
-#include "IvyPprzLink.h"
-#include <iostream>
+#include <pprzlink/IvyPprzLink.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
 #include <ivy-c++/IvyApplication.h>
+#include <iostream>
 
 namespace pprzlink {
 
@@ -124,18 +124,25 @@ namespace pprzlink {
 
       if (def.getField(i).getType().isArray())
       {
-        if (def.getField(i).getType().getArraySize() == 0)
+        if (def.getField(i).getType().getBaseType()==BaseType::CHAR)
         {
-          // Dynamic array
-          // s => s,s,s,s => (s(?:,s)*)
-          sstr << " (" << baseRegex << "(?:," << baseRegex << ")*)";
+          sstr << " (\"[^\"]*\")";
         }
         else
         {
-          // Static array
-          // s => s,s,s => (s(?:,s){SIZE-1})
-          sstr << " (" << baseRegex << "(?:," << baseRegex << "){" << def.getField(i).getType().getArraySize() - 1
-               << "})";
+          if (def.getField(i).getType().getArraySize() == 0)
+          {
+            // Dynamic array
+            // s => s,s,s,s => (s(?:,s)*)
+            sstr << " (" << baseRegex << "(?:," << baseRegex << ")*)";
+          }
+          else
+          {
+            // Static array
+            // s => s,s,s => (s(?:,s){SIZE-1})
+            sstr << " (" << baseRegex << "(?:," << baseRegex << "){" << def.getField(i).getType().getArraySize() - 1
+                 << "})";
+          }
         }
       }
       else
@@ -184,15 +191,16 @@ namespace pprzlink {
     for (int i = 2; i < argc; ++i)
     {
       const auto& field = def.getField(i - 2);
-      if (field.getType().getBaseType()==BaseType::STRING && argv[i][0]=='"')
+      // For char arrays and strings remove possible quotes
+      if ((field.getType().getBaseType()==BaseType::STRING || (field.getType().getBaseType()==BaseType::CHAR && field.getType().isArray())) && argv[i][0]=='"')
       {
-        // Remove quotes from string
         std::string str(argv[i]);
         std::cout << str.substr(1,str.size()-2) << std::endl;
         msg.addField(field.getName(),str.substr(1,str.size()-2));
       }
       else
       {
+        // FIXME Need deserializing string to build FieldValue
         msg.addField(field.getName(),argv[i]);
       }
     }

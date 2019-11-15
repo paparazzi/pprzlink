@@ -21,8 +21,9 @@
  *
  *
  */
-#include "FieldValue.h"
+#include <pprzlink/FieldValue.h>
 
+// FIXME This should go to a SERIALISER !
 std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
 {
   const auto& type=v.getType();
@@ -38,12 +39,12 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
       {
         std::vector<char> vec;
         v.getValue(vec);
+        o << "\"";
         for (size_t i=0;i<vec.size();++i)
         {
-          if (i!=0)
-            o << ",";
           o << vec[i];
         }
+        o << "\"";
       }
         break;
       case pprzlink::BaseType::INT8:
@@ -239,6 +240,34 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
 
   return o;
 }
+namespace pprzlink {
+  const MessageField &FieldValue::getField() const
+  {
+    return field;
+  }
 
+  const FieldType &FieldValue::getType() const
+  {
+    return field.getType();
+  }
 
+  const std::string &FieldValue::getName() const
+  {
+    return field.getName();
+  }
 
+  const std::any &FieldValue::getValue() const
+  {
+    return value;
+  }
+
+  bool FieldValue::isOutputInt8AsInt() const
+  {
+    return output_int8_as_int;
+  }
+
+  void FieldValue::setOutputInt8AsInt(bool outputInt8AsInt)
+  {
+    output_int8_as_int = outputInt8AsInt;
+  }
+}

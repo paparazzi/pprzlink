@@ -27,7 +27,7 @@
 
 #include <map>
 #include <boost/bimap.hpp>
-#include "MessageDefinition.h"
+#include <pprzlink/MessageDefinition.h>
 
 namespace pprzlink {
   class MessageDictionary {

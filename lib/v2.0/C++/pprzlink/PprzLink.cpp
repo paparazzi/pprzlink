@@ -22,7 +22,7 @@
  *
  */
 
-#include "PprzLink.h"
+#include <pprzlink/PprzLink.h>
 
 namespace pprzlink {
 }

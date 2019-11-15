@@ -26,7 +26,7 @@
 #define PPRZLINKCPP_MESSAGEFIELD_H
 
 #include <string>
-#include "MessageFieldTypes.h"
+#include <pprzlink/MessageFieldTypes.h>
 
 namespace pprzlink {
 

@@ -22,7 +22,7 @@
  *
  */
 
-#include "MessageField.h"
+#include <pprzlink/MessageField.h>
 
 namespace pprzlink {
 

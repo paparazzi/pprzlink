@@ -25,7 +25,7 @@
 #include <map>
 #include <sstream>
 #include <iostream>
-#include <pprzlink/exceptions/pprzlink_exception.h>
+#include <src/pprzlink/exceptions/pprzlink_exception.h>
 #include "MessageFieldTypes.h"
 
 namespace pprzlink {
@@ -69,12 +69,6 @@ namespace pprzlink {
         std::stringstream sstr(typeString.substr(openSquareBracketPos+1,closeSquareBracketPos));
         sstr >> arraySize;
       }
-    }
-    // Treat char arrays as strings
-    if (baseType==BaseType::CHAR && arraySize==0)
-    {
-      arraySize=-1;
-      baseType=BaseType::STRING;
     }
   }
 

@@ -24,7 +24,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "MessageDefinition.h"
+#include <pprzlink/MessageDefinition.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
 
 namespace pprzlink {
