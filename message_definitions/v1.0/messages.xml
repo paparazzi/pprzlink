@@ -314,7 +314,9 @@
       <field name="temp" type="int8" unit="deg"/>
     </message>
 
-    <!-- 38 is free -->
+    <message name="CC2500" id="37">
+      <field name="raw_channels" type="uint16[]"/>
+    </message>
 
     <message name="DRAGSPEED" id="38">
       <description>
