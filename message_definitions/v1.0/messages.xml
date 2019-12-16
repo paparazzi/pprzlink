@@ -763,6 +763,7 @@
       <field name="status" type="uint8" values="STOPPED|RUNNING|ERROR">General status of the logger</field>
       <field name="errno" type="uint8">Error number, depend of the logging system, provides detailed information</field>
       <field name="used" type="uint32" unit="bytes">Accumulated number of bytes written by the logger</field>
+      <field name="filenames" type="char[]"/>
     </message>
 
     <!-- 93 is free -->
@@ -1690,6 +1691,15 @@
     </message>
 
     <!-- 211 is free -->
+    <message name="WINDTUNNEL_MEAS" id="211">
+      <field name="aoa" type="float" unit="deg"/>
+      <field name="airspeed" type="float" unit="m/s"/>
+      <field name="voltage" type="float" unit="V"/>
+      <field name="current" type="float" unit="A"/>
+      <field name="power" type="float" unit="W"/>
+      <field name="commands" type="int32[]"/>
+    </message>
+
     <!-- 212 is free -->
 
     <message name="TUNE_VERT" id="213">
