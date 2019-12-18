@@ -103,4 +103,4 @@ validate_messages:
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
 
-.PHONY: libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
+.PHONY: libpprzlink++-install libpprzlink++ libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
