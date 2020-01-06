@@ -436,7 +436,7 @@ let rec value_of_bin = fun buffer index _type ->
     | Scalar ("int64"  | "uint64") -> Int64 (int64_of_bytes buffer index), sizeof _type
     | ArrayType t ->
       (** First get the number of values *)
-      let n = int8_of_bytes buffer index in
+      let n = Char.code buffer.[index] in
       let type_of_elt = Scalar t in
       let s = sizeof type_of_elt in
       let size = 1 + n * s in
