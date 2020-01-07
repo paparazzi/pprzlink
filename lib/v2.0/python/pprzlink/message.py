@@ -181,7 +181,10 @@ class PprzMessage(object):
             if "char[" in t:
                 str_value =''
                 for c in self.fieldvalues[idx]:
-                    str_value += c
+                    if sys.version_info >= (3,):
+                        str_value += c.decode()
+                    else:
+                        str_value += c
                 ivy_str += '"' + str_value + '"'
             elif '[' in t:
                 ivy_str += ','.join([str(x) for x in self.fieldvalues[idx]])
