@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <cstdint>
+#include "Device.h"
 
 namespace pprzlink {
   /**
@@ -293,6 +294,14 @@ namespace pprzlink {
      * @param outputInt8AsInt
      */
     void setOutputInt8AsInt(bool outputInt8AsInt);
+
+    /**
+     *
+     * @param buffer
+     * @return The number of bytes added
+     */
+    size_t addToBuffer(BytesBuffer &buffer) const;
+
   private:
     MessageField field;
     std::any value;

@@ -30,12 +30,26 @@
 #include <pprzlink/MessageDefinition.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
 #include <pprzlink/FieldValue.h>
+#include <variant>
 
 namespace pprzlink {
+  /**
+   *
+   */
   class Message {
   public:
+    /**
+     *
+     * @param def
+     */
     explicit Message(const MessageDefinition &def);
 
+    /**
+     *
+     * @tparam ValueType
+     * @param name
+     * @param value
+     */
     template<typename ValueType>
     void addField(const std::string &name, ValueType value)
     {
@@ -43,40 +57,138 @@ namespace pprzlink {
       fieldValues[name] = FieldValue(field,value);
     }
 
+    /**
+     *
+     * @tparam ValueType
+     * @param name
+     * @param value
+     */
     template<typename ValueType>
-    void getField(const std::string &name, ValueType &value)
+    void getField(const std::string &name, ValueType &value) const
     {
       auto field = def.getField(name); // Will throw no_such_field if non existing field name
-      if (fieldValues.find(name) == fieldValues.end())
+      auto const &it = fieldValues.find(name);
+      if (it == fieldValues.end())
       {
         throw field_has_no_value("In message " + def.getName() + " field " + name + " has not value !");
       }
-      fieldValues[name].getValue(value);
+      it->second.getValue(value);
     }
 
+    /**
+     *
+     * @tparam ValueType
+     * @param index
+     * @param value
+     */
     template<typename ValueType>
-    void getField(int index, ValueType &value)
+    void getField(size_t index, ValueType &value) const
     {
       auto name = def.getField(index).getName();
-      if (fieldValues.find(name) == fieldValues.end())
+      auto const &it = fieldValues.find(name);
+      if (it == fieldValues.end())
       {
         throw field_has_no_value("In message " + def.getName() + " field " + name + " has not value !");
       }
-      fieldValues[name].getValue(value);
+      it->second.getValue(value);
     }
 
-    const FieldValue& getRawValue(int index) const;
-    const FieldValue& getRawValue(const std::string& name) const;
+    /**
+     *
+     * @param index
+     * @param buffer
+     * @param offset
+     */
+    void addFieldFromBuffer(size_t index, BytesBuffer const &buffer, size_t & offset);
 
-    [[nodiscard]] size_t getNbFields() const;
+    /**
+     *
+     * @param index
+     * @param buffer
+     * @return
+     */
+    size_t addFieldToBuffer(size_t index, BytesBuffer &buffer) const;
 
+    /**
+     *
+     * @param index
+     * @return
+     */
+    [[nodiscard]] const FieldValue& getRawValue(int index) const;
+
+    /**
+     *
+     * @param name
+     * @return
+     */
+    [[nodiscard]] const FieldValue& getRawValue(const std::string& name) const;
+
+    /**
+     *
+     * @return
+     */
+    [[nodiscard]] size_t getNbValues() const;
+
+    /**
+     *
+     * @return
+     */
     [[nodiscard]] const MessageDefinition &getDefinition() const;
 
+    /**
+     *
+     * @return
+     */
     [[nodiscard]] std::string toString() const;
+
+    /**
+     *
+     * @return
+     */
+    const std::variant<std::string, uint8_t> &getSenderId() const;
+
+    /**
+     *
+     * @return
+     */
+    uint8_t getReceiverId() const;
+
+    /**
+     *
+     * @return
+     */
+    uint8_t getComponentId() const;
+
+    /**
+     *
+     * @return
+     */
+    uint8_t getClassId() const;
+
+    /**
+     *
+     * @param senderId
+     */
+    void setSenderId(const std::variant<std::string, uint8_t> &senderId);
+
+    /**
+     *
+     * @param receiverId
+     */
+    void setReceiverId(uint8_t receiverId);
+
+    /**
+     *
+     * @param componentId
+     */
+    void setComponentId(uint8_t componentId);
 
   private:
     MessageDefinition def;
     std::map<std::string, FieldValue> fieldValues;
+    std::variant<std::string,uint8_t> sender_id;
+    uint8_t receiver_id;
+    uint8_t component_id;
   };
 
 }

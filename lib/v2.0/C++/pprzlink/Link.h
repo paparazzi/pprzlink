@@ -17,12 +17,32 @@
  *
  */
 
-/** \file Link.cpp
+/** \file Link.h
  *
  *
  */
 
-#include <pprzlink/PprzLink.h>
+#ifndef PPRZLINKCPP_LINK_H
+#define PPRZLINKCPP_LINK_H
+
+#include "Message.h"
 
 namespace pprzlink {
+  /**
+   *
+   */
+  class Link {
+
+    /**
+     *
+     * @param sender_id
+     * @param component_id
+     * @param receiver_id
+     * @param msg
+     */
+    void sendMessage(uint8_t sender_id, uint8_t component_id, uint8_t receiver_id,  const Message &msg);
+
+
+  };
 }
+#endif //PPRZLINKCPP_LINK_H

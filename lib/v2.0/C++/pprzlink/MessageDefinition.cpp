@@ -56,12 +56,12 @@ namespace pprzlink {
     }
   }
 
-  int MessageDefinition::getClassId() const
+  uint8_t MessageDefinition::getClassId() const
   {
     return classId;
   }
 
-  int MessageDefinition::getId() const
+  uint8_t MessageDefinition::getId() const
   {
     return id;
   }
@@ -84,7 +84,7 @@ namespace pprzlink {
     return fields[found->second];
   }
 
-  int MessageDefinition::getNbFields() const
+  size_t MessageDefinition::getNbFields() const
   {
     return fields.size();
   }
@@ -98,8 +98,8 @@ namespace pprzlink {
   {
 
     std::stringstream sstr;
-    sstr << "Found definition of message " << getName() << "("<< getId() << ") in class " << getClassId() << std::endl;
-    for (int i=0;i<getNbFields();++i)
+    sstr << getName() << "("<< (int)getId() << ") in class " << (int)getClassId() << std::endl;
+    for (size_t i=0;i<getNbFields();++i)
     {
       sstr << "\t" << getField(i).getName() << " : " << getField(i).getType().toString() << std::endl;
     }
@@ -107,4 +107,13 @@ namespace pprzlink {
     return sstr.str();
   }
 
+  size_t MessageDefinition::getMinimumSize() const
+  {
+    int size=0;
+    for (auto field: fields)
+    {
+        size+=field.getSize();
+    }
+    return size;
+  }
 }

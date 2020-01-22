@@ -23,17 +23,30 @@
  */
 
 #include <pprzlink/MessageField.h>
+#include <iostream>
 
 namespace pprzlink {
 
   MessageField::MessageField(const std::string &name, const FieldType &type)
-    : name(name), type(type)
+    : name(name), type(type), size(0)
   {
+    if (getType().getBaseType()==BaseType::STRING)
+      size = 0;
+    else if (getType().isArray())
+      size=sizeofBaseType(getType().getBaseType())*getType().getArraySize();
+    else
+      size=sizeofBaseType(getType().getBaseType());
   }
 
   MessageField::MessageField(const std::string &name, const std::string &typeString)
-    : name(name), type(typeString)
+    : name(name), type(typeString), size(0)
   {
+    if (getType().getBaseType()==BaseType::STRING)
+      size = 0;
+    else if (getType().isArray())
+      size+=sizeofBaseType(getType().getBaseType())*getType().getArraySize();
+    else
+      size+=sizeofBaseType(getType().getBaseType());
   }
 
   const std::string &MessageField::getName() const
@@ -44,5 +57,10 @@ namespace pprzlink {
   const FieldType &MessageField::getType() const
   {
     return type;
+  }
+
+  size_t MessageField::getSize() const
+  {
+    return size;
   }
 }

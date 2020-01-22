@@ -24,8 +24,44 @@
 
 #ifndef PPRZLINKCPP_TRANSPORT_H
 #define PPRZLINKCPP_TRANSPORT_H
+
+
+#include "Message.h"
+#include "Device.h"
+#include "MessageDictionary.h"
+#include <memory>
+#include <type_traits>
+
 namespace pprzlink {
   class Transport {
+  public:
+    explicit Transport(Device *device, const MessageDictionary &dictionary) : device(device), dictionary(dictionary)
+    {}
+
+    virtual bool hasMessage() =0;
+
+    virtual std::unique_ptr<Message> getMessage()  = 0;
+
+    /**
+     *
+     * @param msg
+     * @return the number of bytes actually sent on the device
+     */
+    virtual size_t sendMessage(Message const & msg) = 0;
+
+    Device *getDevice() const
+    {
+      return device;
+    }
+
+    void setDevice(Device *dev)
+    {
+      Transport::device = dev;
+    }
+
+  protected:
+    Device * device;
+    const MessageDictionary &dictionary;
   };
 }
 #endif //PPRZLINKCPP_TRANSPORT_H

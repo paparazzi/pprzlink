@@ -27,7 +27,9 @@
 
 #include <cstdint>
 #include <functional>
+#include <deque>
 
+/*
 using check_free_space_t = std::function<int(void *, long *, uint16_t)>;
 using put_byte_t = std::function<void(void *, long, uint8_t)>;
 using put_buffer_t = std::function<void(void *, long, const uint8_t *, uint16_t)>;
@@ -35,11 +37,22 @@ using send_message_t = std::function<void(void *, long)>;
 using char_available_t = std::function<int(void *)>;
 using get_byte_t = std::function<uint8_t(void *)>;
 using set_baudrate_t = std::function<void (void *, uint32_t baudrate)>;
+*/
 
 namespace pprzlink {
+
+  using BytesBuffer = std::vector<uint8_t>;
+
+  /**
+   *
+   */
   class Device {
   public:
-    
+    virtual size_t availableBytes() = 0;
+
+    virtual BytesBuffer readAll() = 0;
+
+    virtual void writeBuffer(BytesBuffer const &data) = 0;
   };
 }
 #endif //PPRZLINKCPP_DEVICE_H

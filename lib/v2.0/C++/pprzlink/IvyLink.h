@@ -17,14 +17,14 @@
  *
  */
 
-/** \file IvyPprzLink.h
+/** \file IvyLink.h
  *
  *
  */
 
 
-#ifndef PPRZLINKCPP_IVYPPRZLINK_H
-#define PPRZLINKCPP_IVYPPRZLINK_H
+#ifndef PPRZLINKCPP_IVYLINK_H
+#define PPRZLINKCPP_IVYLINK_H
 
 #include <string>
 #include <pprzlink/MessageDictionary.h>
@@ -33,18 +33,57 @@
 
 namespace pprzlink {
   class MessageCallback;
+  class AircraftCallback;
 
   using messageCallback_t = std::function<void(std::string,Message)>;
-  class IvyPprzLink : public IvyApplicationCallback {
+
+  /**
+   *
+   */
+  class IvyLink : public IvyApplicationCallback {
   public:
-    IvyPprzLink(MessageDictionary const & dict ,std::string appName,std::string domain = "127.255.255.255:2010",  bool threadedIvy = false);
+    /**
+     *
+     * @param dict
+     * @param appName
+     * @param domain
+     * @param threadedIvy
+     */
+    IvyLink(MessageDictionary const & dict , std::string appName, std::string domain = "127.255.255.255:2010", bool threadedIvy = false);
 
-    ~IvyPprzLink();
+    /**
+     *
+     */
+    ~IvyLink();
 
+    /**
+     *
+     * @param def
+     * @param cb
+     * @return
+     */
     long BindMessage(MessageDefinition const & def, messageCallback_t cb);
+
+    /**
+     * Bind on all messages coming from given ac_id
+     * @param ac_id
+     * @param cb
+     * @return
+     */
+    long BindOnSrcAc(std::string ac_id, messageCallback_t cb);
+
+    /**
+     *
+     * @param bindId
+     */
     void UnbindMessage(int bindId);
 
-    void sendMessage(const std::string& ac_id,const Message& msg);
+    /**
+     *
+     * @param ac_id
+     * @param msg
+     */
+    void sendMessage(const Message& msg);
 
   private:
     const MessageDictionary &dictionary;
@@ -53,21 +92,90 @@ namespace pprzlink {
     Ivy *bus;
     bool threaded;
 
+    /**
+     *
+     * @param def
+     * @return
+     */
     std::string regexpForMessageDefinition(MessageDefinition const & def);
 
-    std::map<long,MessageCallback*> callbackMap;
+    std::map<long,MessageCallback*> messagesCallbackMap;
+    std::map<long,AircraftCallback*> aircraftCallbackMap;
 
+    /**
+     *
+     * @param app
+     */
     void OnApplicationConnected(IvyApplication *app) override;
+
+    /**
+     *
+     * @param app
+     */
     void OnApplicationDisconnected(IvyApplication *app) override;
+
+    /**
+     *
+     * @param app
+     */
     void OnApplicationCongestion(IvyApplication *app) override;
+
+    /**
+     *
+     * @param app
+     */
     void OnApplicationDecongestion(IvyApplication *app) override;
+
+    /**
+     *
+     * @param app
+     */
     void OnApplicationFifoFull(IvyApplication *app) override;
   };
 
+  /**
+   *
+   */
   class MessageCallback : public IvyMessageCallback {
   public:
+    /**
+     *
+     * @param dictionary
+     * @param cb
+     */
     MessageCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
 
+    /**
+     *
+     * @param app
+     * @param argc
+     * @param argv
+     */
+    void OnMessage(IvyApplication *app, int argc, const char **argv) override;
+
+  private:
+    const MessageDictionary &dictionary;
+    messageCallback_t cb;
+  };
+
+  /**
+ *
+ */
+  class AircraftCallback : public IvyMessageCallback {
+  public:
+    /**
+     *
+     * @param dictionary
+     * @param cb
+     */
+    AircraftCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
+
+    /**
+     *
+     * @param app
+     * @param argc
+     * @param argv
+     */
     void OnMessage(IvyApplication *app, int argc, const char **argv) override;
 
   private:
@@ -75,4 +183,4 @@ namespace pprzlink {
     messageCallback_t cb;
   };
 }
-#endif //PPRZLINKCPP_IVYPPRZLINK_H
+#endif //PPRZLINKCPP_IVYLINK_H

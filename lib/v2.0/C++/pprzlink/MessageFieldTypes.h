@@ -42,6 +42,8 @@ namespace pprzlink {
     STRING
   };
 
+  size_t sizeofBaseType(BaseType type);
+
   class FieldType {
   public:
     explicit FieldType(std::string const &typeString);

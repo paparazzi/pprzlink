@@ -102,6 +102,8 @@ namespace pprzlink {
     else
     {
       std::string name = iter->second;
+      //std::cout << "message with id (" << classId << ":" << msgId << ") = " << name << std::endl;
+      //std::cout << messagesDict.find(name)->second.toString() << std::endl;
       return messagesDict.find(name)->second;
     }
   }
@@ -163,4 +165,22 @@ namespace pprzlink {
       return iter->second;
     }
   }
+
+  std::vector<MessageDefinition> MessageDictionary::getMsgsForClass(std::string className) const
+  {
+    return getMsgsForClass(getClassId(className));
+  }
+
+  std::vector<MessageDefinition> MessageDictionary::getMsgsForClass(int classId) const
+  {
+    std::vector<MessageDefinition> result;
+    for (auto msgPair : messagesDict)
+    {
+      auto &def = msgPair.second;
+      if (def.getClassId()==classId)
+        result.push_back(def);
+    }
+    return std::move(result);
+  }
 }
+

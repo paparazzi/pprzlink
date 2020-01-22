@@ -34,15 +34,18 @@ namespace pprzlink {
   public:
     explicit MessageDictionary(std::string const &fileName);
 
-    const MessageDefinition &getDefinition(std::string const &name) const;
+    [[nodiscard]] const MessageDefinition &getDefinition(std::string const &name) const;
 
-    const MessageDefinition &getDefinition(int classId, int msgId) const;
+    [[nodiscard]] const MessageDefinition &getDefinition(int classId, int msgId) const;
 
-    std::pair<int,int> getMessageId(std::string name) const;
-    std::string getMessageName(int classId, int msgId) const;
+    [[nodiscard]] std::pair<int,int> getMessageId(std::string name) const;
+    [[nodiscard]] std::string getMessageName(int classId, int msgId) const;
 
-    int getClassId(std::string name) const;
-    std::string getClassName(int id) const;
+    [[nodiscard]] int getClassId(std::string name) const;
+    [[nodiscard]] std::string getClassName(int id) const;
+
+    [[nodiscard]] std::vector<MessageDefinition> getMsgsForClass(std::string className) const;
+    [[nodiscard]] std::vector<MessageDefinition> getMsgsForClass(int classId) const;
 
   private:
     std::map<std::string, MessageDefinition> messagesDict;

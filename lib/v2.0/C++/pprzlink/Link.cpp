@@ -17,16 +17,12 @@
  *
  */
 
-/** \file Link.h
+/** \file Link.cpp
  *
  *
  */
 
-#ifndef PPRZLINKCPP_PPRZLINK_H
-#define PPRZLINKCPP_PPRZLINK_H
+#include <pprzlink/Link.h>
 
 namespace pprzlink {
-  class PprzLink {
-  };
 }
-#endif //PPRZLINKCPP_PPRZLINK_H

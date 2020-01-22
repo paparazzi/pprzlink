@@ -38,13 +38,13 @@ namespace pprzlink {
 
     explicit MessageDefinition (tinyxml2::XMLElement* xml,int classId);
 
-    [[nodiscard]] int getClassId() const;
+    [[nodiscard]] uint8_t getClassId() const;
 
-    [[nodiscard]] int getId() const;
+    [[nodiscard]] uint8_t getId() const;
 
     [[nodiscard]] const std::string &getName() const;
 
-    [[nodiscard]] int getNbFields() const;
+    [[nodiscard]] size_t getNbFields() const;
 
     [[nodiscard]] const MessageField& getField(int index) const;
 
@@ -53,9 +53,12 @@ namespace pprzlink {
     [[nodiscard]] bool hasFieldName(const std::string &name) const;
 
     [[nodiscard]] std::string toString() const;
+
+    [[nodiscard]] size_t getMinimumSize() const;
+
   private:
-    int classId;
-    int id;
+    uint8_t classId;
+    uint8_t id;
     std::string name;
     std::vector<MessageField> fields;
     std::map<std::string,size_t> fieldNameToIndex;

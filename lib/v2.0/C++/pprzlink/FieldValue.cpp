@@ -22,6 +22,7 @@
  *
  */
 #include <pprzlink/FieldValue.h>
+#include <iomanip>
 
 // FIXME This should go to a SERIALISER !
 std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
@@ -133,7 +134,7 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
         {
           if (i!=0)
             o << ",";
-          o << vec[i];
+          o << std::fixed << vec[i];
         }
       }
         break;
@@ -225,7 +226,7 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
       {
         float val;
         v.getValue(val);
-        o << val;
+        o  << std::fixed << val;
       }
         break;
       case pprzlink::BaseType::STRING:
@@ -269,5 +270,179 @@ namespace pprzlink {
   void FieldValue::setOutputInt8AsInt(bool outputInt8AsInt)
   {
     output_int8_as_int = outputInt8AsInt;
+  }
+
+  size_t FieldValue::addToBuffer(BytesBuffer &buffer) const
+  {
+    size_t initialSize=buffer.size();
+    if (getType().isArray())
+    {
+      auto vec = std::any_cast < std::vector < std::any >> (value);
+      if (getType().getArraySize()==0) // Variable length array
+      {
+        // TODO Check that the length is in number of elements not in bytes
+        buffer.push_back(vec.size()); // Add the length of the array in number of elements
+      }
+      for (auto elem : vec)
+      {
+        switch (getType().getBaseType())
+        {
+          case BaseType::CHAR:
+          {
+            char val = std::any_cast<char>(elem);
+            buffer.push_back(val);
+          }
+            break;
+          case BaseType::INT8:
+          {
+            char val = std::any_cast<int8_t>(elem);
+            buffer.push_back(val);
+          }
+            break;
+          case BaseType::INT16:
+          {
+            char val = std::any_cast<int16_t>(elem);
+            buffer.push_back(val & 0x00FFu);
+            buffer.push_back((val & 0xFF00u) >> 8u);
+          }
+            break;
+          case BaseType::INT32:
+          {
+            char val = std::any_cast<int32_t>(elem);
+            buffer.push_back(val & 0x000000FFu);
+            buffer.push_back((val & 0x0000FF00u) >> 8u);
+            buffer.push_back((val & 0x00FF0000u) >> 16u);
+            buffer.push_back((val & 0xFF000000u) >> 24u);
+          }
+            break;
+          case BaseType::UINT8:
+          {
+            char val = std::any_cast<uint8_t>(elem);
+            buffer.push_back(val);
+          }
+            break;
+          case BaseType::UINT16:
+          {
+            char val = std::any_cast<uint16_t>(elem);
+            buffer.push_back(val & 0x00FFu);
+            buffer.push_back((val & 0xFF00u) >> 8u);
+          }
+            break;
+          case BaseType::UINT32:
+          {
+            char val = std::any_cast<uint32_t>(elem);
+            buffer.push_back(val & 0x000000FFu);
+            buffer.push_back((val & 0x0000FF00u) >> 8u);
+            buffer.push_back((val & 0x00FF0000u) >> 16u);
+            buffer.push_back((val & 0xFF000000u) >> 24u);
+          }
+            break;
+          case BaseType::FLOAT:
+          {
+            char val = std::any_cast<float>(elem);
+            uint32_t *ptrval = (uint32_t *) &val;
+            buffer.push_back(*ptrval & 0x000000FFu);
+            buffer.push_back((*ptrval & 0x0000FF00u) >> 8u);
+            buffer.push_back((*ptrval & 0x00FF0000u) >> 16u);
+            buffer.push_back((*ptrval & 0xFF000000u) >> 24u);
+          }
+            break;
+          case BaseType::STRING:
+            throw std::logic_error("Cannot add an array of STRING to a buffer for field " + getName());
+            break;
+          case BaseType::NOT_A_TYPE:
+            throw std::logic_error("Cannot add a field of type NOT_A_TYPE to a buffer for field " + getName());
+        }
+      }
+    }
+    else //      if (!getType().isArray())
+    {
+      switch (getType().getBaseType())
+      {
+        case BaseType::CHAR:
+        {
+          char val;
+          getValue(val);
+          buffer.push_back(val);
+        }
+          break;
+        case BaseType::INT8:
+        {
+          int8_t val;
+          getValue(val);
+          buffer.push_back(val);
+        }
+          break;
+        case BaseType::INT16:
+        {
+          int16_t val;
+          getValue(val);
+          buffer.push_back(val & 0x00FFu);
+          buffer.push_back((val & 0xFF00u) >> 8u);
+        }
+          break;
+        case BaseType::INT32:
+        {
+          int32_t val;
+          getValue(val);
+          buffer.push_back(val & 0x000000FFu);
+          buffer.push_back((val & 0x0000FF00u) >> 8u);
+          buffer.push_back((val & 0x00FF0000u) >> 16u);
+          buffer.push_back((val & 0xFF000000u) >> 24u);
+        }
+          break;
+        case BaseType::UINT8:
+        {
+          uint8_t val;
+          getValue(val);
+          buffer.push_back(val);
+        }
+          break;
+        case BaseType::UINT16:
+        {
+          uint16_t val;
+          getValue(val);
+          buffer.push_back(val & 0x00FFu);
+          buffer.push_back((val & 0xFF00u) >> 8u);
+        }
+          break;
+        case BaseType::UINT32:
+        {
+          uint32_t val;
+          getValue(val);
+          buffer.push_back(val & 0x000000FFu);
+          buffer.push_back((val & 0x0000FF00u) >> 8u);
+          buffer.push_back((val & 0x00FF0000u) >> 16u);
+          buffer.push_back((val & 0xFF000000u) >> 24u);
+        }
+          break;
+        case BaseType::FLOAT:
+        {
+          float val;
+          getValue(val);
+          uint32_t *ptrval = (uint32_t *) &val;
+          buffer.push_back(*ptrval & 0x000000FFu);
+          buffer.push_back((*ptrval & 0x0000FF00u) >> 8u);
+          buffer.push_back((*ptrval & 0x00FF0000u) >> 16u);
+          buffer.push_back((*ptrval & 0xFF000000u) >> 24u);
+        }
+          break;
+        case BaseType::STRING:
+        {
+          // A string is encoded as a variable char array (char[])
+          std::string val;
+          getValue(val);
+          buffer.push_back(val.length());
+          for (auto c: val)
+          {
+            buffer.push_back((uint8_t) c);
+          }
+        }
+          break;
+        case BaseType::NOT_A_TYPE:
+          throw std::logic_error("Cannot add a field of type NOT_A_TYPE to a buffer for field " + getName());
+      }
+    }
+    return buffer.size() - initialSize;
   }
 }

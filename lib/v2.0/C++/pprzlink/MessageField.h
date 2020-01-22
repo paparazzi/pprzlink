@@ -40,9 +40,11 @@ namespace pprzlink {
 
     [[nodiscard]] const FieldType &getType() const;
 
+    [[nodiscard]] size_t getSize() const;
   private:
     std::string name;
     FieldType type;
+    size_t size;
   };
 }
 

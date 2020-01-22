@@ -30,6 +30,18 @@
 
 namespace pprzlink {
 
+  const std::map<BaseType,size_t> sizeofTypeMap = {
+    {BaseType::CHAR, 1},
+    {BaseType::INT8, 1},
+    {BaseType::INT16, 2},
+    {BaseType::INT32, 4},
+    {BaseType::UINT8, 1},
+    {BaseType::UINT16, 2},
+    {BaseType::UINT32, 4},
+    {BaseType::FLOAT, 4},
+    {BaseType::STRING, 0}
+  };
+
   static const std::map<BaseType,std::string> typeMap{
     {BaseType::CHAR, "char"},
     {BaseType::INT8, "int8"},
@@ -101,5 +113,13 @@ namespace pprzlink {
       sstr << "[]";
     }
     return sstr.str();
+  }
+
+  size_t sizeofBaseType(BaseType type)
+  {
+    if (type==BaseType::NOT_A_TYPE)
+      throw std::logic_error("Type NOT_A_TYPE in sizeofBaseType");
+
+    return sizeofTypeMap.find(type)->second;
   }
 }
