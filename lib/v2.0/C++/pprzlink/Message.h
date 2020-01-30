@@ -183,6 +183,12 @@ namespace pprzlink {
      */
     void setComponentId(uint8_t componentId);
 
+    /**
+     *
+     * @return  the size of the message in bytes if stored in binary
+     */
+    size_t getByteSize() const;
+
   private:
     MessageDefinition def;
     std::map<std::string, FieldValue> fieldValues;

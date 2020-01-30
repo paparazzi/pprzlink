@@ -74,7 +74,6 @@ namespace pprzlink {
 
     size_t fieldSize=0;
     // Add each field to the buffer
-    std::cout << buffer.size() << " + ";
     for (size_t fieldIndex=0; fieldIndex < msg.getDefinition().getNbFields(); ++fieldIndex)
     {
       fieldSize+= msg.addFieldToBuffer(fieldIndex, buffer);

@@ -377,4 +377,19 @@ namespace pprzlink {
       }
     }
   }
+
+  size_t Message::getByteSize() const
+  {
+    size_t size= 0;
+    if (fieldValues.size() != getDefinition().getNbFields())
+    {
+      throw pprzlink::field_has_no_value("Cannot get size of an incomplete message.");
+    }
+    for (auto value : fieldValues)
+    {
+      size+=value.second.getByteSize();
+    }
+
+    return size;
+  }
 }

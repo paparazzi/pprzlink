@@ -445,4 +445,32 @@ namespace pprzlink {
     }
     return buffer.size() - initialSize;
   }
+
+  size_t FieldValue::getByteSize() const
+  {
+    size_t elemSize = sizeofBaseType(getType().getBaseType());
+    size_t size;
+    if (getType().getBaseType() == BaseType::STRING)
+    {
+      elemSize = 1;
+    }
+    if (getType().isArray())
+    {
+      auto vec = std::any_cast<std::vector<std::any>>(value);
+      size= elemSize * vec.size();
+      if (getType().getArraySize()==0) // If variable length array add one for the length
+        size++;
+    }
+    else if (getType().getBaseType() == BaseType::STRING)// String is considered as char[]
+    {
+      auto str = std::any_cast<std::string>(value);
+      size= elemSize*str.length() +1; // String is a vraiable length array
+    }
+    else
+    {
+      size=elemSize;
+    }
+
+    return size;
+  }
 }

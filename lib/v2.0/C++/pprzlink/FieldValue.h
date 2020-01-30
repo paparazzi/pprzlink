@@ -302,6 +302,12 @@ namespace pprzlink {
      */
     size_t addToBuffer(BytesBuffer &buffer) const;
 
+    /**
+     *
+     * @return the size of the field in bytes if stored in binary
+     */
+    size_t getByteSize() const;
+
   private:
     MessageField field;
     std::any value;
