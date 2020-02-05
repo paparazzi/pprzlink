@@ -136,7 +136,7 @@ TBD - Describe how to subscribe to message classes
 
 The C standalone library can be used when only a few messages using the PPRZ transport are expected (in comparison with the full C library where all messages are generated and both device and transport can be selected independently).
 This is usefull when implementing a program in C in an embedded computer talking to the autopilot through a serial port.
-It is a header only library, so their is no file to compile.
+It is a header only library, so there is no file to compile.
 
 ### Generation of a C standalone messages parse
 
@@ -217,4 +217,3 @@ Init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone
 Parse messages by calling this function in your mainloop:
 
     pprzlink_check_and_parse(&dev_rx, new_message);
-
