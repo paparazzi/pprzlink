@@ -150,11 +150,11 @@ The generated files will be placed in the folder `build/pprzlink` in this case. 
 
 Sending a message is done as follow:
 
-- include the library header
+Include the library header
 
     #include "pprzlink/my_pprz_messages.h"
 
-- implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `check_space`, `put_char`, `send_message` (or NULL if not needed)
+Implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `check_space`, `put_char`, `send_message` (or NULL if not needed)
 
     int check_space(uint8_t n) {
       // implement your check space function here
@@ -168,23 +168,23 @@ Sending a message is done as follow:
       // implement your send message function here
     }
 
-- init the TX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
+Init the TX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
 
     // somewhere in your init section
     struct pprzlink_device_tx dev_tx = pprzlink_device_tx_init(check_space, put_char, send_message /* or NULL */);
 
-- send messages (replace `...` with paramters, see definition in `pprzlink/my_pprz_messages.h`):
+Send messages (replace `...` with paramters, see definition in `pprzlink/my_pprz_messages.h`):
 
     // in the case of GPS message
     pprzlink_msg_send_GPS(&dev_tx, ...);
 
 ### Usage for receiving
 
-- include the library header
+Include the library header
 
     #include "pprzlink/my_pprz_messages.h"
 
-- implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `char_available`, `get_char`, `new_message` as well as a buffer large enough to receive your messages (max 255 bytes):
+Implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `char_available`, `get_char`, `new_message` as well as a buffer large enough to receive your messages (max 255 bytes):
 
     int char_available(void) {
       // implement your char available function here
@@ -209,12 +209,12 @@ Sending a message is done as follow:
     }
 
 
-- init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
+Init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
 
     // somewhere in your init section
     struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char);
 
-- parse messages by calling this function in your mainloop:
+Parse messages by calling this function in your mainloop:
 
     pprzlink_check_and_parse(&dev_rx, new_message);
 
