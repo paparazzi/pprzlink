@@ -136,7 +136,7 @@ static inline struct pprzlink_device_rx pprzlink_device_rx_init(char_available_t
  */
 static inline void pprzlink_parse(struct pprzlink_device_rx *dev, uint8_t c)
 {
-  switch (t->status) {
+  switch (dev->status) {
     case PPRZLINK_UNINIT:
       if (c == PPRZLINK_STX) {
         dev->status++;
@@ -167,7 +167,7 @@ static inline void pprzlink_parse(struct pprzlink_device_rx *dev, uint8_t c)
       dev->status++;
       break;
     case PPRZLINK_GOT_CRC1:
-      if (c != dev->ck_b_rx) {
+      if (c != dev->ck_b) {
         goto error;
       }
       dev->msg_received = true;
@@ -191,7 +191,6 @@ typedef void (*new_message_t)(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t*);
  */
 static inline void pprzlink_check_and_parse(struct pprzlink_device_rx *dev, new_message_t new_message)
 {
-  uint8_t i;
   if (dev->char_available()) {
     while (dev->char_available() && !dev->msg_received) {
       pprzlink_parse(dev, dev->get_char());
