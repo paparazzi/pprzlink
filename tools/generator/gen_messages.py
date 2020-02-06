@@ -19,14 +19,14 @@ import pprz_parse
 schemaFileName = "pprz_schema.xsd"
 
 # Set defaults for generating MAVLink code
-DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_1_0
+DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_2_0
 DEFAULT_MESSAGES = pprz_parse.MESSAGES_1_0
 DEFAULT_LANGUAGE = 'C'
 DEFAULT_ERROR_LIMIT = 200
 DEFAULT_VALIDATE = True
 
 # List the supported languages. This is done globally because it's used by the GUI wrapper too
-supportedLanguages = ["C"]
+supportedLanguages = ["C", "C_standalone"]
 
 
 def gen_messages(opts) :
@@ -94,6 +94,9 @@ def gen_messages(opts) :
     if opts.language == 'c':
         gen_message_c = __import__(xml.generator_module + "_c")
         gen_message_c.generate(opts.output, xml)
+    elif opts.language == 'c_standalone':
+        gen_message_c_standalone = __import__(xml.generator_module + "_c_standalone")
+        gen_message_c_standalone.generate(opts.output, xml, opts.opt)
     else:
         print("Unsupported language %s" % opts.language)
 
@@ -110,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
     parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")
     parser.add_argument("--error-limit", default=DEFAULT_ERROR_LIMIT, help="maximum number of validation errors to display")
+    parser.add_argument("--opt", default='', help="extra options that can be passed to the generator")
     parser.add_argument("definition", metavar="XML", help="PPRZLink messages definition")
     parser.add_argument("class_name", help="PPRZLink message class to parse and generate")
     args = parser.parse_args()
