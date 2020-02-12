@@ -212,7 +212,7 @@ Implement some required callbacks (definitions can be found in `pprzlink/pprzlin
 Init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
 
     // somewhere in your init section
-    struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char);
+    struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char, rx_buffer);
 
 Parse messages by calling this function in your mainloop:
 
