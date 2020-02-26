@@ -35,8 +35,10 @@
 namespace pprzlink {
   class MessageCallback;
   class AircraftCallback;
+  class RequestCallback;
 
   using messageCallback_t = std::function<void(std::string,Message)>;
+  using answererCallback_t = std::function<Message(std::string,Message)>;
 
   /**
    *
@@ -88,6 +90,8 @@ namespace pprzlink {
 
     long sendRequest(const Message& msg, messageCallback_t cb);
 
+    long registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb);
+
   private:
     const MessageDictionary &dictionary;
     std::string domain;
@@ -106,8 +110,11 @@ namespace pprzlink {
      */
     std::string regexpForMessageDefinition(MessageDefinition const & def);
 
+    std::string messageRegexp(MessageDefinition const & def);
+
     std::map<long,MessageCallback*> messagesCallbackMap;
     std::map<long,AircraftCallback*> aircraftCallbackMap;
+    std::map<long,RequestCallback*> requestCallbackMap;
 
     /**
      *
@@ -189,5 +196,30 @@ namespace pprzlink {
     const MessageDictionary &dictionary;
     messageCallback_t cb;
   };
+
+
+  class RequestCallback : public MessageCallback {
+  public:
+    /**
+     *
+     * @param dictionary
+     * @param cb
+     */
+    RequestCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
+
+    /**
+     *
+     * @param app
+     * @param argc
+     * @param argv
+     */
+    void OnMessage(IvyApplication *app, int argc, const char **argv) override;
+
+    std::string& getRequestId() {return requestId;}
+
+  private:
+    std::string requestId;
+  };
+
 }
 #endif //PPRZLINKCPP_IVYLINK_H

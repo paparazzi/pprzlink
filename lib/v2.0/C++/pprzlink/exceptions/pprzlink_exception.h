@@ -50,5 +50,6 @@ namespace pprzlink {
   DECLARE_PPRZLINK_EXCEPT(no_such_binding)
   DECLARE_PPRZLINK_EXCEPT(message_is_request)
   DECLARE_PPRZLINK_EXCEPT(message_is_not_request)
+  DECLARE_PPRZLINK_EXCEPT(wrong_answer_to_request)
 }
 #endif //PPRZLINKCPP_PPRZLINK_EXCEPTION_H

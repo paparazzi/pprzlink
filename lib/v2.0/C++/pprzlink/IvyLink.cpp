@@ -91,30 +91,29 @@ namespace pprzlink {
 
   void IvyLink::UnbindMessage(int bindId)
   {
-    auto iter = messagesCallbackMap.find(bindId);
-    if (iter == messagesCallbackMap.end())
-    {
-      auto iter = aircraftCallbackMap.find(bindId);
-      if (iter == aircraftCallbackMap.end())
-      {
-        throw no_such_binding("Cannot unbind (bind id invalid)");
-      }
-      else
-      {
-        bus->UnbindMsg(bindId);
-        delete (iter->second);
-        aircraftCallbackMap.erase(bindId);
-      }
-    }
-    else
-    {
+    if (messagesCallbackMap.find(bindId) != messagesCallbackMap.end()) {
       bus->UnbindMsg(bindId);
-      delete (iter->second);
+      delete (messagesCallbackMap[bindId]);
       messagesCallbackMap.erase(bindId);
+      return;
+    }
+
+    if (aircraftCallbackMap.find(bindId) != aircraftCallbackMap.end()) {
+      bus->UnbindMsg(bindId);
+      delete (aircraftCallbackMap[bindId]);
+      aircraftCallbackMap.erase(bindId);
+      return;
+    }
+
+    if (requestCallbackMap.find(bindId) != requestCallbackMap.end()) {
+      bus->UnbindMsg(bindId);
+      delete (requestCallbackMap[bindId]);
+      requestCallbackMap.erase(bindId);
+      return;
     }
   }
 
-  std::string IvyLink::regexpForMessageDefinition(const MessageDefinition &def)
+  std::string IvyLink::messageRegexp(const MessageDefinition &def)
   {
     static const std::map<BaseType, std::string> typeRegex = {
       {BaseType::CHAR,   "."},
@@ -129,7 +128,7 @@ namespace pprzlink {
     };
     // ac_id MSG_NAME msgField*
     std::stringstream sstr;
-    sstr << "^([^ ]*) (" << def.getName() << ")";
+    sstr << "(" << def.getName() << ")";
 
     for (size_t i = 0; i < def.getNbFields(); ++i)
     {
@@ -172,6 +171,12 @@ namespace pprzlink {
     }
     sstr << "$";
 
+    return sstr.str();
+  }
+
+  std::string IvyLink::regexpForMessageDefinition(MessageDefinition const & def) {
+    std::stringstream sstr;
+    sstr << "^([^ ]*) " << messageRegexp(def);
     return sstr.str();
   }
 
@@ -262,7 +267,8 @@ namespace pprzlink {
     });
 
     std::stringstream regexpStream;
-    regexpStream << requestId << " " << regexpForMessageDefinition(ansDef).erase(0,1);
+    regexpStream << "^" << requestId << " ([^ ]*) " << messageRegexp(ansDef);
+    std::cout << regexpStream.str() << std::endl;
     auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
     messagesCallbackMap[id] = mcb;
     requestBindId.insert({requestId, id});
@@ -273,6 +279,40 @@ namespace pprzlink {
 
     return id;
   }
+
+
+
+
+  long IvyLink::registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb) {
+    if(!def.isRequest()) {
+      throw message_is_not_request("Message " + def.getName() + " is not a request message. Use sendMessage instead!");
+    }
+
+    // remove last 4 characters (_REQ) from request name to get the answer message name
+    auto ansName = def.getName().substr(0, def.getName().size() - 4);
+
+    std::stringstream regexpStream;
+    regexpStream << "^([^ ]*) ([^ ]*) " << messageRegexp(def);
+    std::cout << regexpStream.str() << std::endl;
+
+    auto mcb = new RequestCallback(dictionary, [=](std::string ac_id,Message msg) {
+      auto answerMsg = cb(std::move(ac_id), std::move(msg));
+      //check message name
+      if(ansName != answerMsg.getDefinition().getName()) {
+        throw wrong_answer_to_request("Wrong answer " + answerMsg.getDefinition().getName() + " to request " + def.getName());
+      }
+      sendMessage(answerMsg);
+    });
+    std::cout << "bind to " << regexpStream.str() << std::endl;
+    auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
+    requestCallbackMap[id] = mcb;
+
+  return 0;
+  }
+
+
+
+
 
   MessageCallback::MessageCallback(const MessageDictionary &dictionary, const messageCallback_t &cb) : dictionary(
     dictionary), cb(cb)
@@ -389,6 +429,28 @@ namespace pprzlink {
 
     cb(sender, msg);
   }
+
+
+
+  RequestCallback::RequestCallback(const MessageDictionary &dictionary,const messageCallback_t &cb) : MessageCallback(dictionary, cb)
+  {
+  }
+
+
+  void RequestCallback::OnMessage(IvyApplication *app, int argc, const char **argv) {
+    (void)app;
+
+    if (argc < 3)
+    {
+      throw bad_message_file("Not enough fields to be a valid request!");
+    }
+
+    requestId = std::string(argv[1]);
+
+    MessageCallback::OnMessage(app, argc-1, argv+1);
+  }
+
+
 
   AircraftCallback::AircraftCallback(const MessageDictionary &dictionary, const messageCallback_t &cb) : dictionary(dictionary), cb(cb)
   {
