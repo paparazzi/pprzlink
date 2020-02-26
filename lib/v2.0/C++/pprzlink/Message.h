@@ -38,6 +38,9 @@ namespace pprzlink {
    */
   class Message {
   public:
+  
+    explicit Message();
+    
     /**
      *
      * @param def
