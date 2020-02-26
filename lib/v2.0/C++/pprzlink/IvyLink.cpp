@@ -54,24 +54,19 @@ namespace pprzlink {
   }
 
   void IvyLink::OnApplicationConnected(IvyApplication *app)
-  {
-  }
+  {(void)app;}
 
   void IvyLink::OnApplicationDisconnected(IvyApplication *app)
-  {
-  }
+  {(void)app;}
 
   void IvyLink::OnApplicationCongestion(IvyApplication *app)
-  {
-  }
+  {(void)app;}
 
   void IvyLink::OnApplicationDecongestion(IvyApplication *app)
-  {
-  }
+  {(void)app;}
 
   void IvyLink::OnApplicationFifoFull(IvyApplication *app)
-  {
-  }
+  {(void)app;}
 
   long IvyLink::BindMessage(const MessageDefinition &def, messageCallback_t cb)
   {
@@ -286,6 +281,7 @@ namespace pprzlink {
 
   void MessageCallback::OnMessage(IvyApplication *app, int argc, const char **argv)
   {
+    (void)app;
     MessageDefinition def = dictionary.getDefinition(argv[1]);
     Message msg(def);
     if (def.getNbFields() != (size_t)(argc - 2) )
@@ -400,6 +396,7 @@ namespace pprzlink {
 
   void AircraftCallback::OnMessage(IvyApplication *app, int argc, const char **argv)
   {
+    (void)app;
     MessageDefinition def = dictionary.getDefinition(argv[1]);
     Message msg(def);
 

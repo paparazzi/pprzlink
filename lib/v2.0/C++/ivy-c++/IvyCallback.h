@@ -79,15 +79,15 @@ public:
 class IvyApplicationNullCallback : public IvyApplicationCallback {
 public:
 	void OnApplicationConnected (IvyApplication *app) override
-	{};
+	{(void)app;};
 	void OnApplicationDisconnected (IvyApplication *app) override
-	{};
+	{(void)app;};
 	void OnApplicationCongestion (IvyApplication *app) override
-	{};
+	{(void)app;};
 	void OnApplicationDecongestion (IvyApplication *app) override
-	{};
+	{(void)app;};
 	void OnApplicationFifoFull (IvyApplication *app) override
-	{};
+	{(void)app;};
 	~IvyApplicationNullCallback() override = default;
 };
 
@@ -146,13 +146,13 @@ public:
 class IvyBindingNullCallback : public IvyBindingCallback {
 public:
 	void OnAddBind (IvyApplication *app, int id, const char * regexp) override
-	{};
+	{(void)app;(void)id;(void)regexp;};
 	void OnRemoveBind (IvyApplication *app, int id, const char * regexp) override
-	{};
+	{(void)app;(void)id;(void)regexp;};
 	void OnFilterBind (IvyApplication *app, int id, const char * regexp) override
-	{};
+	{(void)app;(void)id;(void)regexp;};
 	void OnChangeBind (IvyApplication *app, int id, const char * regexp) override
-	{};
+	{(void)app;(void)id;(void)regexp;};
 	~IvyBindingNullCallback() override = default;
 };
 // Static function CB
