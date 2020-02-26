@@ -32,7 +32,7 @@
 namespace pprzlink {
 
   IvyLink::IvyLink(MessageDictionary const & dict , std::string appName, std::string domain, bool threadedIvy)
-  : dictionary (dict), domain(domain), appName(appName), threaded(threadedIvy)
+  : dictionary (dict), domain(domain), appName(appName), threaded(threadedIvy), requestNb(0)
   {
     bus = new Ivy(appName.c_str(), (appName + " ready").c_str(), this, threadedIvy);
     bus->start(domain.c_str());
@@ -180,10 +180,8 @@ namespace pprzlink {
     return sstr.str();
   }
 
-  void IvyLink::sendMessage(const Message& msg)
-  {
+  void IvyLink::getMessageData(const Message& msg, std::string &ac_id, std::string &name, std::string &fields) {
     std::stringstream fieldsStream;
-    std::string ac_id;
     if (msg.getSenderId().index()==0) // The variant holds a string
     {
       ac_id = std::get<std::string>(msg.getSenderId());
@@ -204,7 +202,81 @@ namespace pprzlink {
       val.setOutputInt8AsInt(true);
       fieldsStream << val;
     }
-    bus->SendMsg("%s %s %s",ac_id.c_str(), def.getName().c_str(), fieldsStream.str().c_str());
+
+    name = def.getName();
+    fields = fieldsStream.str();
+
+  }
+
+  void IvyLink::sendMessage(const Message& msg)
+  {
+    const auto &def=msg.getDefinition();
+    if(def.isRequest()) {
+      throw message_is_request("Message " + def.getName() + " is a request message. Use sendRequest instead!");
+    }
+
+    std::string ac_id;
+    std::string name;
+    std::string fields;
+
+    getMessageData(msg, ac_id, name, fields);
+
+
+    bus->SendMsg("%s %s %s",ac_id.c_str(), def.getName().c_str(), fields.c_str());
+
+  }
+
+
+
+  long IvyLink::sendRequest(const Message& msg, messageCallback_t cb) {
+    const auto &def=msg.getDefinition();
+
+    if(!def.isRequest()) {
+      throw message_is_not_request("Message " + def.getName() + " is not a request message. Use sendMessage instead!");
+    }
+
+    // remove last 4 characters (_REQ) from request name to get the answer message name
+    auto ansName = def.getName().substr(0, def.getName().size() - 4);
+    auto ansDef = dictionary.getDefinition(ansName);
+
+    std::string ac_id;
+    std::string name;
+    std::string fields;
+
+    getMessageData(msg, ac_id, name, fields);
+
+    std::stringstream requestIdStream;
+    requestIdStream << getpid() << "_" << requestNb++;
+    std::string requestId = requestIdStream.str();
+
+
+
+    auto mcb = new MessageCallback(dictionary, [=](std::string ac_id,Message msg) {
+      cb(std::move(ac_id), std::move(msg));
+
+      // find bind id, then unbind answer message
+      auto iter = requestBindId.left.find(requestId);
+      if (iter != requestBindId.left.end())
+      {
+        // TODO make these two lines work ! (crash on Unbind)
+        //long id = iter->second;
+        //UnbindMessage(id);
+        requestBindId.left.erase(requestId);
+
+      }
+    });
+
+    std::stringstream regexpStream;
+    regexpStream << requestId << " " << regexpForMessageDefinition(ansDef).erase(0,1);
+    auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
+    messagesCallbackMap[id] = mcb;
+    requestBindId.insert({requestId, id});
+
+    std::cout << "sendRequest requestBindId size: " << requestBindId.size() << std::endl;
+
+    bus->SendMsg("%s %s %s %s",ac_id.c_str(), requestId.c_str(), def.getName().c_str(), fields.c_str());
+
+    return id;
   }
 
   MessageCallback::MessageCallback(const MessageDictionary &dictionary, const messageCallback_t &cb) : dictionary(

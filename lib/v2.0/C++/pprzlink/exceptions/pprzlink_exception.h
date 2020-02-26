@@ -48,5 +48,7 @@ namespace pprzlink {
   DECLARE_PPRZLINK_EXCEPT(messages_file_not_found)
   DECLARE_PPRZLINK_EXCEPT(bad_message_file)
   DECLARE_PPRZLINK_EXCEPT(no_such_binding)
+  DECLARE_PPRZLINK_EXCEPT(message_is_request)
+  DECLARE_PPRZLINK_EXCEPT(message_is_not_request)
 }
 #endif //PPRZLINKCPP_PPRZLINK_EXCEPTION_H

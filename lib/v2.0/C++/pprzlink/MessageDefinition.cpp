@@ -116,4 +116,14 @@ namespace pprzlink {
     }
     return size;
   }
+
+  bool MessageDefinition::isRequest() const
+  {
+      std::string req = "_REQ";
+      if (name.length() >= req.length()) {
+          return (0 == name.compare (name.length() - req.length(), req.length(), req));
+      } else {
+          return false;
+      }
+  }
 }

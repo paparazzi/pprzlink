@@ -30,6 +30,7 @@
 #include <pprzlink/MessageDictionary.h>
 #include <ivy-c++/Ivy.h>
 #include <pprzlink/Message.h>
+#include <boost/bimap.hpp>
 
 namespace pprzlink {
   class MessageCallback;
@@ -85,12 +86,18 @@ namespace pprzlink {
      */
     void sendMessage(const Message& msg);
 
+    long sendRequest(const Message& msg, messageCallback_t cb);
+
   private:
     const MessageDictionary &dictionary;
     std::string domain;
     std::string appName;
     Ivy *bus;
     bool threaded;
+    unsigned int requestNb;
+    boost::bimap<std::string, long> requestBindId;
+
+    void getMessageData(const Message& msg, std::string &ac_id, std::string &name, std::string &fieldStream);
 
     /**
      *

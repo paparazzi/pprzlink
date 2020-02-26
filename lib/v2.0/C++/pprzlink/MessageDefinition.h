@@ -56,6 +56,8 @@ namespace pprzlink {
 
     [[nodiscard]] size_t getMinimumSize() const;
 
+    [[nodiscard]] bool isRequest() const;
+
   private:
     uint8_t classId;
     uint8_t id;
