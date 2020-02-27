@@ -268,13 +268,9 @@ namespace pprzlink {
 
     std::stringstream regexpStream;
     regexpStream << "^" << requestId << " ([^ ]*) " << messageRegexp(ansDef);
-    std::cout << regexpStream.str() << std::endl;
     auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
     messagesCallbackMap[id] = mcb;
     requestBindId.insert({requestId, id});
-
-    std::cout << "sendRequest requestBindId size: " << requestBindId.size() << std::endl;
-
     bus->SendMsg("%s %s %s %s",ac_id.c_str(), requestId.c_str(), def.getName().c_str(), fields.c_str());
 
     return id;
@@ -293,7 +289,6 @@ namespace pprzlink {
 
     std::stringstream regexpStream;
     regexpStream << "^([^ ]*) ([^ ]*) " << messageRegexp(def);
-    std::cout << regexpStream.str() << std::endl;
 
     auto mcb = new RequestCallback(dictionary, [=](std::string ac_id,Message msg) {
       auto answerMsg = cb(std::move(ac_id), std::move(msg));
@@ -303,7 +298,6 @@ namespace pprzlink {
       }
       sendMessage(answerMsg);
     });
-    std::cout << "bind to " << regexpStream.str() << std::endl;
     auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
     requestCallbackMap[id] = mcb;
 
