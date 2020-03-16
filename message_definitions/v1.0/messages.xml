@@ -774,6 +774,7 @@
       <field name="status" type="uint8" values="STOPPED|RUNNING|ERROR">General status of the logger</field>
       <field name="errno" type="uint8">Error number, depend of the logging system, provides detailed information</field>
       <field name="used" type="uint32" unit="bytes">Accumulated number of bytes written by the logger</field>
+      <field name="filenames" type="char[]">The filenames currently in use by the logger (First sdlog, second Flight recorder for chibios)</field>
     </message>
 
     <!-- 93 is free -->
@@ -1468,6 +1469,7 @@
       <field name="innov_tas"             type="float"/>
       <field name="innov_hagl"            type="float"/>
       <field name="innov_beta"            type="float"/>
+      <field name="mag_decl"              type="float" unit="deg">Magnetic declination</field>
     </message>
 
     <message name="ROTORCRAFT_CAM" id="168">
@@ -1486,8 +1488,27 @@
       <field name="body_qz" type="int32"/>
     </message>
 
-    <!-- 170 is free -->
-    <!-- 171 is free -->
+    <message name="INS_EKF2_EXT" id="170">
+      <field name="gps_drift_h" type="float" unit="m/s">Horizontal position drift rate (m/s)</field>
+      <field name="gps_drift_v" type="float" unit="m/s">Vertical position drift rate (m/s)</field>
+      <field name="gps_drift_h_filt" type="float" unit="m/s">Filtered horizontal velocity (m/s)</field>
+      <field name="gps_drift_blocked" type="uint8">The GPS drift calculation is blocked</field>
+      <field name="gyro_vibe_coning" type="float">Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)</field>
+      <field name="gyro_vibe_hf" type="float">Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)</field>
+      <field name="accel_vibe_hf" type="float">Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)</field>
+    </message>
+
+    <message name="AHRS_BIAS" id="171">
+      <field name="accel_x" type="float" unit="m/s^2">Accelerometer bias x-axis</field>
+      <field name="accel_y" type="float" unit="m/s^2">Accelerometer bias y-axis</field>
+      <field name="accel_z" type="float" unit="m/s^2">Accelerometer bias z-axis</field>
+      <field name="gyro_p" type="float" unit="rad/sec">Gyrometer bias roll rate</field>
+      <field name="gyro_q" type="float" unit="rad/sec">Gyrometer bias pitch rate</field>
+      <field name="gyro_r" type="float" unit="rad/sec">Gyrometer bias yaw rate</field>
+      <field name="mag_x" type="float" unit="mGauss">Magnetometer x-bias in mGauss</field>
+      <field name="mag_y" type="float" unit="mGauss">Magnetometer y-bias in mGauss</field>
+      <field name="mag_z" type="float" unit="mGauss">Magnetometer z-bias in mGauss</field>
+    </message>
     <!-- 172 is free -->
 
     <message name="AHRS_EULER" id="173">
@@ -1680,7 +1701,15 @@
       <field name="p" type="float" unit="pascal"/>
     </message>
 
-    <!-- 211 is free -->
+    <message name="WINDTUNNEL_MEAS" id="211">
+      <field name="aoa" type="float" unit="deg">Angle of attack</field>
+      <field name="airspeed" type="float" unit="m/s">Airspeed measured</field>
+      <field name="voltage" type="float" unit="V">Voltage measured</field>
+      <field name="current" type="float" unit="A">Current measured</field>
+      <field name="power" type="float" unit="W">Calculated power (Voltage * Current)</field>
+      <field name="commands" type="int32[]">Commands send to actuators</field>
+    </message>
+
     <!-- 212 is free -->
 
     <message name="TUNE_VERT" id="213">
