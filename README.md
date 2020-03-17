@@ -196,7 +196,7 @@ Implement some required callbacks (definitions can be found in `pprzlink/pprzlin
 
     uint8_t rx_buffer[255];
 
-    void new_message(uint8_t sender_id, uint8_t receiver_id, uint8_t class_id, uint8_t message_id, uint8_t *buf) {
+    void new_message(uint8_t sender_id, uint8_t receiver_id, uint8_t class_id, uint8_t message_id, uint8_t *buf, void *user_data) {
       // check message/class IDs to before extracting data from the messages
       if (message_id == PPRZ_MSG_ID_GPS) {
         // get data from GPS
@@ -212,8 +212,10 @@ Implement some required callbacks (definitions can be found in `pprzlink/pprzlin
 Init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
 
     // somewhere in your init section
-    struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char, rx_buffer);
+    struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char, rx_buffer, (void *)&user_data);
 
+Where `user_data` is a pointer to a structure that you may want to pass at init and use in the `new_message` callback. If no user data are needed, just pass `NULL` as argument value.
 Parse messages by calling this function in your mainloop:
 
     pprzlink_check_and_parse(&dev_rx, new_message);
+
