@@ -119,12 +119,12 @@ let types = [
 ]
 
 let is_array_type = fun s ->
-  let n = CompatPL.bytes_length s in
-  n >= 2 && CompatPL.bytes_sub s (n-2) 2 = "[]"
+  let n = Bytes.length s in
+  n >= 2 && Bytes.sub s (n-2) 2 = "[]"
 
 let type_of_array_type = fun s ->
-  let n = CompatPL.bytes_length s in
-  CompatPL.bytes_sub s 0 (n-2)
+  let n = Bytes.length s in
+  Bytes.sub s 0 (n-2)
 
 let is_fixed_array_type = fun s ->
   let type_parts = Str.full_split (Str.regexp "[][]") s in
@@ -184,13 +184,13 @@ let rec string_of_value = function
   | Float x -> string_of_float x
   | Int32 x -> Int32.to_string x
   | Int64 x -> Int64.to_string x
-  | Char c -> CompatPL.bytes_make 1 c
+  | Char c -> Bytes.make 1 c
   | String s -> s
   | Array a ->
       let l = (Array.to_list (Array.map string_of_value a)) in
       match a.(0) with
-      | Char _ -> "\""^(CompatPL.bytes_concat "" l)^"\""
-      | _ -> CompatPL.bytes_concat separator l
+      | Char _ -> "\""^(Bytes.concat "" l)^"\""
+      | _ -> Bytes.concat separator l
 
 
 let rec formatted_string_of_value = fun format v ->
@@ -205,8 +205,8 @@ let rec formatted_string_of_value = fun format v ->
     | Array a ->
         let l = (Array.to_list (Array.map (formatted_string_of_value format) a)) in
         match a.(0) with
-        | Char _ -> "\""^(CompatPL.bytes_concat "" l)^"\""
-        | _ -> CompatPL.bytes_concat separator l
+        | Char _ -> "\""^(Bytes.concat "" l)^"\""
+        | _ -> Bytes.concat separator l
 
 
 let sizeof = fun f ->
@@ -339,7 +339,7 @@ let field_of_xml = fun xml ->
     { _type = t; fformat = f; alt_unit_coef = auc; enum=values })
 
 let string_of_values = fun vs ->
-  CompatPL.bytes_concat " " (List.map (fun (a,v) -> sprintf "%s=%s" a (string_of_value v)) vs)
+  Bytes.concat " " (List.map (fun (a,v) -> sprintf "%s=%s" a (string_of_value v)) vs)
 
 let assoc = fun a vs ->
   try List.assoc (CompatPL.lowercase_ascii a) vs with Not_found ->
@@ -452,7 +452,7 @@ let rec value_of_bin = fun buffer index _type ->
          (fun i -> fst (value_of_bin buffer (index+0+i*s) type_of_elt))), size)
     | Scalar "string" ->
       let n = Char.code buffer.[index] in
-      (String (CompatPL.bytes_sub buffer (index+1) n), (1+n))
+      (String (Bytes.sub buffer (index+1) n), (1+n))
     | _ -> failwith "value_of_bin"
 
 let value_field = fun buf index field ->
@@ -466,7 +466,7 @@ let rec sprint_value = fun buf i _type v ->
       Scalar "uint8", Int x ->
         if x < 0 || x > 0xff then
           failwith (sprintf "Value too large to fit in a uint8: %d" x);
-        CompatPL.bytes_set buf i (Char.chr x); sizeof _type
+        Bytes.set buf i (Char.chr x); sizeof _type
     | Scalar "int8", Int x ->
         if x < -0x7f || x > 0x7f then
           failwith (sprintf "Value too large to fit in a int8: %d" x);
@@ -478,26 +478,26 @@ let rec sprint_value = fun buf i _type v ->
     | Scalar "int16", Int x -> sprint_int16 buf i x; sizeof _type
     | Scalar ("int32" | "uint32"), Int value ->
         assert (_type <> Scalar "uint32" || value >= 0);
-        CompatPL.bytes_set buf (i+3) (byte (value asr 24));
-        CompatPL.bytes_set buf (i+2) (byte (value lsr 16));
-        CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
-        CompatPL.bytes_set buf (i+0) (byte value);
+        Bytes.set buf (i+3) (byte (value asr 24));
+        Bytes.set buf (i+2) (byte (value lsr 16));
+        Bytes.set buf (i+1) (byte (value lsr 8));
+        Bytes.set buf (i+0) (byte value);
         sizeof _type
     | Scalar ("int64" | "uint64"), Int value ->
         assert (_type <> Scalar "uint64" || value >= 0);
-        CompatPL.bytes_set buf (i+7) (byte (value asr 56));
-        CompatPL.bytes_set buf (i+6) (byte (value lsr 48));
-        CompatPL.bytes_set buf (i+5) (byte (value lsr 40));
-        CompatPL.bytes_set buf (i+4) (byte (value lsr 32));
-        CompatPL.bytes_set buf (i+3) (byte (value lsr 24));
-        CompatPL.bytes_set buf (i+2) (byte (value lsr 16));
-        CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
-        CompatPL.bytes_set buf (i+0) (byte value);
+        Bytes.set buf (i+7) (byte (value asr 56));
+        Bytes.set buf (i+6) (byte (value lsr 48));
+        Bytes.set buf (i+5) (byte (value lsr 40));
+        Bytes.set buf (i+4) (byte (value lsr 32));
+        Bytes.set buf (i+3) (byte (value lsr 24));
+        Bytes.set buf (i+2) (byte (value lsr 16));
+        Bytes.set buf (i+1) (byte (value lsr 8));
+        Bytes.set buf (i+0) (byte value);
         sizeof _type
     | Scalar "uint16", Int value ->
         assert (value >= 0);
-        CompatPL.bytes_set buf (i+1) (byte (value lsr 8));
-        CompatPL.bytes_set buf (i+0) (byte value);
+        Bytes.set buf (i+1) (byte (value lsr 8));
+        Bytes.set buf (i+0) (byte value);
         sizeof _type
     | ArrayType t, Array values ->
         (** Put the size first, then the values *)
@@ -520,7 +520,7 @@ let rec sprint_value = fun buf i _type v ->
         (* add padding 0 at the end if needed *)
         if l > n then
           for j = n*s to l*s-1 do
-            CompatPL.bytes_set buf (i+j) (Char.chr 0)
+            Bytes.set buf (i+j) (Char.chr 0)
         done;
         0 + l * s
     | ArrayType "char", String value ->
@@ -530,16 +530,16 @@ let rec sprint_value = fun buf i _type v ->
         sprint_value buf i (FixedArrayType ("char",l))
           (Array (Array.init (String.length value) (fun i -> Char (String.get value i))))
     | Scalar "string", String s ->
-        let n = CompatPL.bytes_length s in
+        let n = Bytes.length s in
         assert (n < 256);
         (** Put the length first, then the bytes *)
-        CompatPL.bytes_set buf i (Char.chr n);
-        if (i + n >= CompatPL.bytes_length buf) then
+        Bytes.set buf i (Char.chr n);
+        if (i + n >= Bytes.length buf) then
           failwith "Error in sprint_value: message too long";
-          CompatPL.bytes_blit s 0 buf (i+1) n;
+          Bytes.blit s 0 buf (i+1) n;
           1 + n
     | Scalar "char", Char c ->
-        CompatPL.bytes_set buf i c; sizeof _type
+        Bytes.set buf i c; sizeof _type
     | (Scalar x|ArrayType x), v -> failwith (sprintf "PprzLink.sprint_value (%s):%s,%s" x (string_of_value v) (string_type_of_value v))
     | FixedArrayType (x,l), v -> failwith (sprintf "PprzLink.sprint_value (%s[%d]:%s,%s)" x l (string_of_value v) (string_type_of_value v))
 
@@ -549,13 +549,13 @@ let hex_of_int_array = function
 Array array ->
   let n = Array.length array in
       (* One integer -> 2 chars *)
-  let s = CompatPL.bytes_create (2*n) in
+  let s = Bytes.create (2*n) in
   Array.iteri
     (fun i dec ->
       let x = int_of_value array.(i) in
       assert (0 <= x && x <= 0xff);
       let hex = sprintf "%02x" x in
-      CompatPL.bytes_blit hex 0 s (2*i) 2)
+      Bytes.blit hex 0 s (2*i) 2)
     array;
   s
   | value ->
@@ -657,7 +657,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
       let rec loop = fun index fields ->
         match fields with
             [] ->
-              if index = CompatPL.bytes_length buffer then
+              if index = Bytes.length buffer then
                 []
               else
                 failwith (sprintf "PprzLink.values_of_payload, too many bytes in message %s: %s" message.name (DebugPL.xprint buffer))
@@ -674,13 +674,13 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     let message = message_of_id id in
 
     (** The actual length is computed from the values *)
-    let p = CompatPL.bytes_make max_length '#' in
+    let p = Bytes.make max_length '#' in
 
-    CompatPL.bytes_set p offset_sender_id (Char.chr sender_id);
-    CompatPL.bytes_set p offset_receiver_id (Char.chr 0); (* for now, broadcast id *)
+    Bytes.set p offset_sender_id (Char.chr sender_id);
+    Bytes.set p offset_receiver_id (Char.chr 0); (* for now, broadcast id *)
     let id_of_class = match class_id with None -> 0 | Some id -> id in (* if class id is not defined (e.g. ground class) it means that this function should not be called either *)
-    CompatPL.bytes_set p offset_class_id (Char.chr id_of_class); (* for now, component id is set to 0 *)
-    CompatPL.bytes_set p offset_msg_id (Char.chr id);
+    Bytes.set p offset_class_id (Char.chr id_of_class); (* for now, component id is set to 0 *)
+    Bytes.set p offset_msg_id (Char.chr id);
     let i = ref offset_fields in
     List.iter
       (fun (field_name, field) ->
@@ -693,7 +693,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
       message.fields;
 
     (** Cut to the actual length *)
-    let p = CompatPL.bytes_sub p 0 !i in
+    let p = Bytes.sub p 0 !i in
     Protocol.payload_of_string p
 
 
@@ -732,7 +732,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
         then invalid_arg (sprintf "PprzLink.string_of_message: unknown field '%s' in message '%s'" k msg.name))
       values;
 
-    CompatPL.bytes_concat sep
+    Bytes.concat sep
       (msg.name::
          List.map
      (fun (field_name, field) ->
@@ -751,7 +751,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
           None -> ""
         | Some x -> sprintf "%f " x in
     let msg = sprintf "%s%s %s" timestamp_string sender s in
-    let n = CompatPL.bytes_length msg in
+    let n = Bytes.length msg in
     if n > 10000 then (** prevent really long Ivy message, should not happen with normal usage *)
       fprintf stderr "Discarding long ivy message %s (%d bytes)\n%!" msg_name n
     else
@@ -759,15 +759,15 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
         None -> Ivy.send msg
       | Some the_link_id -> begin
         let index = ref 0 in
-        let modified_msg = CompatPL.bytes_copy msg in
+        let modified_msg = Bytes.copy msg in
         let func = fun c ->
           match c with
             ' ' -> begin
-            CompatPL.bytes_set modified_msg !index ';';
+            Bytes.set modified_msg !index ';';
             index := !index + 1
             end
           | x -> index := !index + 1; in
-        CompatPL.bytes_iter func modified_msg;
+        Bytes.iter func modified_msg;
         Ivy.send (Printf.sprintf "redlink TELEMETRY_MESSAGE %s %i %s" sender the_link_id modified_msg);
       end
 
