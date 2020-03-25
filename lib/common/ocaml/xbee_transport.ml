@@ -29,17 +29,17 @@ module Transport = struct
   let size_packet = 4
 
   let index_start = fun s ->
-    Bytes.index s start_delimiter
+    String.index s start_delimiter
 
   let length = fun s i ->
-    if Bytes.length s < i+offset_length+2 then
+    if String.length s < i+offset_length+2 then
       raise Protocol.Not_enough
     else
       (Char.code s.[i+offset_length] lsl 8) lor (Char.code s.[i+offset_length+1]) + size_packet
 
   let compute_checksum = fun s ->
     let cs = ref 0 in
-    for i = offset_payload to Bytes.length s - 2 do
+    for i = offset_payload to String.length s - 2 do
       cs := (!cs + Char.code s.[i]) land 0xff
     done;
     0xff - !cs
@@ -47,13 +47,13 @@ module Transport = struct
   let checksum = fun s ->
     let c = compute_checksum s in
     DebugPL.call 'x' (fun f -> Printf.fprintf f "XB.cs=%x\n" c);
-    c = Char.code s.[Bytes.length s-1]
+    c = Char.code s.[String.length s-1]
 
   let payload = fun s ->
-    Protocol.payload_of_string (Bytes.sub s offset_payload (Bytes.length s - size_packet))
+    Protocol.payload_of_string (String.sub s offset_payload (String.length s - size_packet))
 
   let packet = fun payload ->
-    let payload = Protocol.string_of_payload payload in
+    let payload = Protocol.bytes_of_payload payload in
     let n = Bytes.length payload in
     let msg_length = n + size_packet in
     let m = Bytes.create msg_length in
@@ -61,9 +61,9 @@ module Transport = struct
     Bytes.set m 0 start_delimiter;
     Bytes.set m (offset_length) (Char.chr (n lsr 8));
     Bytes.set m (offset_length+1) (Char.chr (n land 0xff));
-    let cs = compute_checksum m in
+    let cs = compute_checksum (Bytes.to_string m) in
     Bytes.set m (msg_length-1) (Char.chr cs);
-    m
+    Bytes.to_string m
 end
 
 type frame_data = string
@@ -138,7 +138,7 @@ let api_tx64 = fun ?(frame_id = 0) dest data ->
   write_int64 s 2 dest;
   Bytes.set s (10+optional868) (Char.chr 0);
   Bytes.blit data 0 s (11+ optional868) n;
-  s
+  Bytes.to_string s
 
 let api_tx16 = fun ?(frame_id = 0) dest data ->
   check_not_in_868 "api_tx16";
@@ -153,7 +153,7 @@ let api_tx16 = fun ?(frame_id = 0) dest data ->
   write_int16 s 2 dest;
   Bytes.set s 4 (Char.chr 0);
   Bytes.blit data 0 s 5 n;
-  s
+  Bytes.to_string s
 
 
 let at_command_sequence = "+++"
@@ -176,13 +176,13 @@ let at_exit = "ATCN\r"
 let at_api_enable = "ATAP1\r"
 
 let api_parse_frame = fun s ->
-  let n = Bytes.length s in
+  let n = String.length s in
   assert(n>0);
   match s.[0] with
       x when x = api_at_command_response_id ->
         assert(n >= 5);
-        AT_Command_Response (Char.code s.[1], Bytes.sub s 2 2,
-                             Char.code s.[4], Bytes.sub s 5 (n-5))
+        AT_Command_Response (Char.code s.[1], String.sub s 2 2,
+                             Char.code s.[4], String.sub s 5 (n-5))
     | x when not !mode868 && x = api_tx_status_id ->
       assert(n = 3);
       TX_Status (Char.code s.[1], Char.code s.[2])
@@ -194,13 +194,13 @@ let api_parse_frame = fun s ->
     | x when not !mode868 && x = api_rx64_id ->
       assert(n >= 11);
       RX_Packet_64 (read_int64 s 1, Char.code s.[9],
-                    Char.code s.[10], Bytes.sub s 11 (n-11))
+                    Char.code s.[10], String.sub s 11 (n-11))
     | x when !mode868 && x = api868_rx64_id ->
       let idx_data = 12 in
       assert(n >= idx_data);
       RX868_Packet (read_int64 s 1,
-                    Char.code s.[11], Bytes.sub s idx_data (n-idx_data))
+                    Char.code s.[11], String.sub s idx_data (n-idx_data))
     | x when not !mode868 && (x = api_rx16_id || x = api_tx16_id) ->
       (* tx16 here allows to receive simulated xbee messages *)
-      RX_Packet_16 (read_int16 s 1, Char.code s.[3], Char.code  s.[4], Bytes.sub s 5 (n-5))
+      RX_Packet_16 (read_int16 s 1, Char.code s.[3], Char.code  s.[4], String.sub s 5 (n-5))
     | x -> failwith (Printf.sprintf "Xbee.parse_frame: unknown frame id '%d'" (Char.code x))
