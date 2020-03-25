@@ -26,6 +26,8 @@ type payload
 
 val string_of_payload : payload -> string
 val payload_of_string : string -> payload
+val bytes_of_payload : payload -> bytes
+val payload_of_bytes : bytes -> payload
 
 exception Not_enough
 

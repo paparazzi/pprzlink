@@ -23,11 +23,11 @@
  *)
 
 IFDEF OCAML_V404 THEN
-let lowercase_ascii = fun s -> Bytes.to_string (Bytes.lowercase_ascii s)
+let lowercase_ascii = String.lowercase_ascii
 
-let uppercase_ascii = fun s -> Bytes.to_string (Bytes.uppercase_ascii s)
+let uppercase_ascii = String.uppercase_ascii
 
-let capitalize_ascii = fun s -> Bytes.to_string (Bytes.capitalize_ascii s)
+let capitalize_ascii = String.capitalize_ascii
 
 ELSE
 let lowercase_ascii = String.lowercase
