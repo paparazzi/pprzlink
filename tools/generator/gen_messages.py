@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 parse a PPRZ protocol XML file and generate appropriate implementation
@@ -39,8 +39,7 @@ def gen_messages(opts) :
     # Enable validation by default, disabling it if explicitly requested
     if opts.validate:
         try:
-            from lib.genxmlif import GenXmlIfError
-            from lib.minixsv import pyxsval
+            from lxml import etree
         except:
             print("WARNING: Unable to load XML validator libraries. XML validation will not be performed")
             opts.validate = False
@@ -48,13 +47,12 @@ def gen_messages(opts) :
     def pprz_validate(fname, schema, errorLimitNumber) :
         """Uses minixsv to validate an XML file with a given XSD schema file. We define pprz_validate
            here because it relies on the XML libs that were loaded in gen_messages(), so it can't be called standalone"""
-        # use default values of minixsv, location of the schema file must be specified in the XML file
         try:
-            domTreeWrapper = pyxsval.parseAndValidate(fname, xsdFile=schema, errorLimit=errorLimitNumber)
-        except pyxsval.XsvalError as errstr:
-            print(errstr)
-            return 1
-        except GenXmlIfError as errstr:
+            xmlschema_doc = etree.parse(schema)
+            xmlschema = etree.XMLSchema(xmlschema_doc)
+            f_doc = etree.parse(fname)
+            xmlschema.assertValid(f_doc)
+        except Exception as errstr:
             print(errstr)
             return 1
         return 0
