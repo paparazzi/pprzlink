@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''
 parse a PPRZLink protocol XML file and generate a C implementation
 for version 2.0 of the protocol
