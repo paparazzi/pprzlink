@@ -22,7 +22,6 @@ schemaFileName = "pprz_schema.xsd"
 DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_2_0
 DEFAULT_MESSAGES = pprz_parse.MESSAGES_1_0
 DEFAULT_LANGUAGE = 'C'
-DEFAULT_ERROR_LIMIT = 200
 DEFAULT_VALIDATE = True
 
 # List the supported languages. This is done globally because it's used by the GUI wrapper too
@@ -44,7 +43,7 @@ def gen_messages(opts) :
             print("WARNING: Unable to load XML validator libraries. XML validation will not be performed")
             opts.validate = False
 
-    def pprz_validate(fname, schema, errorLimitNumber) :
+    def pprz_validate(fname, schema) :
         """Uses minixsv to validate an XML file with a given XSD schema file. We define pprz_validate
            here because it relies on the XML libs that were loaded in gen_messages(), so it can't be called standalone"""
         try:
@@ -71,7 +70,7 @@ def gen_messages(opts) :
                 sys.exit(1)
         print("Validating msg_class %s in %s with %s" % (opts.class_name, fname, schemaFile))
 
-        validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
+        validation_result = pprz_validate(fname, schemaFile)
     else:
         print("Validation skipped for msg_class %s in %s." % (opts.class_name, fname))
 
@@ -110,7 +109,6 @@ if __name__ == "__main__":
     parser.add_argument("--messages", choices=[pprz_parse.MESSAGES_1_0], default=DEFAULT_MESSAGES, help="PPRZLink message definitino version. [default: %(default)s]")
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
     parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")
-    parser.add_argument("--error-limit", default=DEFAULT_ERROR_LIMIT, help="maximum number of validation errors to display")
     parser.add_argument("--opt", default='', help="extra options that can be passed to the generator")
     parser.add_argument("definition", metavar="XML", help="PPRZLink messages definition")
     parser.add_argument("class_name", help="PPRZLink message class to parse and generate")
