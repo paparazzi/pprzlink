@@ -180,7 +180,7 @@ namespace pprzlink {
       if (def.getClassId()==classId)
         result.push_back(def);
     }
-    return std::move(result);
+    return result;
   }
 }
 
