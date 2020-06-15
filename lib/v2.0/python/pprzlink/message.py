@@ -181,7 +181,7 @@ class PprzMessage(object):
             if "char[" in t:
                 str_value =''
                 for c in self.fieldvalues[idx]:
-                    if sys.version_info >= (3,):
+                    if isinstance(c, bytes):
                         str_value += c.decode()
                     else:
                         str_value += c
