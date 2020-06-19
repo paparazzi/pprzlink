@@ -496,7 +496,19 @@
       <field name="elevator_sp"  type="int16" unit="pprz"/>
     </message>
 
-    <!-- 61 is free -->
+    <message name="QUATS" id="61">
+      <field name="Q1_cur" type="float"/>
+      <field name="Q2_cur" type="float"/>
+      <field name="Q3_cur" type="float"/>
+      <field name="Q4_cur" type="float"/>
+      <field name="Q1_des" type="float"/>
+      <field name="Q2_des" type="float"/>
+      <field name="Q3_des" type="float"/>
+      <field name="Q4_des" type="float"/>
+      <field name="Q1_err" type="float"/>
+      <field name="Q2_err" type="float"/>
+      <field name="Q3_err" type="float"/>
+    </message>
 
     <message name="TURB_PRESSURE_VOLTAGE" id="62">
       <field name="ch_1_p" type="float"/>
