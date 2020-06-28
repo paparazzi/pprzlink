@@ -635,6 +635,7 @@
       </description>
       <field name="traj" type="uint8">Kind of trajectory</field>
       <field name="s" type="int8" values="1|-1">Direction to be followed</field>
+      <field name="w" type="float">Virtual coordinate of the algorithm</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
       <field name="phi" type="float[]" unit="m">Error signals</field>
     </message>
