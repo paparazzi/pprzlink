@@ -109,6 +109,7 @@ struct pprzlink_device_rx {
   uint8_t payload_idx;
   uint8_t status;
   uint8_t ck_a, ck_b;
+  void *user_data;
 };
 
 /** Init RX device
@@ -117,7 +118,7 @@ struct pprzlink_device_rx {
  * @param pc function pointer to get the next byte
  * @param buf pointer to the input payload buffer, should be long enough to parse any type of incoming messages (always less than 255 bytes)
  */
-static inline struct pprzlink_device_rx pprzlink_device_rx_init(char_available_t ca, get_char_t gc, uint8_t *buf) {
+static inline struct pprzlink_device_rx pprzlink_device_rx_init(char_available_t ca, get_char_t gc, uint8_t *buf, void *user_data) {
   struct pprzlink_device_rx dev;
   dev.char_available = ca;
   dev.get_char = gc;
@@ -126,6 +127,7 @@ static inline struct pprzlink_device_rx pprzlink_device_rx_init(char_available_t
   dev.msg_received = false;
   dev.ck_a = 0;
   dev.ck_b = 0;
+  dev.user_data = user_data;
   return dev;
 }
 
@@ -183,9 +185,9 @@ restart:
 }
 
 /** New message callback
- *  parameters: sender id, receiver id, class id, message id, payload buffer
+ *  parameters: sender id, receiver id, class id, message id, payload buffer, user_data pointer
  */
-typedef void (*new_message_t)(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t*);
+typedef void (*new_message_t)(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t*, void*);
 
 /** Check and parse, call function on new message received
  */
@@ -200,7 +202,7 @@ static inline void pprzlink_check_and_parse(struct pprzlink_device_rx *dev, new_
       uint8_t receiver_id = dev->payload[1];
       uint8_t class_id = dev->payload[2];
       uint8_t message_id = dev->payload[3];
-      new_message(sender_id, receiver_id, class_id, message_id, dev->payload);
+      new_message(sender_id, receiver_id, class_id, message_id, dev->payload, dev->user_data);
       dev->msg_received = false;
     }
   }
