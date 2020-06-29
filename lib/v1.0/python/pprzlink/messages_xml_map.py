@@ -85,9 +85,13 @@ def parse_messages(messages_file=''):
                     message_dictionary_coefs[class_name][message_id].append(1.)
 
 
-def find_msg_by_name(name):
-    if not message_dictionary:
+def _ensure_message_dictionary():
+    if message_dictionary is None:
         parse_messages()
+
+
+def find_msg_by_name(name):
+    _ensure_message_dictionary()
     for msg_class in message_dictionary:
         if name in message_dictionary[msg_class]:
             #print("found msg name %s in class %s" % (name, msg_class))
@@ -97,8 +101,7 @@ def find_msg_by_name(name):
 
 
 def get_msgs(msg_class):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     if msg_class in message_dictionary:
         return message_dictionary[msg_class]
     else:
@@ -107,8 +110,7 @@ def get_msgs(msg_class):
 
 
 def get_msg_name(msg_class, msg_id):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     if msg_class in message_dictionary:
         if msg_id in message_dictionary_id_name[msg_class]:
             return message_dictionary_id_name[msg_class][msg_id]
@@ -120,8 +122,7 @@ def get_msg_name(msg_class, msg_id):
 
 
 def get_msg_fields(msg_class, msg_name):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     if msg_class in message_dictionary:
         if msg_name in message_dictionary[msg_class]:
             return message_dictionary[msg_class][msg_name]
@@ -133,8 +134,7 @@ def get_msg_fields(msg_class, msg_name):
 
 
 def get_msg_id(msg_class, msg_name):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     try:
         return message_dictionary_name_id[msg_class][msg_name]
     except KeyError:
@@ -143,8 +143,7 @@ def get_msg_id(msg_class, msg_name):
 
 
 def get_msg_fieldtypes(msg_class, msg_id):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     if msg_class in message_dictionary_types:
         if msg_id in message_dictionary_types[msg_class]:
             return message_dictionary_types[msg_class][msg_id]
@@ -155,8 +154,7 @@ def get_msg_fieldtypes(msg_class, msg_id):
     return []
 
 def get_msg_fieldcoefs(msg_class, msg_id):
-    if not message_dictionary:
-        parse_messages()
+    _ensure_message_dictionary()
     if msg_class in message_dictionary_coefs:
         if msg_id in message_dictionary_coefs[msg_class]:
             return message_dictionary_coefs[msg_class][msg_id]
