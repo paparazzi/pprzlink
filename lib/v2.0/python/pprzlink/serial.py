@@ -2,9 +2,14 @@ from __future__ import absolute_import, division, print_function
 
 import threading
 import serial
+import logging
+
 
 from pprzlink.message import PprzMessage
 from pprzlink.pprz_transport import PprzTransport
+
+
+logger = logging.getLogger("PprzLink")
 
 
 class SerialMessagesInterface(threading.Thread):
@@ -19,12 +24,12 @@ class SerialMessagesInterface(threading.Thread):
         try:
             self.ser = serial.Serial(device, baudrate, timeout=1.0)
         except serial.SerialException:
-            print("Error: unable to open serial port '%s'" % device)
+            logger.error("Error: unable to open serial port '%s'" % device)
             exit(0)
         self.trans = PprzTransport(msg_class)
 
     def stop(self):
-        print("End thread and close serial link")
+        logger.info("End thread and close serial link")
         self.running = False
         self.ser.close()
 
@@ -53,8 +58,8 @@ class SerialMessagesInterface(threading.Thread):
                 if len(c) == 1:
                     if self.trans.parse_byte(c):
                         (sender_id, receiver_id, component_id, msg) = self.trans.unpack()
-                        if self.verbose:
-                            print("New incoming message '%s' from %i (%i) to %i" % (msg.name, sender_id, component_id, receiver_id))
+                        if self.verbose:  # See the note on the same line in v1.0
+                            logger.info("New incoming message '%s' from %i (%i) to %i" % (msg.name, sender_id, component_id, receiver_id))
                         # Callback function on new message
                         if self.id == receiver_id:
                             self.callback(sender_id, msg)
