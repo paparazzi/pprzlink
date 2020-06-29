@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import os
+import logging
 
 # if PAPARAZZI_HOME is set use $PAPARAZZI_HOME/var/messages.xml
 # else assume this file is installed in var/lib/python/pprzlink
@@ -26,6 +27,9 @@ message_dictionary_name_id = {}
 message_dictionary_class_id_name = {}
 message_dictionary_class_name_id = {}
 message_dictionary_broadcast = {}
+
+logger = logging.getLogger("PprzLink")
+
 
 class MessagesNotFound(Exception):
     def __init__(self, filename):
@@ -106,7 +110,7 @@ def find_msg_by_name(name):
         if name in message_dictionary[msg_class]:
             #print("found msg name %s in class %s" % (name, msg_class))
             return msg_class, name
-    print("Error: msg_name %s not found." % name)
+    logger.error("Error: msg_name %s not found." % name)
     return None, None
 
 
@@ -115,7 +119,7 @@ def get_msgs(msg_class):
     if msg_class in message_dictionary:
         return message_dictionary[msg_class]
     else:
-        print("Error: msg_class %s not found." % msg_class)
+        logger.error("Error: msg_class %s not found." % msg_class)
     return []
 
 
@@ -124,7 +128,7 @@ def get_class_name(class_id):
     if class_id in message_dictionary_class_id_name:
         return message_dictionary_class_id_name[class_id]
     else:
-        print("Error: class_id %d not found." % class_id)
+        logger.error("Error: class_id %d not found." % class_id)
     return None
 
 def get_class_id(class_name):
@@ -132,7 +136,7 @@ def get_class_id(class_name):
     if class_name in message_dictionary_class_name_id:
         return message_dictionary_class_name_id[class_name]
     else:
-        print("Error: class_name %s not found." % class_name)
+        logger.error("Error: class_name %s not found." % class_name)
     return None
 
 
@@ -142,9 +146,9 @@ def get_msg_name(msg_class, msg_id):
         if msg_id in message_dictionary_id_name[msg_class]:
             return message_dictionary_id_name[msg_class][msg_id]
         else:
-            print("Error: msg_id %d not found in msg_class %s." % (msg_id, msg_class))
+            logger.error("Error: msg_id %d not found in msg_class %s." % (msg_id, msg_class))
     else:
-        print("Error: msg_class %s not found." % msg_class)
+        logger.error("Error: msg_class %s not found." % msg_class)
     return ""
 
 
@@ -154,9 +158,9 @@ def get_msg_fields(msg_class, msg_name):
         if msg_name in message_dictionary[msg_class]:
             return message_dictionary[msg_class][msg_name]
         else:
-            print("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
+            logger.error("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
     else:
-        print("Error: msg_class %s not found." % msg_class)
+        logger.error("Error: msg_class %s not found." % msg_class)
     return []
 
 
@@ -165,7 +169,7 @@ def get_msg_id(msg_class, msg_name):
     try:
         return message_dictionary_name_id[msg_class][msg_name]
     except KeyError:
-        print("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
+        logger.error("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
         return 0
 
 
@@ -175,9 +179,9 @@ def get_msg_fieldtypes(msg_class, msg_id):
         if msg_id in message_dictionary_types[msg_class]:
             return message_dictionary_types[msg_class][msg_id]
         else:
-            print("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+            logger.error("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
     else:
-        print("Error: msg_class %s not found." % msg_class)
+        logger.error("Error: msg_class %s not found." % msg_class)
     return []
 
 def get_msg_fieldcoefs(msg_class, msg_id):
@@ -186,9 +190,9 @@ def get_msg_fieldcoefs(msg_class, msg_id):
         if msg_id in message_dictionary_coefs[msg_class]:
             return message_dictionary_coefs[msg_class][msg_id]
         else:
-            print("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+            logger.error("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
     else:
-        print("Error: msg_class %s not found." % msg_class)
+        logger.error("Error: msg_class %s not found." % msg_class)
     return []
 
 
