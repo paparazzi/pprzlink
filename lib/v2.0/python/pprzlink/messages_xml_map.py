@@ -3,7 +3,6 @@
 from __future__ import absolute_import, print_function
 
 import os
-import logging
 
 # if PAPARAZZI_HOME is set use $PAPARAZZI_HOME/var/messages.xml
 # else assume this file is installed in var/lib/python/pprzlink
@@ -28,7 +27,6 @@ message_dictionary_class_id_name = {}
 message_dictionary_class_name_id = {}
 message_dictionary_broadcast = {}
 
-logger = logging.getLogger("PprzLink")
 
 
 class MessagesNotFound(Exception):
