@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 
 import threading
 import socket
+import logging
 
 # load pprzlink messages and transport
 from .message import PprzMessage
@@ -13,6 +14,9 @@ from .pprz_transport import PprzTransport
 # default port
 UPLINK_PORT = 4243
 DOWNLINK_PORT = 4242
+
+
+logger = logging.getLogger("PprzLink")
 
 
 class UdpMessagesInterface(threading.Thread):
@@ -33,12 +37,12 @@ class UdpMessagesInterface(threading.Thread):
             self.server.settimeout(2.0)
             self.server.bind(('0.0.0.0', self.downlink_port))
         except OSError:
-            print("Error: unable to open socket on ports '%d' (up) and '%d' (down)" % (self.uplink_port, self.downlink_port))
+            logger.error("Error: unable to open socket on ports '%d' (up) and '%d' (down)" % (self.uplink_port, self.downlink_port))
             exit(0)
         self.trans = PprzTransport(msg_class)
 
     def stop(self):
-        print("End thread and close UDP link")
+        logger.info("End thread and close UDP link")
         self.running = False
         self.server.close()
 
@@ -72,8 +76,8 @@ class UdpMessagesInterface(threading.Thread):
                         if self.trans.parse_byte(c):
                             (sender_id, msg) = self.trans.unpack()
                             if self.verbose:
-                                print("New incoming message '%s' from %i (%s)" % (msg.name, sender_id, address))
-                            # Callback function on new message 
+                                logger.info("New incoming message '%s' from %i (%s)" % (msg.name, sender_id, address))
+                            # Callback function on new message
                             self.callback(sender_id, address, msg, length)
                 except socket.timeout:
                     pass

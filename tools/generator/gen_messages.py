@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 parse a PPRZ protocol XML file and generate appropriate implementation
@@ -19,14 +19,13 @@ import pprz_parse
 schemaFileName = "pprz_schema.xsd"
 
 # Set defaults for generating MAVLink code
-DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_1_0
+DEFAULT_PROTOCOL = pprz_parse.PROTOCOL_2_0
 DEFAULT_MESSAGES = pprz_parse.MESSAGES_1_0
 DEFAULT_LANGUAGE = 'C'
-DEFAULT_ERROR_LIMIT = 200
 DEFAULT_VALIDATE = True
 
 # List the supported languages. This is done globally because it's used by the GUI wrapper too
-supportedLanguages = ["C"]
+supportedLanguages = ["C", "C_standalone"]
 
 
 def gen_messages(opts) :
@@ -39,22 +38,20 @@ def gen_messages(opts) :
     # Enable validation by default, disabling it if explicitly requested
     if opts.validate:
         try:
-            from lib.genxmlif import GenXmlIfError
-            from lib.minixsv import pyxsval
+            from lxml import etree
         except:
             print("WARNING: Unable to load XML validator libraries. XML validation will not be performed")
             opts.validate = False
 
-    def pprz_validate(fname, schema, errorLimitNumber) :
+    def pprz_validate(fname, schema) :
         """Uses minixsv to validate an XML file with a given XSD schema file. We define pprz_validate
            here because it relies on the XML libs that were loaded in gen_messages(), so it can't be called standalone"""
-        # use default values of minixsv, location of the schema file must be specified in the XML file
         try:
-            domTreeWrapper = pyxsval.parseAndValidate(fname, xsdFile=schema, errorLimit=errorLimitNumber)
-        except pyxsval.XsvalError as errstr:
-            print(errstr)
-            return 1
-        except GenXmlIfError as errstr:
+            xmlschema_doc = etree.parse(schema)
+            xmlschema = etree.XMLSchema(xmlschema_doc)
+            f_doc = etree.parse(fname)
+            xmlschema.assertValid(f_doc)
+        except Exception as errstr:
             print(errstr)
             return 1
         return 0
@@ -73,7 +70,7 @@ def gen_messages(opts) :
                 sys.exit(1)
         print("Validating msg_class %s in %s with %s" % (opts.class_name, fname, schemaFile))
 
-        validation_result = pprz_validate(fname, schemaFile, opts.error_limit)
+        validation_result = pprz_validate(fname, schemaFile)
     else:
         print("Validation skipped for msg_class %s in %s." % (opts.class_name, fname))
 
@@ -94,6 +91,9 @@ def gen_messages(opts) :
     if opts.language == 'c':
         gen_message_c = __import__(xml.generator_module + "_c")
         gen_message_c.generate(opts.output, xml)
+    elif opts.language == 'c_standalone':
+        gen_message_c_standalone = __import__(xml.generator_module + "_c_standalone")
+        gen_message_c_standalone.generate(opts.output, xml, opts.opt)
     else:
         print("Unsupported language %s" % opts.language)
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("--messages", choices=[pprz_parse.MESSAGES_1_0], default=DEFAULT_MESSAGES, help="PPRZLink message definitino version. [default: %(default)s]")
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
     parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")
-    parser.add_argument("--error-limit", default=DEFAULT_ERROR_LIMIT, help="maximum number of validation errors to display")
+    parser.add_argument("--opt", default='', help="extra options that can be passed to the generator")
     parser.add_argument("definition", metavar="XML", help="PPRZLink messages definition")
     parser.add_argument("class_name", help="PPRZLink message class to parse and generate")
     args = parser.parse_args()

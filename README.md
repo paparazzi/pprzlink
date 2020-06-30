@@ -132,4 +132,90 @@ It's easy to construct messages to send over the ivy message bus. Here are a few
 
 TBD - Describe how to subscribe to message classes 
 
+## C standalone Library
+
+The C standalone library can be used when only a few messages using the PPRZ transport are expected (in comparison with the full C library where all messages are generated and both device and transport can be selected independently).
+This is usefull when implementing a program in C in an embedded computer talking to the autopilot through a serial port.
+It is a header only library, so there is no file to compile.
+
+### Generation of a C standalone messages parse
+
+Assuming we only need the GPS and ATTITUDE messages, either sending or receiving, the generation of the library is as follow:
+
+    ./tools/generator/gen_messages.py --protocol 2.0 --lang C_standalone -o build/pprzlink/my_pprz_messages.h message_definitions/v1.0/messages.xml telemetry --opt ATTITUDE,GPS
+
+The generated files will be placed in the folder `build/pprzlink` in this case. The folder `pprzlink` and the files it contains should be copied to your project directory (or any library folder part of your include paths).
+
+### Usage for sending
+
+Sending a message is done as follow:
+
+Include the library header
+
+    #include "pprzlink/my_pprz_messages.h"
+
+Implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `check_space`, `put_char`, `send_message` (or NULL if not needed)
+
+    int check_space(uint8_t n) {
+      // implement your check space function here
+    }
+
+    void put_char(uint8_t c) {
+      // implement your put char function here
+    }
+
+    void send_message(void) {
+      // implement your send message function here
+    }
+
+Init the TX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
+
+    // somewhere in your init section
+    struct pprzlink_device_tx dev_tx = pprzlink_device_tx_init(check_space, put_char, send_message /* or NULL */);
+
+Send messages (replace `...` with paramters, see definition in `pprzlink/my_pprz_messages.h`):
+
+    // in the case of GPS message
+    pprzlink_msg_send_GPS(&dev_tx, ...);
+
+### Usage for receiving
+
+Include the library header
+
+    #include "pprzlink/my_pprz_messages.h"
+
+Implement some required callbacks (definitions can be found in `pprzlink/pprzlink_standalone.h`): `char_available`, `get_char`, `new_message` as well as a buffer large enough to receive your messages (max 255 bytes):
+
+    int char_available(void) {
+      // implement your char available function here
+    }
+
+    uint8_t get_char(void) {
+      // implement your get char function here
+    }
+
+    uint8_t rx_buffer[255];
+
+    void new_message(uint8_t sender_id, uint8_t receiver_id, uint8_t class_id, uint8_t message_id, uint8_t *buf, void *user_data) {
+      // check message/class IDs to before extracting data from the messages
+      if (message_id == PPRZ_MSG_ID_GPS) {
+        // get data from GPS
+        int32_t east = pprzlink_get_GPS_utm_east(buf);
+        int32_t north = pprzlink_get_GPS_utm_north(buf);
+      }
+      else if (message_id == PPRZ_MSG_ID_ATTITUDE) {
+        // get data from ATTITUDE
+      }
+    }
+
+
+Init the RX structure (definitions can be found in `pprzlink/pprzlink_standalone.h`):
+
+    // somewhere in your init section
+    struct pprzlink_device_rx dev_rx = pprzlink_device_rx_init(char_available, get_char, rx_buffer, (void *)&user_data);
+
+Where `user_data` is a pointer to a structure that you may want to pass at init and use in the `new_message` callback. If no user data are needed, just pass `NULL` as argument value.
+Parse messages by calling this function in your mainloop:
+
+    pprzlink_check_and_parse(&dev_rx, new_message);
 

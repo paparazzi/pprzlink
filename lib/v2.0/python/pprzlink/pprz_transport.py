@@ -3,7 +3,7 @@ Paparazzi transport encoding utilities
 
 """
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 import struct
 from pprzlink.message import PprzMessage
 
@@ -45,6 +45,9 @@ class PprzTransport(object):
                 self.state = PprzParserState.GotSTX
         elif self.state == PprzParserState.GotSTX:
             self.length = b - 4
+            if self.length < 0:
+                self.state = PprzParserState.WaitSTX
+                return False
             self.buf = bytearray(self.length)
             self.ck_a = b % 256
             self.ck_b = b % 256

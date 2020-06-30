@@ -3,7 +3,7 @@ Paparazzi transport encoding utilities
 
 """
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 import struct
 from .message import PprzMessage
 

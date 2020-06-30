@@ -28,6 +28,8 @@ type payload = string
 
 let string_of_payload = fun x -> x
 let payload_of_string = fun x -> x
+let bytes_of_payload = fun x -> Bytes.of_string x
+let payload_of_bytes = fun x -> Bytes.to_string x
 
 exception Not_enough
 
@@ -46,7 +48,7 @@ module Transport(Protocol:PROTOCOL) = struct
     DebugPL.call 'T' (fun f -> fprintf f "Transport.parse: %s\n" (DebugPL.xprint buf));
     (** ref required due to Not_enough exception raised by Protocol.length *)
     let start = ref 0
-    and n = CompatPL.bytes_length buf in
+    and n = String.length buf in
     try
       (* Looks for the beginning of the frame. May raise Not_found exception *)
       start := Protocol.index_start buf;
@@ -63,7 +65,7 @@ module Transport(Protocol:PROTOCOL) = struct
         raise Not_enough;
 
       (* Extracts the complete frame *)
-      let msg = CompatPL.bytes_sub buf !start length in
+      let msg = String.sub buf !start length in
 
       (* Checks sum *)
       if Protocol.checksum msg then begin
@@ -77,8 +79,8 @@ module Transport(Protocol:PROTOCOL) = struct
       end;
 
       (* Continues with the rest of the message *)
-      end_ + parse use (CompatPL.bytes_sub buf end_ (CompatPL.bytes_length buf - end_))
+      end_ + parse use (String.sub buf end_ (String.length buf - end_))
     with
-        Not_found -> CompatPL.bytes_length buf
+        Not_found -> String.length buf
       | Not_enough -> !start
 end

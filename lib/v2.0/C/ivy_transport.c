@@ -177,11 +177,12 @@ static int check_available_space(struct pprzlink_msg *msg __attribute__((unused)
   return 1;
 }
 
-static int check_free_space(struct ivy_transport *t __attribute__((unused)), long *fd __attribute__((unused)), uint8_t len __attribute__((unused))) { return 1; }
+static int check_free_space(struct ivy_transport *t __attribute__((unused)), long *fd __attribute__((unused)), uint16_t len __attribute__((unused))) { return 1; }
 static void put_byte(struct ivy_transport *t __attribute__((unused)), long fd __attribute__((unused)), uint8_t byte __attribute__((unused))) {}
 static void put_buffer(struct ivy_transport *t __attribute__((unused)), long fd __attribute__((unused)), const uint8_t *buffer __attribute__((unused)), uint16_t len __attribute__((unused))) {}
 static void send_message(struct ivy_transport *t __attribute__((unused)), long fd __attribute__((unused))) {}
 static int null_function(struct ivy_transport *t __attribute__((unused))) { return 0; }
+static uint8_t null_byte_function(struct ivy_transport *t __attribute__((unused))) { return 0; }
 
 void ivy_transport_init(struct ivy_transport *t)
 {
@@ -202,6 +203,6 @@ void ivy_transport_init(struct ivy_transport *t)
   t->device.put_buffer = (put_buffer_t) put_buffer;
   t->device.send_message = (send_message_t) send_message;
   t->device.char_available = (char_available_t) null_function;
-  t->device.get_byte = (get_byte_t) null_function;
+  t->device.get_byte = (get_byte_t) null_byte_function;
   t->device.periph = (void *)(t);
 }

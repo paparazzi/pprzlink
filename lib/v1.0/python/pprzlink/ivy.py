@@ -1,10 +1,9 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 from ivy.std_api import *
 from ivy.ivy import IvyIllegalStateError
 import logging
 import os
-import sys
 import re
 import platform
 
@@ -18,6 +17,8 @@ elif platform.system() == 'Darwin':
     IVY_BUS = "224.255.255.255:2010"
 else:
     IVY_BUS = ""
+
+logger = logging.getLogger("PprzLink")
 
 
 class IvyMessagesInterface(object):
@@ -44,7 +45,7 @@ class IvyMessagesInterface(object):
         try:
             self.shutdown()
         except Exception as e:
-            print(e)
+            logger.error(e)
 
     def start(self):
         if not self._running:
@@ -66,7 +67,7 @@ class IvyMessagesInterface(object):
             self.unsubscribe_all()
             self.stop()
         except IvyIllegalStateError as e:
-            print(e)
+            logger.error(e)
 
     def bind_raw(self, callback, regex='(.*)'):
         """
@@ -137,8 +138,9 @@ class IvyMessagesInterface(object):
         # check which message class it is
         msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
         if msg_class is None:
-            print("Ignoring unknown message " + ivy_msg)
+            logger.error("Ignoring unknown message " + ivy_msg)
             return
+
         msg = PprzMessage(msg_class, msg_name)
         msg.ivy_string_to_payload(payload)
         # pass non-telemetry messages with ac_id 0 or ac_id attrib value
@@ -149,8 +151,7 @@ class IvyMessagesInterface(object):
                 else:
                     ac_id = int(sender_name)
             except ValueError:
-                print("ignoring message " + ivy_msg)
-                sys.stdout.flush()
+                logger.warning("ignoring message " + ivy_msg)
         else:
             if 'ac_id' in msg.fieldnames:
                 ac_id_idx = msg.fieldnames.index('ac_id')
@@ -168,10 +169,10 @@ class IvyMessagesInterface(object):
         :returns: Number of clients the message sent to, None if msg was invalid
         """
         if not isinstance(msg, PprzMessage):
-            print("Can only send PprzMessage")
+            logger.error("Can only send PprzMessage")
             return None
         if "datalink" not in msg.msg_class:
-            print("Message to embed in RAW_DATALINK needs to be of 'datalink' class")
+            logger.error("Message to embed in RAW_DATALINK needs to be of 'datalink' class")
             return None
         raw = PprzMessage("ground", "RAW_DATALINK")
         raw['ac_id'] = msg['ac_id']
@@ -187,12 +188,12 @@ class IvyMessagesInterface(object):
         :returns: Number of clients the message sent to, None if msg was invalid
         """
         if not self._running:
-            print("Ivy server not running!")
+            logger.error("Ivy server not running!")
             return
         if isinstance(msg, PprzMessage):
             if "telemetry" in msg.msg_class:
                 if ac_id is None:
-                    print("ac_id needed to send telemetry message.")
+                    logger.error("ac_id needed to send telemetry message.")
                     return None
                 else:
                     return IvySendMsg("%d %s %s" % (ac_id, msg.name, msg.payload_to_ivy_string()))

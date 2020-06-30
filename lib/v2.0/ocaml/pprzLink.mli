@@ -2,7 +2,7 @@
  * PPRZLINK message protocol handling
  *
  * Copyright (C) 2003 Pascal Brisset, Antoine Drouin
- * Copyright (C) 2015-2017 Gautier Hattenberger <gautier.hattenberger@enac.fr>
+ * Copyright (C) 2015-2020 Gautier Hattenberger <gautier.hattenberger@enac.fr>
  *
  * This file is part of paparazzi.
  *
@@ -53,9 +53,9 @@ type message = {
 (** Message specification *)
 
 
-external int32_of_bytes : string -> int -> int32 = "c_int32_of_indexed_bytes"
-external uint32_of_bytes : string -> int -> int64 = "c_uint32_of_indexed_bytes"
-external int64_of_bytes : string -> int -> int64 = "c_int64_of_indexed_bytes"
+external int32_of_bytes : bytes -> int -> int32 = "c_int32_of_indexed_bytes"
+external uint32_of_bytes : bytes -> int -> int64 = "c_uint32_of_indexed_bytes"
+external int64_of_bytes : bytes -> int -> int64 = "c_int64_of_indexed_bytes"
 (** [int32_of_bytes buffer offset] *)
 
 val separator : string
@@ -152,7 +152,7 @@ module type MESSAGES = sig
   val message_of_name : string ->  message_id * message
 
   val values_of_payload : Protocol.payload -> message_id * sender_id * values
-  (** [values_of_bin payload] Parses a raw payload, returns the
+  (** [values_of_payload payload] Parses a raw payload, returns the
    message id, the A/C id and the list of (field_name, value) *)
 
   val payload_of_values : message_id -> sender_id -> values -> Protocol.payload

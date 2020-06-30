@@ -58,7 +58,7 @@ val api_parse_frame : frame_data -> frame
 val mode868 : bool ref
 
 (** Building API frames data *)
-val api_tx64 : ?frame_id:int -> int64 -> string -> frame_data
-val api_tx16 : ?frame_id:int -> int -> string -> frame_data
+val api_tx64 : ?frame_id:int -> int64 -> bytes -> frame_data
+val api_tx16 : ?frame_id:int -> int -> bytes -> frame_data
 
 
