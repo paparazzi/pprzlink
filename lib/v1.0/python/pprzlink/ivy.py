@@ -136,8 +136,9 @@ class IvyMessagesInterface(object):
             msg_name = data.group(2)
             payload = data.group(3)
         # check which message class it is
-        msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
-        if msg_class is None:
+        try:
+            msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
+        except ValueError:
             logger.error("Ignoring unknown message " + ivy_msg)
             return
 
@@ -166,14 +167,16 @@ class IvyMessagesInterface(object):
         Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
 
         :param msg: PprzMessage
-        :returns: Number of clients the message sent to, None if msg was invalid
+        :returns: Number of clients the message was sent to
+        :raises: ValueError: if msg was invalid
+        :raises: RuntimeError: if the server is not running
         """
         if not isinstance(msg, PprzMessage):
-            logger.error("Can only send PprzMessage")
-            return None
+            raise ValueError("Expected msg to be PprzMessage, got " + type(msg) + " instead.")
+
         if "datalink" not in msg.msg_class:
-            logger.error("Message to embed in RAW_DATALINK needs to be of 'datalink' class")
-            return None
+            raise ValueError("Message to embed in RAW_DATALINK needs to be of 'datalink' class.")
+
         raw = PprzMessage("ground", "RAW_DATALINK")
         raw['ac_id'] = msg['ac_id']
         raw['message'] = msg.to_csv()
@@ -185,16 +188,18 @@ class IvyMessagesInterface(object):
 
         :param msg: PprzMessage or simple string
         :param ac_id: Needed if sending a PprzMessage of telemetry msg_class
-        :returns: Number of clients the message sent to, None if msg was invalid
+        :returns: Number of clients the message was sent to
+        :raises: ValueError: if msg was invalid or `ac_id` not provided for telemetry messages
+        :raises: RuntimeError: if the server is not running
+
         """
         if not self._running:
-            logger.error("Ivy server not running!")
-            return
+            raise RuntimeError("Ivy server not running!")
+
         if isinstance(msg, PprzMessage):
             if "telemetry" in msg.msg_class:
                 if ac_id is None:
-                    logger.error("ac_id needed to send telemetry message.")
-                    return None
+                    raise ValueError("ac_id needed to send telemetry message.")
                 else:
                     return IvySendMsg("%d %s %s" % (ac_id, msg.name, msg.payload_to_ivy_string()))
             else:
