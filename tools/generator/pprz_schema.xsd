@@ -9,9 +9,9 @@
 <xs:attribute name="name"> <!-- msg_class, message,field -->
     <xs:simpleType>
         <xs:restriction base="xs:string">
-            <!-- class,long,var are currently used/valid field names in pprz -->
-            <xs:pattern value="^(?!break$|case$|catch$|const$|continue$|debugger$|default$|delete$|do$|else$|export$|extends$|finally$|for$|function$|if$|import$|in$|instanceof$|let$|new$|return$|super$|switch$|this$|throw$|try$|typeof$|void$|while$|with$|yield$|enum$|await$|implements$|package$|protected$|static$|interface$|private$|public$|abstract$|boolean$|byte$|char$|double$|final$|float$|goto$|int$|native$|short$|synchronized$|transient$|volatile$).+"/>
-            <!-- <xs:pattern value="^(?!break$|case$|class$|catch$|const$|continue$|debugger$|default$|delete$|do$|else$|export$|extends$|finally$|for$|function$|if$|import$|in$|instanceof$|let$|new$|return$|super$|switch$|this$|throw$|try$|typeof$|var$|void$|while$|with$|yield$|enum$|await$|implements$|package$|protected$|static$|interface$|private$|public$|abstract$|boolean$|byte$|char$|double$|final$|float$|goto$|int$|long$|native$|short$|synchronized$|transient$|volatile$).+"/> -->
+            <!-- for now, restrict to non-white characters -->
+            <xs:pattern value="[\S]+"/>
+            <!--xs:pattern value="^(?!break$|case$|catch$|const$|continue$|debugger$|default$|delete$|do$|else$|export$|extends$|finally$|for$|function$|if$|import$|in$|instanceof$|let$|new$|return$|super$|switch$|this$|throw$|try$|typeof$|void$|while$|with$|yield$|enum$|await$|implements$|package$|protected$|static$|interface$|private$|public$|abstract$|boolean$|byte$|char$|double$|final$|float$|goto$|int$|native$|short$|synchronized$|transient$|volatile$).+"/-->
         </xs:restriction>
     </xs:simpleType>
 </xs:attribute>
