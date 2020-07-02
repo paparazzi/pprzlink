@@ -74,11 +74,15 @@ class UdpMessagesInterface(threading.Thread):
                     length = len(msg)
                     for c in msg:
                         if self.trans.parse_byte(c):
-                            (sender_id, msg) = self.trans.unpack()
-                            if self.verbose:
-                                logger.info("New incoming message '%s' from %i (%s)" % (msg.name, sender_id, address))
-                            # Callback function on new message
-                            self.callback(sender_id, address, msg, length)
+                            try:
+                                (sender_id, msg) = self.trans.unpack()
+                            except ValueError as e:
+                                logger.warning("Ignoring unknown message, %s" % e)
+                            else:
+                                if self.verbose:
+                                    logger.info("New incoming message '%s' from %i (%s)" % (msg.name, sender_id, address))
+                                # Callback function on new message
+                                self.callback(sender_id, address, msg, length)
                 except socket.timeout:
                     pass
 

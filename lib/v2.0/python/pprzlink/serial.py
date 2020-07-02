@@ -57,12 +57,16 @@ class SerialMessagesInterface(threading.Thread):
                 c = self.ser.read(1)
                 if len(c) == 1:
                     if self.trans.parse_byte(c):
-                        (sender_id, receiver_id, component_id, msg) = self.trans.unpack()
-                        if self.verbose:  # See the note on the same line in v1.0
-                            logger.info("New incoming message '%s' from %i (%i) to %i" % (msg.name, sender_id, component_id, receiver_id))
-                        # Callback function on new message
-                        if self.id == receiver_id:
-                            self.callback(sender_id, msg)
+                        try:
+                            (sender_id, receiver_id, component_id, msg) = self.trans.unpack()
+                        except ValueError as e:
+                            logger.warning("Ignoring unknown message, %s" % e)
+                        else:
+                            if self.verbose:  # See the note on the same line in v1.0
+                                logger.info("New incoming message '%s' from %i (%i) to %i" % (msg.name, sender_id, component_id, receiver_id))
+                            # Callback function on new message
+                            if self.id == receiver_id:
+                                self.callback(sender_id, msg)
 
         except StopIteration:
             pass
