@@ -113,6 +113,7 @@ class IvyMessagesInterface(object):
     def parse_pprz_msg(callback, ivy_msg):
         """
         Parse an Ivy message into a PprzMessage.
+
         :param callback: function to call with ac_id and parsed PprzMessage as params
         :param ivy_msg: Ivy message string to parse into PprzMessage
         """
@@ -228,6 +229,8 @@ class IvyMessagesInterface(object):
         :type request_name: str
         :type callback: Callable[[str, PprzMessage], Any]
         :type request_extra_data: Dict[str, Any]
+        :raises: ValueError: if msg was invalid or `sender_id` not provided for telemetry messages
+        :raises: RuntimeError: if the server is not running
         """
         new_id = RequestUIDFactory.generate_uid()
         regex = r"^((\S*\s*)?%s %s %s( .*|$))" % (new_id, class_name, request_name)
