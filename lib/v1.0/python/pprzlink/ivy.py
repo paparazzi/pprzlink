@@ -9,7 +9,7 @@ import platform
 
 from .message import PprzMessage
 from . import messages_xml_map
-
+from .request_uid import RequestUIDFactory
 
 if os.getenv('IVY_BUS') is not None:
     IVY_BUS = os.getenv('IVY_BUS')
@@ -25,6 +25,7 @@ class IvyMessagesInterface(object):
     def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
         if agent_name is None:
             agent_name = "IvyMessagesInterface %i" % os.getpid()
+        self.agent_name = agent_name
         self.verbose = verbose
         self._ivy_bus = ivy_bus
         self._running = False
@@ -91,7 +92,7 @@ class IvyMessagesInterface(object):
         TODO: possibility to directly specify PprzMessage instead of regex
 
         :param callback: function called on new message with ac_id and PprzMessage as params
-        :param regex: regular expression for matching message
+        :param regex_or_msg: regular expression for matching message or a PprzMessage object to subscribe to
         """
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg
@@ -206,3 +207,39 @@ class IvyMessagesInterface(object):
                 return IvySendMsg("%s %s %s" % (msg.msg_class, msg.name, msg.payload_to_ivy_string()))
         else:
             return IvySendMsg(msg)
+
+    def send_request(self, class_name, request_name, callback, **request_extra_data):
+        """
+        Send a data request message and passes the result directly to the callback method.
+
+        :return: Number of clients this message was sent to.
+        :rtype: int
+        :param class_name: Message class, the same as :ref:`PprzMessage.__init__`
+        :param request_name: Request name (without the _REQ suffix)
+        :param callback: Callback function that accepts two parameters: 1. aircraft id as int 2. The response message
+        :param request_extra_data: Payload that will be sent with the request if any
+        :type class_name: str
+        :type request_name: str
+        :type callback: Callable[[str, PprzMessage], Any]
+        :type request_extra_data: Dict[str, Any]
+        """
+        new_id = RequestUIDFactory.generate_uid()
+        regex = r"^((\S*\s*)?%s %s %s( .*|$))" % (new_id, class_name, request_name)
+
+        def data_request_callback(ac_id, msg):
+            try:
+                callback(int(ac_id), msg)
+            except Exception as e:
+                raise e
+            finally:
+                self.unsubscribe(binding_id)
+
+        binding_id = self.subscribe(data_request_callback, regex)
+        request_message = PprzMessage(class_name, "%s_REQ" % request_name)
+        for k, v in request_extra_data.items():
+            request_message.set_value_by_name(k, v)
+
+        data_request_message = ' '.join((
+            self.agent_name, new_id, request_message.name, request_message.payload_to_ivy_string()
+        ))
+        return self.send(data_request_message)
