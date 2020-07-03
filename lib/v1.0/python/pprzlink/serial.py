@@ -54,11 +54,15 @@ class SerialMessagesInterface(threading.Thread):
                 c = self.ser.read(1)
                 if len(c) == 1:
                     if self.trans.parse_byte(c):
-                        (sender_id, msg) = self.trans.unpack()
-                        if self.verbose:  # Can be replaced with the log level
-                            logger.info("New incoming message '%s' from %i" % (msg.name, sender_id))
-                        # Callback function on new message 
-                        self.callback(sender_id, msg)
+                        try:
+                            (sender_id, msg) = self.trans.unpack()
+                        except ValueError as e:
+                            logger.warning("Ignoring unknown message, %s" % e)
+                        else:
+                            if self.verbose:  # Can be replaced with the log level
+                                logger.info("New incoming message '%s' from %i" % (msg.name, sender_id))
+                            # Callback function on new message
+                            self.callback(sender_id, msg)
 
         except StopIteration:
             pass

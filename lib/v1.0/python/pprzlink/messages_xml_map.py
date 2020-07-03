@@ -3,7 +3,6 @@
 from __future__ import absolute_import, print_function
 
 import os
-import logging
 
 # if PAPARAZZI_HOME is set use $PAPARAZZI_HOME/var/messages.xml
 # else assume this file is installed in var/lib/python/pprzlink
@@ -26,7 +25,6 @@ message_dictionary_id_name = {}
 message_dictionary_name_id = {}
 message_dictionary_broadcast = {}
 
-logger = logging.getLogger("PprzLink")
 
 
 class MessagesNotFound(Exception):
@@ -95,77 +93,76 @@ def _ensure_message_dictionary():
 
 def find_msg_by_name(name):
     _ensure_message_dictionary()
-    for msg_class in message_dictionary:
-        if name in message_dictionary[msg_class]:
+    for msg_class, msg_name in message_dictionary.items():
+        if name in msg_name:
             #print("found msg name %s in class %s" % (name, msg_class))
             return msg_class, name
-    logger.error("Error: msg_name %s not found." % name)
-    return None, None
+
+    raise ValueError("Error: msg_name %s not found." % name)
 
 
 def get_msgs(msg_class):
     _ensure_message_dictionary()
-    if msg_class in message_dictionary:
-        return message_dictionary[msg_class]
-    else:
-        logger.error("Error: msg_class %s not found." % msg_class)
-    return []
+    if msg_class not in message_dictionary:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    return message_dictionary[msg_class]
 
 
 def get_msg_name(msg_class, msg_id):
     _ensure_message_dictionary()
-    if msg_class in message_dictionary:
-        if msg_id in message_dictionary_id_name[msg_class]:
-            return message_dictionary_id_name[msg_class][msg_id]
-        else:
-            logger.error("Error: msg_id %d not found in msg_class %s." % (msg_id, msg_class))
-    else:
-        logger.error("Error: msg_class %s not found." % msg_class)
-    return ""
+    if msg_class not in message_dictionary:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_id_name[msg_class]:
+        raise ValueError("Error: msg_id %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_id_name[msg_class][msg_id]
 
 
 def get_msg_fields(msg_class, msg_name):
     _ensure_message_dictionary()
-    if msg_class in message_dictionary:
-        if msg_name in message_dictionary[msg_class]:
-            return message_dictionary[msg_class][msg_name]
-        else:
-            logger.error("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
-    else:
-        logger.error("Error: msg_class %s not found." % msg_class)
-    return []
+    if msg_class not in message_dictionary:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_name not in message_dictionary[msg_class]:
+        raise ValueError("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
+
+    return message_dictionary[msg_class][msg_name]
 
 
 def get_msg_id(msg_class, msg_name):
     _ensure_message_dictionary()
-    try:
-        return message_dictionary_name_id[msg_class][msg_name]
-    except KeyError:
-        logger.error("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
-        return 0
+    if msg_class not in message_dictionary_name_id:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_name not in message_dictionary_name_id[msg_class]:
+        raise ValueError("Error: msg_name %s not found in msg_class %s." % (msg_name, msg_class))
+
+    return message_dictionary_name_id[msg_class][msg_name]
 
 
 def get_msg_fieldtypes(msg_class, msg_id):
     _ensure_message_dictionary()
-    if msg_class in message_dictionary_types:
-        if msg_id in message_dictionary_types[msg_class]:
-            return message_dictionary_types[msg_class][msg_id]
-        else:
-            logger.error("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
-    else:
-        logger.error("Error: msg_class %s not found." % msg_class)
-    return []
+
+    if msg_class not in message_dictionary_types:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_types[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_types[msg_class][msg_id]
+
 
 def get_msg_fieldcoefs(msg_class, msg_id):
     _ensure_message_dictionary()
-    if msg_class in message_dictionary_coefs:
-        if msg_id in message_dictionary_coefs[msg_class]:
-            return message_dictionary_coefs[msg_class][msg_id]
-        else:
-            logger.error("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
-    else:
-        logger.error("Error: msg_class %s not found." % msg_class)
-    return []
+    if msg_class not in message_dictionary_coefs:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_coefs[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_coefs[msg_class][msg_id]
 
 
 def test():
