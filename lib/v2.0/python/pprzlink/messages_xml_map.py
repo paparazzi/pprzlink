@@ -98,7 +98,7 @@ def parse_messages(messages_file=''):
 
 
 def _ensure_message_dictionary():
-    if message_dictionary is None:
+    if not message_dictionary:
         parse_messages()
 
 
@@ -205,6 +205,7 @@ def test():
         print("Listing %i messages in '%s' msg_class" % (len(message_dictionary[args.msg_class]), args.msg_class))
         for msg_name, msg_fields in message_dictionary[args.msg_class].iteritems():
             print(msg_name + ": " + ", ".join(msg_fields))
+
 
 if __name__ == '__main__':
     test()
