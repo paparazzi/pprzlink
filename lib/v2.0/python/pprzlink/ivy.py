@@ -279,9 +279,9 @@ class IvyMessagesInterface(object):
         new_id = RequestUIDFactory.generate_uid()
         regex = r"^((\S*\s*)?%s %s %s( .*|$))" % (new_id, class_name, request_name)
 
-        def data_request_callback(ac_id, msg):
+        def data_request_callback(ac_id, request_id, msg):
             try:
-                callback(int(ac_id), msg)
+                callback(ac_id, msg)
             except Exception as e:
                 raise e
             finally:
