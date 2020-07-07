@@ -100,22 +100,59 @@ class IvyMessagesInterface(object):
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg
         else:
-            regex = '^([^ ]* +%s( .*|$))'%(regex_or_msg.name)
+            regex = '^([^ ]* +%s( .*|$))' % (regex_or_msg.name)
 
-        bind_id = IvyBindMsg(lambda agent, *larg: self.parse_pprz_msg(callback, larg[0]), regex)
-        self.bindings[bind_id] = (callback, regex)
-        return bind_id
+        def _parse_and_call_callback(agent, *larg):
+            params = self.parse_pprz_msg(larg[0])
+            if params:
+                callback(*params)
+
+        return self.bind_raw(
+            callback=_parse_and_call_callback,
+            regex=regex
+        )
+
+    def subscribe_request_answerer(self, callback, request_name):
+        """
+        Subscribe to advanced request messages.
+
+        :param callback: Should return the answer as a PprzMessage
+        :param request_name: Request message name to listen to (without `_REQ` suffix)
+        :type callback: Callable[[int, PprzMessage], PprzMessage]
+        :type request_name: str
+        :return: binding id
+        """
+        regex = r'^(\S*\s+\S*\s+%s_REQ.*)' % request_name
+        def _callback_wrapper(_, *larg):
+            params = self.parse_pprz_msg(larg[0])
+            if not params:
+                return
+            ac_id, request_id, msg = params
+            try:
+                msg = callback(ac_id, msg)
+            except Exception:
+                logger.error('Error while answering a request message')
+                import traceback
+                traceback.print_exc()
+            else:
+                self.send(" ".join((
+                    request_id, msg.msg_class, request_name, msg.payload_to_ivy_string()
+                )))
+        return self.bind_raw(
+            callback=_callback_wrapper,
+            regex=regex
+        )
 
     def unsubscribe(self, bind_id):
         self.unbind(bind_id)
 
     @staticmethod
-    def parse_pprz_msg(callback, ivy_msg):
+    def parse_pprz_msg(ivy_msg):
         """
         Parse an Ivy message into a PprzMessage.
 
-        :param callback: function to call with ac_id and parsed PprzMessage as params
         :param ivy_msg: Ivy message string to parse into PprzMessage
+        :return ac_id, request_id, msg: The parameters to be passed to callback
         """
         # normal format is "sender_name msg_name msg_payload..."
         # advanced format has requests and answers (with request_id as 'pid_index')
@@ -129,8 +166,10 @@ class IvyMessagesInterface(object):
         if re.search("[0-9]+_[0-9]+", data.group(1)) or re.search("[0-9]+_[0-9]+", data.group(2)):
             if re.search("[0-9]+_[0-9]+", data.group(1)):
                 sender_name = data.group(2)
+                request_id = data.group(1)
             else:
                 sender_name = data.group(1)
+                request_id = data.group(2)
             # this is an advanced type, split again
             data = re.search("(\S+) +(.*)", data.group(3))
             msg_name = data.group(1)
@@ -140,6 +179,7 @@ class IvyMessagesInterface(object):
             sender_name = data.group(1)
             msg_name = data.group(2)
             payload = data.group(3)
+            request_id = None
         # check which message class it is
         try:
             msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
@@ -158,6 +198,7 @@ class IvyMessagesInterface(object):
                     ac_id = int(sender_name)
             except ValueError:
                 logger.warning("ignoring message " + ivy_msg)
+                return None
         else:
             if 'ac_id' in msg.fieldnames:
                 ac_id_idx = msg.fieldnames.index('ac_id')
@@ -165,7 +206,10 @@ class IvyMessagesInterface(object):
             else:
                 ac_id = 0
         # finally call the callback, passing the aircraft id and parsed message
-        callback(ac_id, msg)
+        if request_id:
+            return ac_id, request_id, msg
+        else:
+            return ac_id, msg
 
     def send_raw_datalink(self, msg):
         """
