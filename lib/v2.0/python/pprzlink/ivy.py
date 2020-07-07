@@ -9,6 +9,7 @@ import platform
 
 from pprzlink.message import PprzMessage
 from pprzlink import messages_xml_map
+from pprzlink.request_uid import RequestUIDFactory
 
 
 if os.getenv('IVY_BUS') is not None:
@@ -28,6 +29,7 @@ class IvyMessagesInterface(object):
     def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
         if agent_name is None:
             agent_name = "IvyMessagesInterface %i" % os.getpid()
+        self.agent_name = agent_name
         self.verbose = verbose
         self._ivy_bus = ivy_bus
         self._running = False
@@ -98,21 +100,59 @@ class IvyMessagesInterface(object):
         if not isinstance(regex_or_msg,PprzMessage):
             regex = regex_or_msg
         else:
-            regex = '^([^ ]* +%s( .*|$))'%(regex_or_msg.name)
+            regex = '^([^ ]* +%s( .*|$))' % (regex_or_msg.name)
 
-        bind_id = IvyBindMsg(lambda agent, *larg: self.parse_pprz_msg(callback, larg[0]), regex)
-        self.bindings[bind_id] = (callback, regex)
-        return bind_id
+        def _parse_and_call_callback(agent, *larg):
+            params = self.parse_pprz_msg(larg[0])
+            if params:
+                callback(*params)
+
+        return self.bind_raw(
+            callback=_parse_and_call_callback,
+            regex=regex
+        )
+
+    def subscribe_request_answerer(self, callback, request_name):
+        """
+        Subscribe to advanced request messages.
+
+        :param callback: Should return the answer as a PprzMessage
+        :param request_name: Request message name to listen to (without `_REQ` suffix)
+        :type callback: Callable[[int, PprzMessage], PprzMessage]
+        :type request_name: str
+        :return: binding id
+        """
+        regex = r'^(\S*\s+\S*\s+%s_REQ.*)' % request_name
+        def _callback_wrapper(_, *larg):
+            params = self.parse_pprz_msg(larg[0])
+            if not params:
+                return
+            ac_id, request_id, msg = params
+            try:
+                msg = callback(ac_id, msg)
+            except Exception:
+                logger.error('Error while answering a request message')
+                import traceback
+                traceback.print_exc()
+            else:
+                self.send(" ".join((
+                    request_id, msg.msg_class, request_name, msg.payload_to_ivy_string()
+                )))
+        return self.bind_raw(
+            callback=_callback_wrapper,
+            regex=regex
+        )
 
     def unsubscribe(self, bind_id):
         self.unbind(bind_id)
 
     @staticmethod
-    def parse_pprz_msg(callback, ivy_msg):
+    def parse_pprz_msg(ivy_msg):
         """
         Parse an Ivy message into a PprzMessage.
-        :param callback: function to call with ac_id and parsed PprzMessage as params
+
         :param ivy_msg: Ivy message string to parse into PprzMessage
+        :return ac_id, request_id, msg: The parameters to be passed to callback
         """
         # normal format is "sender_name msg_name msg_payload..."
         # advanced format has requests and answers (with request_id as 'pid_index')
@@ -126,8 +166,10 @@ class IvyMessagesInterface(object):
         if re.search("[0-9]+_[0-9]+", data.group(1)) or re.search("[0-9]+_[0-9]+", data.group(2)):
             if re.search("[0-9]+_[0-9]+", data.group(1)):
                 sender_name = data.group(2)
+                request_id = data.group(1)
             else:
                 sender_name = data.group(1)
+                request_id = data.group(2)
             # this is an advanced type, split again
             data = re.search("(\S+) +(.*)", data.group(3))
             msg_name = data.group(1)
@@ -137,6 +179,7 @@ class IvyMessagesInterface(object):
             sender_name = data.group(1)
             msg_name = data.group(2)
             payload = data.group(3)
+            request_id = None
         # check which message class it is
         try:
             msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
@@ -155,6 +198,7 @@ class IvyMessagesInterface(object):
                     ac_id = int(sender_name)
             except ValueError:
                 logger.warning("ignoring message " + ivy_msg)
+                return None
         else:
             if 'ac_id' in msg.fieldnames:
                 ac_id_idx = msg.fieldnames.index('ac_id')
@@ -162,7 +206,10 @@ class IvyMessagesInterface(object):
             else:
                 ac_id = 0
         # finally call the callback, passing the aircraft id and parsed message
-        callback(ac_id, msg)
+        if request_id:
+            return ac_id, request_id, msg
+        else:
+            return ac_id, msg
 
     def send_raw_datalink(self, msg):
         """
@@ -211,3 +258,41 @@ class IvyMessagesInterface(object):
                     return IvySendMsg("%s %s %s" % (str(sender_id), msg.name, msg.payload_to_ivy_string()))
         else:
             return IvySendMsg(msg)
+
+    def send_request(self, class_name, request_name, callback, **request_extra_data):
+        """
+        Send a data request message and passes the result directly to the callback method.
+
+        :return: Number of clients this message was sent to.
+        :rtype: int
+        :param class_name: Message class, the same as :ref:`PprzMessage.__init__`
+        :param request_name: Request name (without the _REQ suffix)
+        :param callback: Callback function that accepts two parameters: 1. aircraft id as int 2. The response message
+        :param request_extra_data: Payload that will be sent with the request if any
+        :type class_name: str
+        :type request_name: str
+        :type callback: Callable[[str, PprzMessage], Any]
+        :type request_extra_data: Dict[str, Any]
+        :raises: ValueError: if msg was invalid or `sender_id` not provided for telemetry messages
+        :raises: RuntimeError: if the server is not running
+        """
+        new_id = RequestUIDFactory.generate_uid()
+        regex = r"^((\S*\s*)?%s %s %s( .*|$))" % (new_id, class_name, request_name)
+
+        def data_request_callback(ac_id, msg):
+            try:
+                callback(int(ac_id), msg)
+            except Exception as e:
+                raise e
+            finally:
+                self.unsubscribe(binding_id)
+
+        binding_id = self.subscribe(data_request_callback, regex)
+        request_message = PprzMessage(class_name, "%s_REQ" % request_name)
+        for k, v in request_extra_data.items():
+            request_message.set_value_by_name(k, v)
+
+        data_request_message = ' '.join((
+            self.agent_name, new_id, request_message.name, request_message.payload_to_ivy_string()
+        ))
+        return self.send(data_request_message)
