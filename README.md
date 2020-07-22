@@ -1,8 +1,6 @@
 # PPRZLINK
 
-## Overview
-
-PPRZLINK is a messages toolkit (message definition, code generators, libraries) to be used with [Paparazzi UAV System] (https://paparazziuav.org) and compatible systems. One tool that uses PPRZLINK is the [Flying Robot Commander](https://github.com/paparazzi/flyingrobotcommander), a web based, RESTful application for controlling multiple aircraft.
+PPRZLINK is a messages toolkit (message definition, code generators, libraries) to be used with [Paparazzi UAV System](https://paparazziuav.org) and compatible systems. One tool that uses PPRZLINK is the [Flying Robot Commander](https://github.com/paparazzi/flyingrobotcommander), a web based, RESTful application for controlling multiple aircraft.
 
 ## Documentation
 
@@ -10,27 +8,27 @@ Documentation is in the [doc](doc) subdirectory and can be viewed on https://ppr
 
 To build the docs locally:
 
-    sudo pip install sphinx sphinx-autobuild phinx_rtd_theme
+    sudo pip install sphinx sphinx-autobuild sphinx_rtd_theme
     cd doc && make html
 
 ## Libraries
 
 PPRZLINK libraries are available for the following programming languages: 
 
-- [C](lib/v1.0/C)
-- [ocaml](lib/v1.0/ocaml)
-- [python](lib/v1.0/python)
-- [Rust](https://github.com/paparazzi/pprzlink-rust)
+-   [C](lib/v1.0/C)
+-   [OCaml](lib/v1.0/ocaml)
+-   [Python](lib/v1.0/python)
+-   [Rust](https://github.com/paparazzi/pprzlink-rust)
 
 ## Messages
 
 Messages are defined in the [messages.xml](message_definitions/v1.0/messages.xml) file and are grouped into the following message classes:
 
-- telemetry
-- datalink
-- ground
-- alert
-- intermcu
+-   telemetry
+-   datalink
+-   ground
+-   alert
+-   intermcu
 
 Please reference [Paparazzi Messages Document](http://docs.paparazziuav.org/latest/paparazzi_messages.html) for a more detailed overview. 
 
@@ -46,7 +44,7 @@ Datalink messages are sent from the ground to the aircraft and are defined in th
 
 **Ground**
 
-Ground messages are sent to the ground network agents(GCS, server, link, etc...) and are defined in the `ground` class of the [messages.xml](master/message_definitions/v1.0/messages.xml) file.
+Ground messages are sent to the ground network agents (GCS, server, link, etc) and are defined in the `ground` class of the [messages.xml](master/message_definitions/v1.0/messages.xml) file.
 
 **Alert**
 
@@ -58,11 +56,11 @@ TBD
 
 ## Python Library
 
-The [python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy.py](lib/v1.0/python/pprzlink/ivy.py). There is also a serial version of the interface in [serial.py](lib/v1.0/python/pprzlink/serial.py).
+The [Python](https://www.python.org/) PPRZLINK ivy interface is defined in [ivy.py](lib/v1.0/python/pprzlink/ivy.py). There is also a serial version of the interface in [serial.py](lib/v1.0/python/pprzlink/serial.py).
 
 ### Ivy Message Call Sequence
 
-Add Libraries to the Search Path
+Add library root to the search path:
 
     # if PAPARAZZI_SRC not set, then assume the tree containing this file is a reasonable substitute
     PPRZ_SRC = getenv("PAPARAZZI_SRC", path.normpath(path.join(path.dirname(path.abspath(__file__)), '~/paparazzi/')))
@@ -73,29 +71,29 @@ Add Libraries to the Search Path
     from pprzlink.message   import PprzMessage
     ...
 
-Create an Interface Instance
+Create a new `IvyMessagesInterface` instance:
 
     ivy_interface = IvyMessagesInterface("FlyingRobotCommander", start_ivy=False)
-    ...
+    
 
-Subscribe to a Set of Messages
+Subscribe to all messages:
 
     ivy_interface.subscribe(callback_aircraft_messages)
     ...
 
-Start the Interface
+Start the interface:
 
     ivy_interface.start()
     ...
 
-Send Messages
+Send messages:
 
     # Main Loop
     ivy_interface.send(msg)
     ivy_interface.send_raw_datalink(msg)
     ...
 
-Stop the Interface
+Stop the interface in the end:
 
     ivy_interface.shutdown()
     ...
@@ -127,15 +125,77 @@ It's easy to construct messages to send over the ivy message bus. Here are a few
         msg['block_id'] = fb_id
 
         ivy_interface.send(msg)
+        
+**Data Request Message**
+
+        def request_config(ac_id):
+            def aircraft_config_callback(ac_id, msg):
+                logger.info(f"Got new aircraft config {ac_id}: {msg}")
+                name = msg['ac_name']
+                ....
+                
+            ivy.send_request(
+                class_name="ground",
+                request_name="CONFIG",
+                callback=aircraft_config_callback,
+                ac_id=ac_id
+            )
 
 ### Subscribing to Ivy Messages
 
-TBD - Describe how to subscribe to message classes 
+Subscribe method can be used to register a callback for all messages:
+
+    def cb(ac_id: str, msg: PprzMessage):
+        # Subscribed to all messages without any filter
+        pass
+    binding_id = ivy.subscribe(cb)
+    
+or to receive messages of a certain class:
+
+    def notify_new_aircraft(ac_id: str, msg: PprzMessage):
+        assert msg.class_name == 'ground'
+        assert msg.name == 'NEW_AIRCRAFT'
+        
+    binding_id = ivy.subscribe(notify_new_aircraft, PprzMessage("ground", "NEW_AIRCRAFT"))
+
+or you can have a custom regex to catch certain messages:
+
+    def answer_request(ac_id: str, message: PprzMessage):
+        pass
+    
+    binding_id = ivy.subscribe(answer_request, r"^((\S*\s*)\d+_\d+ CONFIG_REQ( .*|$))")
+
+Please note that the regex should match the whole message as one group. It means you probably need catch all patterns in 
+the beginning and end, also if there are parentheses within your custom pattern, you should wrap the whole pattern in 
+parentheses. Note that the message can have trailing spaces which should be kept to properly parse the message into a 
+`PprzMessage` object down the line.  
+
+`subscribe` method returns an id which can later be used to remove that subscription. See `send_request` implementation 
+in `ivy.py` for a practical example.
+
+    ivy.unsubscribe(binding_id)
+    # or
+    ivy.unbind(binding_id)
+
+If your agent needs to answer advanced request messages you can use `subscribe_request_answerer` method. 
+The callback you register should return a `PprzMessage` which will be used as the response.
+
+    def answer_request(ac_id: int, request_msg: PprzMessage) -> PprzMessage:
+        # request_msg will be of type CONFIG_REQ
+        
+        answer = PprzMessage("ground", "CONFIG")
+        answer['ac_id'] = request_msg['ac_id']
+        answer['flight_plan'] = 'file:///path/to/fligh_plan.xml'
+        answer[...] = ...
+
+        return answer 
+    
+    ivy.subscribe_request_answerer(answer_request, "CONFIG")  # No `_REQ` here
 
 ## C standalone Library
 
 The C standalone library can be used when only a few messages using the PPRZ transport are expected (in comparison with the full C library where all messages are generated and both device and transport can be selected independently).
-This is usefull when implementing a program in C in an embedded computer talking to the autopilot through a serial port.
+This is useful when implementing a program in C in an embedded computer talking to the autopilot through a serial port.
 It is a header only library, so there is no file to compile.
 
 ### Generation of a C standalone messages parse
@@ -148,7 +208,7 @@ The generated files will be placed in the folder `build/pprzlink` in this case. 
 
 ### Usage for sending
 
-Sending a message is done as follow:
+Sending a message is done as follows:
 
 Include the library header
 
