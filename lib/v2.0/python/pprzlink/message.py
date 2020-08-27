@@ -241,6 +241,8 @@ class PprzMessage(object):
                         data.append(float(x))
                     elif bin_type[0]== 'B' or bin_type[0]== 'H' or bin_type[0]== 'L' or bin_type[0]== 'b' or bin_type[0]== 'h' or bin_type[0]== 'l':
                         data.append(int(x))
+                    elif bin_type[0]== 'c':
+                        data.append(x.encode())
                     else:
                         data.append(x)
             else:
