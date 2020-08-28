@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function
 import threading
 import socket
 import logging
-import sys
 import struct
 
 # load pprzlink messages and transport
@@ -78,7 +77,7 @@ class UdpMessagesInterface(threading.Thread):
                     length = len(msg)
                     for c in msg:
                         #Compatibility with Python2 and Python3
-                        if sys.version_info[0] > 2:
+                        if not isinstance(c, bytes):
                             c = struct.pack("B",c)
                         if self.trans.parse_byte(c):
                             try:
