@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function
 import threading
 import socket
 import logging
+import struct
 
 # load pprzlink messages and transport
 from pprzlink.message import PprzMessage
@@ -75,6 +76,9 @@ class UdpMessagesInterface(threading.Thread):
                     (msg, address) = self.server.recvfrom(2048)
                     length = len(msg)
                     for c in msg:
+                        #Compatibility with Python2 and Python3
+                        if not isinstance(c, bytes):
+                            c = struct.pack("B",c)
                         if self.trans.parse_byte(c):
                             try:
                                 (sender_id, receiver_id, component_id, msg) = self.trans.unpack()
@@ -84,7 +88,7 @@ class UdpMessagesInterface(threading.Thread):
                                 if self.verbose:
                                     logger.info("New incoming message '%s' from %i (%i, %s) to %i" % (msg.name, sender_id, component_id, address, receiver_id))
                                 # Callback function on new message
-                                if self.id is None or self.id == receiver_id:
+                                if self.id is None or self.id == receiver_id or receiver_id == 255:
                                     self.callback(sender_id, address, msg, length, receiver_id, component_id)
                 except socket.timeout:
                     pass
