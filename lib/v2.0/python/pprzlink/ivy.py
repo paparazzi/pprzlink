@@ -104,8 +104,10 @@ class IvyMessagesInterface(object):
 
         def _parse_and_call_callback(agent, *larg):
             params = self.parse_pprz_msg(larg[0])
-            if params:
-                callback(*params)
+            if not params:
+                return
+            ac_id, _, msg = params
+            callback(ac_id, msg)
 
         return self.bind_raw(
             callback=_parse_and_call_callback,
@@ -171,7 +173,7 @@ class IvyMessagesInterface(object):
                 sender_name = data.group(1)
                 request_id = data.group(2)
             # this is an advanced type, split again
-            data = re.search("(\S+) +(.*)", data.group(3))
+            data = re.search("(\S+)+( .*|$)", data.group(3))
             msg_name = data.group(1)
             payload = data.group(2)
         else:
@@ -205,11 +207,8 @@ class IvyMessagesInterface(object):
                 ac_id = msg.fieldvalues[ac_id_idx]
             else:
                 ac_id = 0
-        # finally call the callback, passing the aircraft id and parsed message
-        if request_id:
-            return ac_id, request_id, msg
-        else:
-            return ac_id, msg
+        # finally call the callback, passing the aircraft id, request id (might be None) and parsed message
+        return ac_id, request_id, msg
 
     def send_raw_datalink(self, msg):
         """
