@@ -6,7 +6,7 @@ Send and receive messages from a serial device with python
 
 This tutorial explains how to send and receive messages to and from a serial device.
 
-We will make a program that periodically sends *PING* messages to a serial device, while monitoring the device to print every paparazzi message received on it. When it receives a *PING* it will send back a *PONG*. This is ment to be tested with a loopback serial device (a FTDI cable with RX and TX linked).
+We will make a program that periodically sends *DING* messages to a serial device, while monitoring the device to print every paparazzi message received on it. When it receives a *DING* it will send back a *DONG*. This is ment to be tested with a loopback serial device (a FTDI cable with RX and TX linked).
 
 The tutorial code will be written in the :class:`SerialTutorial` class so as to keep state information.
 
