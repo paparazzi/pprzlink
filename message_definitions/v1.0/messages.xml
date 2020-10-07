@@ -641,7 +641,21 @@
     </message>
 
     <!-- 76 is free -->
-    <!-- 77 is free -->
+
+    <message name="SWARM_FISH" id="77">
+      <description>
+        State of the swarm fish navigation
+      </description>
+      <field name="heading" type ="float" unit="rad">Current Heading</field>
+      <field name="step_size" type ="float" unit="m">Current step size</field>
+      <field name="rw" type="float" unit="m">Distance to wall</field>
+      <field name="fw" type="float">Wall interaction coef</field>
+      <field name="theta_w" type ="float" unit="rad">Angle to wall</field>
+      <field name="f_fluct" type="float">Fluctation effect</field>
+      <field name="f_wall" type="float">Wall effect</field>
+      <field name="f_ali" type="float">Alignement effect</field>
+      <field name="f_att" type="float">Attraction effect</field>
+    </message>
 
     <!--message for Invariant filter with position-->
     <message name="INV_FILTER" id="78">
