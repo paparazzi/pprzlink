@@ -1595,8 +1595,13 @@
       <field name="tv_nsec"  type="uint32"/>
       <field name="delay_ns" type="uint32"/>
     </message>
-
-    <!-- 181 is free -->
+    <message name="AIRBORNE_ANTENNA" id="181">
+      <field name="mag_course_deg"   type="float"/>
+      <field name="gps_course_deg"  type="float"/>
+      <field name="ant_azimuth_deg" type="float"/>
+      <field name="ant_elevation_deg" type="float"/>
+    </message>
+   
     <!-- 182 is free -->
     <!-- 183 is free -->
     <!-- 184 is free -->
