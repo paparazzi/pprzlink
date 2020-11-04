@@ -454,6 +454,7 @@
 
     <message name="WIGGLE_COUNTER" id="55">
       <field name="wiggle_counter" type="uint32"/>
+      <field name="wiggle_gain" type="float"/>
     </message>
 
     <message name="BARO_ETS" id="56">
