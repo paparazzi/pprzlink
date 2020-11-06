@@ -2775,14 +2775,18 @@
     </message>
 
     <message name="SVSINFO" id="16">
+      <description>
+        Space Vehicle Information
+        Mainly based on the NAV-SVINFO and NAV-SOL messages of the Ublox UBX protocol.
+      </description>
       <field name="ac_id" type="string"/>
-      <field name="pacc"  type="uint16" unit="cm"/>
-      <field name="svid"  type="string" format="csv"/>
-      <field name="flags" type="string" format="csv"/>
-      <field name="qi"    type="string" format="csv" values="IDLE|SEARCH|SEARCH|UNUSABLE|CODELOCK|CARRIERLOCK|CARRIERLOCK|RECEIVING"/>
-      <field name="cno"   type="string" format="csv" unit="dbHz"/>
-      <field name="elev"  type="string" format="csv" unit="deg"/>
-      <field name="azim"  type="string" format="csv" unit="deg"/>
+      <field name="pacc"  type="uint16" unit="cm">3D Position Accuracy Estimate</field>
+      <field name="svid"  type="string" format="csv">Satellite ID</field>
+      <field name="flags" type="string" format="csv">"flags" field of the UBX NAV-SVINFO message</field>
+      <field name="qi"    type="string" format="csv" values="IDLE|SEARCH|SEARCH|UNUSABLE|CODELOCK|CARRIERLOCK|CARRIERLOCK|RECEIVING">Quality indicator</field>
+      <field name="cno"   type="string" format="csv" unit="dbHz">Carrier to Noise Ratio (Signal Strength)</field>
+      <field name="elev"  type="string" format="csv" unit="deg">Elevation</field>
+      <field name="azim"  type="string" format="csv" unit="deg">Azimut</field>
       <field name="msg_age"  type="string" format="csv" unit="s"/>
     </message>
 
