@@ -99,7 +99,7 @@ namespace pprzlink {
   }
 
   template<typename StreamType>
-  void addVectorToStream(StreamType &stream,const Message &msg,int index, bool uint8_as_int=false)
+  void addVectorToStream([[maybe_unused]] StreamType &stream,const Message &msg,int index, [[maybe_unused]] bool uint8_as_int=false)
   {
     const auto& value = msg.getRawValue(index);
     switch (value.getType().getBaseType())
