@@ -24,3 +24,8 @@ On bask-like shells: `export PYTHONPATH=<path/to/this/directory>:$PYTHONPATH`
 
 Then you can run test programs with `python -m pprzlink.serial` in the case of the serial interface.
 
+License
+-------
+
+PPRZLINK Python library is released under LGPLv3 (or later)
+
