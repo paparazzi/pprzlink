@@ -15,10 +15,20 @@ To build the docs locally:
 
 PPRZLINK libraries are available for the following programming languages: 
 
--   [C](lib/v1.0/C)
--   [OCaml](lib/v1.0/ocaml)
--   [Python](lib/v1.0/python)
+-   [C](lib/v2.0/C)
+-   [OCaml](lib/v2.0/ocaml)
+-   [Python](lib/v2.0/python)
 -   [Rust](https://github.com/paparazzi/pprzlink-rust)
+
+## License
+
+PPRZLINK is released under:
+
+- GPLv2 (or later) for the OCaml and C libraries (v1.0 and v2.0)
+- GPLv3 (or later) for the code generators
+- LGPLv3 (or later) for the Python library (v1.0 and v2.0)
+
+See license files (LICENSE.xxxx) for details
 
 ## Messages
 
