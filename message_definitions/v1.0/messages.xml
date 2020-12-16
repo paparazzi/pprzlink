@@ -324,6 +324,9 @@
       <field name="accelned_filt_x" type="float"/>
       <field name="accelned_filt_y" type="float"/>
       <field name="accelned_filt_z" type="float"/>
+      <field name="speed_sp_x" type="float"/>
+      <field name="speed_sp_y" type="float"/>
+      <field name="speed_sp_z" type="float"/>
     </message>
 
     <message name="DRAGSPEED" id="38">
