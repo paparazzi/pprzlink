@@ -1874,6 +1874,7 @@
       <field name="div_size"    type="float" unit="1/s"/>
       <field name="surface_roughness"    type="float" unit="1/s"/>
       <field name="divergence"    type="float" unit="1/s"/>
+      <field name="camera_id"   type="uint8"/>
     </message>
 
     <message name="STEREO_IMG" id="229">
