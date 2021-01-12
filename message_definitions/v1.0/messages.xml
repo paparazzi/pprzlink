@@ -239,10 +239,15 @@
       <field name="south" type="float" unit="m"/>
     </message>
 
-  <!-- Not used, merge with XTEND_RSSI ? -->
-    <message name="RSSI" id="28">
-      <field name="rssi" type="uint8" unit="dB"/>
-      <field name="tx_power" type="uint8" unit="dB"/>
+    <message name="MATEKSYS_FLOW_LIDAR" id="28">
+      <field name="sensor_id" type="uint8"/>
+      <field name="motion_quality" type="uint8"/>
+      <field name="motionX" type="int32" unit="deg/s"/>
+      <field name="motionY" type="int32" unit="deg/s"/>
+      <field name="distance_quality" type="uint8"/>
+      <field name="distance" type="int32" unit="mm"/>
+      <field name="velocityX" type="int32" unit="mm/s"/>
+      <field name="velocityY" type="int32" unit="mm/s"/>
     </message>
 
     <message name="RANGEFINDER" id="29">
