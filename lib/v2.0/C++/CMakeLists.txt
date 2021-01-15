@@ -11,7 +11,8 @@ find_library(IVY_LIB NAMES ivy)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pthread")
 
-include_directories(./)
+include_directories(./ ${CMAKE_PREFIX_PATH}/include)
+link_directories(${CMAKE_PREFIX_PATH}/lib)
 
 set(SOURCE
         ivy-c++/Ivy.cpp
