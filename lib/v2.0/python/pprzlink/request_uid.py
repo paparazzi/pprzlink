@@ -26,7 +26,7 @@ class RequestUIDFactory:
         sequence_number = 0
         while True:
             sequence_number = sequence_number + 1
-            yield f'{pid}_{sequence_number}'
+            yield '%d_%d'.format(pid, sequence_number)
 
     @classmethod
     def generate_uid(cls):
