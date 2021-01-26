@@ -245,9 +245,9 @@
       <field name="motionX" type="int32" unit="deg/s"/>
       <field name="motionY" type="int32" unit="deg/s"/>
       <field name="distance_quality" type="uint8"/>
-      <field name="distance" type="int32" unit="mm"/>
-      <field name="velocityX" type="int32" unit="mm/s"/>
-      <field name="velocityY" type="int32" unit="mm/s"/>
+      <field name="distance" type="float" unit="m"/>
+      <field name="velocityX" type="float" unit="m/s"/>
+      <field name="velocityY" type="float" unit="m/s"/>
     </message>
 
     <message name="RANGEFINDER" id="29">
