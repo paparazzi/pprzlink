@@ -239,6 +239,12 @@
       <field name="south" type="float" unit="m"/>
     </message>
 
+    <!-- TODO merge with XTEND_RSSI -->
+    <message name="RSSI" id="28">
+      <field name="rssi" type="uint8" unit="dB"/>
+      <field name="tx_power" type="uint8" unit="dB"/>
+    </message>
+
     <message name="RANGEFINDER" id="29">
       <field name="range" type="uint16" unit="cm"/>
       <field name="z_dot" type="float" unit="m/s"/>
