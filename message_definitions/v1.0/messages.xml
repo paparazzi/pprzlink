@@ -239,17 +239,6 @@
       <field name="south" type="float" unit="m"/>
     </message>
 
-    <message name="MATEKSYS_FLOW_LIDAR" id="28">
-      <field name="sensor_id" type="uint8"/>
-      <field name="motion_quality" type="uint8"/>
-      <field name="motionX" type="int32" unit="deg/s"/>
-      <field name="motionY" type="int32" unit="deg/s"/>
-      <field name="distance_quality" type="uint8"/>
-      <field name="distance" type="float" unit="m"/>
-      <field name="velocityX" type="float" unit="m/s"/>
-      <field name="velocityY" type="float" unit="m/s"/>
-    </message>
-
     <message name="RANGEFINDER" id="29">
       <field name="range" type="uint16" unit="cm"/>
       <field name="z_dot" type="float" unit="m/s"/>
@@ -1826,15 +1815,16 @@
       <field name="value" type="uint16"/>
     </message>
 
-    <message name="PX4FLOW" id="233">
+    <message name="OPTICAL_FLOW" id="233">
       <field name="time_sec" type="float" unit="s"/>
       <field name="sensor_id" type="uint8"/>
-      <field name="flow_x" type="int16"/>
-      <field name="flow_y" type="int16"/>
+      <field name="flow_x" type="int32"/>
+      <field name="flow_y" type="int32"/>
       <field name="flow_comp_m_x" type="float" unit="m"/>
       <field name="flow_comp_m_y" type="float" unit="m"/>
-      <field name="quality" type="uint8"/>
+      <field name="flow_quality" type="uint8"/>
       <field name="ground_distance" type="float" unit="m"/>
+      <field name="distance_quality" type="uint8"/>
     </message>
 
     <message name="LIDAR" id="234">
