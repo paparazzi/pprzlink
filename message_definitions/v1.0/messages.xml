@@ -241,7 +241,7 @@
       <field name="south" type="float" unit="m"/>
     </message>
 
-  <!-- Not used, merge with XTEND_RSSI ? -->
+    <!-- TODO merge with XTEND_RSSI -->
     <message name="RSSI" id="28">
       <field name="rssi" type="uint8" unit="dB"/>
       <field name="tx_power" type="uint8" unit="dB"/>
@@ -1920,15 +1920,16 @@
       <field name="value" type="uint16"/>
     </message>
 
-    <message name="PX4FLOW" id="233">
+    <message name="OPTICAL_FLOW" id="233">
       <field name="time_sec" type="float" unit="s"/>
       <field name="sensor_id" type="uint8"/>
-      <field name="flow_x" type="int16"/>
-      <field name="flow_y" type="int16"/>
+      <field name="flow_x" type="int32"/>
+      <field name="flow_y" type="int32"/>
       <field name="flow_comp_m_x" type="float" unit="m"/>
       <field name="flow_comp_m_y" type="float" unit="m"/>
-      <field name="quality" type="uint8"/>
+      <field name="flow_quality" type="uint8"/>
       <field name="ground_distance" type="float" unit="m"/>
+      <field name="distance_quality" type="uint8"/>
     </message>
 
     <message name="LIDAR" id="234">
