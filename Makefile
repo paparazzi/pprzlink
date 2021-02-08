@@ -20,7 +20,7 @@
 #
 
 # Quiet compilation
-Q=@
+Q ?=@
 
 MAKE = make
 
@@ -51,6 +51,21 @@ else
 endif
 
 all: libpprzlink
+
+# Build and install C++ if lib versoin is 2.0 (Should test if version is more than 2.0...)
+ifeq ($(PPRZLINK_LIB_VERSION), 2.0)
+libpprzlink: libpprzlink++
+libpprzlink-install: libpprzlink++-install
+endif
+
+# This compiles the sources then copy the library
+libpprzlink++:
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ libpprzlink++
+
+libpprzlink++-install: libpprzlink++ 
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ install
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ copy-ivyqt
+
 
 libpprzlink:
 	$(Q)Q=$(Q) $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml
@@ -88,4 +103,4 @@ validate_messages:
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
 	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
 
-.PHONY: libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
+.PHONY: libpprzlink++-install libpprzlink++ libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
