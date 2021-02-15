@@ -2560,6 +2560,45 @@
       <field name="course" type="float" unit="deg" format="%.1f"/>
     </message>
 
+    <message name="REMOTE_AHRS_QUAT" id="60">
+      <description>
+        Get attitude, heading and rates from external source
+        flag:
+        0: horizontal attitude is set
+        1: heading is set
+        2: rates are set
+        Note that with quaternions, when heading is disabled, the orientation is set
+        arbitrarily to north
+      </description>
+      <field name="q0"    type="float"/>
+      <field name="qx"    type="float"/>
+      <field name="qy"    type="float"/>
+      <field name="qz"    type="float"/>
+      <field name="p"     type="float" unit="rad/s"/>
+      <field name="q"     type="float" unit="rad/s"/>
+      <field name="r"     type="float" unit="rad/s"/>
+      <field name="flag"  type="uint8">bitmask, see message description</field>
+      <field name="ac_id" type="uint8"/>
+    </message>
+
+    <message name="REMOTE_AHRS_EULER" id="60">
+      <description>
+        Get attitude, heading and rates from external source
+        flag:
+        0: horizontal attitude is set
+        1: heading is set
+        2: rates are set
+      </description>
+      <field name="phi"   type="float" unit="rad"/>
+      <field name="theta" type="float" unit="rad"/>
+      <field name="psi"   type="float" unit="rad"/>
+      <field name="p"     type="float" unit="rad/s"/>
+      <field name="q"     type="float" unit="rad/s"/>
+      <field name="r"     type="float" unit="rad/s"/>
+      <field name="flag"  type="uint8">bitmask, see message description</field>
+      <field name="ac_id" type="uint8"/>
+    </message>
+
     <message name="KITE_COMMAND" id="96">
       <field name="POWER"     type="uint16"/>
       <field name="TURN"      type="uint16"/>
