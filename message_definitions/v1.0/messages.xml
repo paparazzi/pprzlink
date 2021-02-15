@@ -2570,7 +2570,7 @@
         Note that with quaternions, when heading is disabled, the orientation is set
         arbitrarily to north
       </description>
-      <field name="q0"    type="float"/>
+      <field name="qi"    type="float"/>
       <field name="qx"    type="float"/>
       <field name="qy"    type="float"/>
       <field name="qz"    type="float"/>
