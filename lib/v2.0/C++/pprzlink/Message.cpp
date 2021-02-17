@@ -27,11 +27,11 @@
 
 namespace pprzlink {
 
-  Message::Message() : sender_id(0),receiver_id(0),component_id(0)
+  Message::Message() : sender_id(static_cast<uint8_t>(0)),receiver_id(static_cast<uint8_t>(0)),component_id(static_cast<uint8_t>(0))
   {
   }
 
-  Message::Message(const MessageDefinition &def) : def(def),sender_id(0),receiver_id(0),component_id(0)
+  Message::Message(const MessageDefinition &def) : def(def),sender_id(static_cast<uint8_t>(0)),receiver_id(static_cast<uint8_t>(0)),component_id(static_cast<uint8_t>(0))
   {
   }
 
