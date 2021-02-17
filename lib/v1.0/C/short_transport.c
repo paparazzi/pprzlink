@@ -29,6 +29,9 @@
 #include <inttypes.h>
 #include "pprzlink/short_transport.h"
 
+static void put_priority(struct short_transport *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)),
+                         long fd __attribute__((unused)), uint8_t prio __attribute__((unused))) {}
+
 static void put_bytes(struct short_transport *trans __attribute__((unused)), struct link_device *dev, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       const void *bytes, uint16_t len)
@@ -86,5 +89,6 @@ void short_transport_init(struct short_transport *t)
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
+  t->trans_tx.put_priority = (put_priority_t) put_priority;
 }
 

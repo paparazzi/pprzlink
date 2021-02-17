@@ -37,6 +37,9 @@ static struct ivy_transport * get_ivy_trans(struct pprzlink_msg *msg)
   return (struct ivy_transport *)(msg->trans->impl);
 }
 
+static void put_priority(struct pprzlink_msg *msg __attribute__((unused)), long fd __attribute__((unused)),
+                         uint8_t prio __attribute__((unused))) {}
+
 static void put_bytes(struct pprzlink_msg *msg, long fd __attribute__((unused)),
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       const void *bytes, uint16_t len)
@@ -205,4 +208,5 @@ void ivy_transport_init(struct ivy_transport *t)
   t->device.char_available = (char_available_t) null_function;
   t->device.get_byte = (get_byte_t) null_byte_function;
   t->device.periph = (void *)(t);
+  t->trans_tx.put_priority = (put_priority_t) put_priority;
 }
