@@ -258,9 +258,8 @@ namespace pprzlink {
       auto iter = requestBindId.left.find(requestId);
       if (iter != requestBindId.left.end())
       {
-        // TODO make these two lines work ! (crash on Unbind)
-        //long id = iter->second;
-        //UnbindMessage(id);
+        long id = iter->second;
+        UnbindMessage(id);
         requestBindId.left.erase(requestId);
 
       }
