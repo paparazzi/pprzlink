@@ -89,7 +89,7 @@ namespace pprzlink {
     return id;
   }
 
-  void IvyLink::UnbindMessage(int bindId)
+  void IvyLink::UnbindMessage(long bindId)
   {
     if (messagesCallbackMap.find(bindId) != messagesCallbackMap.end()) {
       bus->UnbindMsg(bindId);

@@ -79,7 +79,7 @@ namespace pprzlink {
      *
      * @param bindId
      */
-    void UnbindMessage(int bindId);
+    void UnbindMessage(long bindId);
 
     /**
      *
