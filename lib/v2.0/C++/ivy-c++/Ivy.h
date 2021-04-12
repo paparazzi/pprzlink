@@ -38,7 +38,7 @@ public:
 	static long  BindMsg (const char *regexp, IvyMessageCallback *cb );
         static long  BindMsg (IvyMessageCallback *cb, const char *regexp, ... )
 	  __attribute__((format(printf,2,3)));
-	static void UnbindMsg( int id );
+	static void UnbindMsg( long id );
 
   static int  SendMsg(const char *fmt, ... )
 	  __attribute__((format(printf,1,2))) ;

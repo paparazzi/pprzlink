@@ -159,10 +159,10 @@ long Ivy::BindMsg (IvyMessageCallback *cb, const char *regexp, ... )
 #        | |__| | | | | | | |_) | | |  | | | | | (_| |  | |  | | \__ \    __/ |
 #         \____/  |_| |_| |_.__/  |_|  |_| |_|  \__,_|  |_|  |_| |___/   |___/
  */
-void Ivy::UnbindMsg(int id)
+void Ivy::UnbindMsg(long id)
 {
   LOCK(ivyMutex)
-  IvyC::IvyUnbindMsg( (IvyC::MsgRcvPtr) long(id) );
+  IvyC::IvyUnbindMsg( (IvyC::MsgRcvPtr) id );
   UNLOCK(ivyMutex)
 }
 
