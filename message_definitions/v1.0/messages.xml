@@ -314,7 +314,20 @@
       <field name="temp" type="int8" unit="deg"/>
     </message>
 
-    <!-- 38 is free -->
+    <message name="GUIDANCE_INDI_HYBRID" id="37">
+      <field name="sp_accel_x" type="float"/>
+      <field name="sp_accel_y" type="float"/>
+      <field name="sp_accel_z" type="float"/>
+      <field name="euler_cmd_x" type="float"/>
+      <field name="euler_cmd_y" type="float"/>
+      <field name="euler_cmd_z" type="float"/>
+      <field name="accelned_filt_x" type="float"/>
+      <field name="accelned_filt_y" type="float"/>
+      <field name="accelned_filt_z" type="float"/>
+      <field name="speed_sp_x" type="float"/>
+      <field name="speed_sp_y" type="float"/>
+      <field name="speed_sp_z" type="float"/>
+    </message>
 
     <message name="DRAGSPEED" id="38">
       <description>
