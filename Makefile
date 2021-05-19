@@ -52,12 +52,6 @@ endif
 
 all: libpprzlink
 
-# Build and install C++ if lib versoin is 2.0 (Should test if version is more than 2.0...)
-ifeq ($(PPRZLINK_LIB_VERSION), 2.0)
-libpprzlink: libpprzlink++
-libpprzlink-install: libpprzlink++-install
-endif
-
 # This compiles the sources then copy the library
 libpprzlink++:
 	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ libpprzlink++
