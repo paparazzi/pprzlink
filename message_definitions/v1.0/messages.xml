@@ -2573,6 +2573,28 @@
       <field name="course" type="float" unit="deg" format="%.1f"/>
     </message>
 
+    <message name="SMARTPROBE" id="60" link="forwarded">
+      <description>
+        Data from SmartProbe 5-hole probe sensor for wind and turbulence measurements
+      </description>
+      <field name="accel" type="float[3]" unit="m/s^2">internal accelerometer</field>
+      <field name="gyro" type="float[3]" unit="rad/s">internal gyrometer</field>
+      <field name="attitude" type="float[4]">attitude in normalized quaternion or euler in radians (when last field is lower than -2)</field>
+      <field name="tas" type="float" unit="m/s">true airspeed</field>
+      <field name="eas" type="float" unit="m/s">equivalent airspeed</field>
+      <field name="alpha" type="float" unit="rad">angle of attack</field>
+      <field name="beta" type="float" unit="rad">angle of sideslip</field>
+      <field name="pressure" type="float" unit="Pa">static absolute pressure</field>
+      <field name="temperature" type="float" unit="Celcius">static temperature</field>
+      <field name="rho" type="float" unit="kg/m^3">air density</field>
+      <field name="p_diff_C_raw" type="float" unit="Pa">raw differential pressure for central sensor</field>
+      <field name="t_diff_C_raw" type="float" unit="Celcius">raw temperature for central sensor</field>
+      <field name="p_diff_H_raw" type="float" unit="Pa">raw differential pressure for horizontal sensor</field>
+      <field name="t_diff_H_raw" type="float" unit="Celcius">raw temperature for horizontal sensor</field>
+      <field name="p_diff_V_raw" type="float" unit="Pa">raw differential pressure for vertical sensor</field>
+      <field name="t_diff_V_raw" type="float" unit="Celcius">raw temperature for vertical sensor</field>
+    </message>
+
     <message name="KITE_COMMAND" id="96">
       <field name="POWER"     type="uint16"/>
       <field name="TURN"      type="uint16"/>
