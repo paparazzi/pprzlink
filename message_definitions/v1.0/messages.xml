@@ -2583,7 +2583,7 @@
       <field name="tas" type="float" unit="m/s">true airspeed</field>
       <field name="eas" type="float" unit="m/s">equivalent airspeed</field>
       <field name="alpha" type="float" unit="rad">angle of attack</field>
-      <field name="beta" type="float" unit="rad">andgle of sideslip</field>
+      <field name="beta" type="float" unit="rad">angle of sideslip</field>
       <field name="pressure" type="float" unit="Pa">static absolute pressure</field>
       <field name="temperature" type="float" unit="Celcius">static temperature</field>
       <field name="rho" type="float" unit="kg/m^3">air density</field>
