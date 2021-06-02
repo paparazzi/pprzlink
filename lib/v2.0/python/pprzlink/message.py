@@ -241,9 +241,9 @@ class PprzMessage(object):
         struct_string = "<"
         data = []
         length = 0
+        r = re.compile('[\[\]]')
         for idx, t in enumerate(self.fieldtypes):
             bin_type = self.fieldbintypes(t)
-            r = re.compile('[\[\]]')
             s = r.split(t)
             if len(s) > 1: # this is an array
                 array_length = len(self.fieldvalues[idx])
@@ -278,11 +278,16 @@ class PprzMessage(object):
     def binary_to_payload(self, data):
         msg_offset = 0
         values = []
+        r = re.compile('[\[\]]')
         for idx, t in enumerate(self.fieldtypes):
             bin_type = self.fieldbintypes(t)
-            if '[' in t:
-                array_length = data[msg_offset]
-                msg_offset += 1
+            s = r.split(t)
+            if len(s) > 1: # this is an array
+                if len(s[1]) == 0: # this is a variable length array
+                    array_length = data[msg_offset]
+                    msg_offset += 1
+                else:
+                    array_length = int(s[1])
                 array_value = []
                 for count in range(0, array_length):
                     array_value.append(struct.unpack('<' + bin_type[0], data[msg_offset:msg_offset + bin_type[1]])[0])
