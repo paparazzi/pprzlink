@@ -193,7 +193,7 @@ class PprzMessage(object):
         return str(self.name) + ';' + self.payload_to_ivy_string(sep=';')
 
     def payload_to_ivy_string(self, sep=' '):
-        ivy_str = ''
+        fields = []
         for idx, t in enumerate(self.fieldtypes):
             if "char[" in t:
                 str_value =''
@@ -202,12 +202,12 @@ class PprzMessage(object):
                         str_value += c.decode()
                     else:
                         str_value += c
-                ivy_str += '"' + str_value + '"'
+                fields.append('"' + str_value + '"')
             elif '[' in t:
-                ivy_str += ','.join([str(x) for x in self.fieldvalues[idx]])
+                fields.append(','.join([str(x) for x in self.fieldvalues[idx]]))
             else:
-                ivy_str += str(self.fieldvalues[idx])
-            ivy_str += sep
+                fields.append(str(self.fieldvalues[idx]))
+        ivy_str = sep.join(fields)
         return ivy_str
 
     def ivy_string_to_payload(self, data):
