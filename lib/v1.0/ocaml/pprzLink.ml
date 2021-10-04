@@ -245,7 +245,7 @@ let scale_of_units = fun ?auto from_unit to_unit ->
         and a = try Some (Xml.attrib u "auto") with _ -> None in
         let a = match auto, a with
           | Some _, None | None, None -> "" (* No auto conversion *)
-          | Some t, Some _ | None, Some t -> CompatPL.lowercase_ascii t (* param auto is used before attribute *)
+          | Some t, Some _ | None, Some t -> String.lowercase_ascii t (* param auto is used before attribute *)
         in
         if (f = from_unit || a = "display") && (t = to_unit || a = "code") then true else false
       ) (Xml.children units_xml) in
@@ -332,14 +332,14 @@ let field_of_xml = fun xml ->
   let auc = alt_unit_coef_of_xml xml in
   let values = try Str.split pipe_regexp (Xml.attrib xml "values") with _ -> [] in
 
-  ( CompatPL.lowercase_ascii (xml_attrib xml "name"),
+  ( String.lowercase_ascii (xml_attrib xml "name"),
     { _type = t; fformat = f; alt_unit_coef = auc; enum=values })
 
 let string_of_values = fun vs ->
   String.concat " " (List.map (fun (a,v) -> sprintf "%s=%s" a (string_of_value v)) vs)
 
 let assoc = fun a vs ->
-  try List.assoc (CompatPL.lowercase_ascii a) vs with Not_found ->
+  try List.assoc (String.lowercase_ascii a) vs with Not_found ->
     failwith (sprintf "Attribute '%s' not found in '%s'" a (string_of_values vs))
 
 let float_assoc = fun (a:string) vs ->

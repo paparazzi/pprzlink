@@ -33,26 +33,15 @@ endif
 
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-CAMLP4_DEFS ?=
 
 #
 # NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
 # see http://caml.inria.fr/mantis/view.php?id=5503
-#
-OCAML_VERSION := $(shell ocamlc -version)
-OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
-OCAMLC_MINOR := $(shell echo $(OCAML_VERSION) | cut -f2 -d.)
 # using a recent ocaml(build) version >= 4,
 # but build-dir MUST NOT contain ..
 # so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
 PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
 BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/pprzlink
-
-ifeq ($(shell test $(OCAMLC_MINOR) -ge 2; echo $$?),0)
-ifeq ($(shell test $(OCAMLC_MINOR) -ge 4; echo $$?),0)
-CAMLP4_DEFS += -DOCAML_V404
-endif
-endif
 
 INSTALL_FLAGS ?=
 # use this option leave ocamlfind ldconf file unchanged
@@ -62,7 +51,6 @@ ifneq ($(DESTDIR),)
 INSTALL_FLAGS += -destdir $(DESTDIR)
 endif
 
-PP_OPTS = -pp "camlp4o pa_macro.cmo $(CAMLP4_DEFS)"
 # enforce checking a clear type checking between bytes and string
 C_OPTS = -cflags -safe-string
 INSTALL_FILES = $(shell ls $(BUILDDIR)/*.so $(BUILDDIR)/*.a $(BUILDDIR)/*.mli $(BUILDDIR)/*.cm* $(BUILDDIR)/common/*.mli $(BUILDDIR)/common/*.cm*)
@@ -73,20 +61,20 @@ all: byte native
 byte: _tags META
 	@echo Build bytecode lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) $(C_OPTS) -build-dir $(BUILDDIR) -I common lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) $(QUIET) $(C_OPTS) -build-dir $(BUILDDIR) -I common lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 # byte with statically linked libs
 static: _tags META
 	@echo Build bytecode lib with static linking
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) $(C_OPTS) -build-dir $(BUILDDIR) -tag static -I common lib-pprzlink.cma
+	$(Q)$(OCAMLBUILD) $(QUIET) $(C_OPTS) -build-dir $(BUILDDIR) -tag static -I common lib-pprzlink.cma
 	$(Q)cp META $(BUILDDIR)
 
 native: _tags META
 	@echo Build native lib
 	$(Q)test -d $(BUILDDIR) || mkdir -p $(BUILDDIR)
-	$(Q)$(OCAMLBUILD) $(QUIET) $(PP_OPTS) $(C_OPTS) -build-dir $(BUILDDIR) -I common lib-pprzlink.cmxa
+	$(Q)$(OCAMLBUILD) $(QUIET) $(C_OPTS) -build-dir $(BUILDDIR) -I common lib-pprzlink.cmxa
 	$(Q)cp META $(BUILDDIR)
 
 install: clean_lib byte native META

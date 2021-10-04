@@ -28,21 +28,12 @@ OCAMLBUILD=ocamlbuild -use-ocamlfind
 #
 # NOTE: due to a bug in older ocamlbuild versions the build-dir can NOT be absolute
 # see http://caml.inria.fr/mantis/view.php?id=5503
-#
-OCAML_VERSION := $(shell ocamlc -version)
-OCAML_MAJOR := $(shell echo $(OCAML_VERSION) | cut -f1 -d.)
-ifeq ($(shell test $(OCAML_MAJOR) -lt 4; echo $$?),0)
-# need to use an old buggy ocaml(build) version: dir MUST be relative
-OCAML_LIBDIR ?= ../../build/ocaml
-BUILDDIR ?= ../../build/ocaml/gen
-else
 # using a recent ocaml(build) version without THAT particular bug,
 # but dir MUST NOT contain ..
 # so use some magic here to get a normalized absolute path if PPRZLINK_DIR is not set
 PPRZLINK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 OCAML_LIBDIR ?= $(PPRZLINK_DIR)/build/ocaml
 BUILDDIR ?= $(PPRZLINK_DIR)/build/ocaml/gen
-endif
 
 # FIXME test if pprzlink is installed in the system or try local build
 export OCAMLPATH=$(OCAML_LIBDIR)
