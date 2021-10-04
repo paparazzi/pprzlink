@@ -78,7 +78,7 @@ static inline uint8_t pprzlink_get_msg_receiver_id(void *msg)
  */
 static inline uint8_t pprzlink_get_msg_component_id(void *msg) 
 {
- return (((uint8_t*)msg)[2] & 0x0F)>>4;
+ return (((uint8_t*)msg)[2] & 0xF0)>>4;
 }
 
 /** Getter for the class id of a message
