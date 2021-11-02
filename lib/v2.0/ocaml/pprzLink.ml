@@ -604,6 +604,9 @@ module type MESSAGES = sig
   val string_of_message : ?sep:string -> message -> values -> string
   (** [string_of_message ?sep msg values] Default [sep] is space *)
 
+  val json_of_message : message -> values -> string
+  (** [json_of_message msg values] JSON string of message *)
+
   val message_send : ?timestamp:float -> ?link_id:int -> string -> string -> values -> unit
   (** [message_send sender link_id msg_name values] *)
 
@@ -741,6 +744,32 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
                default_value field._type in
        formatted_string_of_value field.fformat v)
      msg.fields)
+
+
+  let json_of_message = fun msg values ->
+    (** Check that the values are compatible with this message *)
+    List.iter
+    (fun (k, _) ->
+      if not (List.mem_assoc k msg.fields)
+      then invalid_arg (sprintf "json_of_message: unknown field '%s' in message '%s'" k msg.name))
+    values;
+
+    let format_field = fun (field_name, field) ->
+      let v =
+        try List.assoc field_name values with
+        Not_found -> failwith "json_of_message: field_name not found"
+      in
+      match v with
+      | Array a -> sprintf "\"%s\": { %s }" field_name (
+          String.concat ", " (Array.to_list (Array.mapi (fun i e ->
+            sprintf "\"%s_%i\": %s" field_name i (formatted_string_of_value field.fformat e)
+          ) a)))
+      | String s -> sprintf "\"%s\": \"%s\"" field_name s
+      | _ -> sprintf "\"%s\": %s" field_name (formatted_string_of_value field.fformat v)
+    in
+    let sv = String.concat ", " (List.map format_field msg.fields) in
+    sprintf "{ \"%s\": { %s } }" msg.name sv
+
 
   let message_send = fun ?timestamp ?link_id sender msg_name values ->
     let m = snd (message_of_name msg_name) in
