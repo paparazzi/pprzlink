@@ -836,7 +836,7 @@
       <field name="filenames" type="char[]">The filenames currently in use by the logger (First sdlog, second Flight recorder for chibios)</field>
     </message>
 
-    <message name="MINIMAL_COM" id="80">
+    <message name="MINIMAL_COM" id="93">
       <description>
         Minimal information for correct display in the GCS, in particular the Strip
       </description>
