@@ -24,6 +24,8 @@
 
 val messages_xml : unit -> Xml.xml
 
+val broadcast_id : int
+
 type sender_id = int
 type receiver_id = int
 type component_id = int
@@ -45,6 +47,15 @@ type field = {
     enum : string list (* 'values' attribute *)
   }
 type link_mode = Forwarded | Broadcasted
+
+type header = {
+    sender_id : sender_id;
+    receiver_id : receiver_id;
+    class_id : class_id;
+    component_id: int;
+    message_id : message_id;
+  }
+
 type message = {
     name : string;
     fields : (string * field) list;
@@ -151,12 +162,12 @@ module type MESSAGES = sig
   val message_of_id : message_id -> message
   val message_of_name : string ->  message_id * message
 
-  val values_of_payload : Protocol.payload -> message_id * sender_id * values
+  val values_of_payload : Protocol.payload -> header * values
   (** [values_of_payload payload] Parses a raw payload, returns the
-   message id, the A/C id and the list of (field_name, value) *)
+   header and the list of (field_name, value) *)
 
-  val payload_of_values : message_id -> sender_id -> values -> Protocol.payload
-  (** [payload_of_values id sender_id vs] Returns a payload *)
+  val payload_of_values : message_id -> sender_id -> receiver_id -> values -> Protocol.payload
+  (** [payload_of_values id sender_id receiver_id vs] Returns a payload *)
 
   val values_of_string : string -> message_id * values
   (** May raise [(Unknown_msg_name msg_name)] *)
