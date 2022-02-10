@@ -24,10 +24,9 @@ Contents
     :maxdepth: 2
     :includehidden:
 	
-    messages/messages
+    messages/index_message
     generators/generators
     python/python
-    C/C
     Ocaml/Ocaml
     Tutorials/Tutorials
 
