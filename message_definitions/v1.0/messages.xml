@@ -2572,29 +2572,34 @@
       <field name="kill"        type="int8"/>
     </message>
 
-    <message name="REMOTE_GPS_SMALL" id="54" link="forwarded">
-      <field name="heading"   type="int16"  unit="1e4rad" alt_unit="deg" alt_unit_coef="0.0057296"/>
-      <field name="pos_xyz"  	type="uint32">bits 31-21 east position [cm] : bits 20-10 north position [cm] : bits 9-0 up position [cm]</field>
-      <field name="speed_xyz" type="uint32">bits 31-21 east speed [cm/s] : bits 20-10 north speed [cm/s] : bits 9-0 climb speed [cm/s]</field>
-      <field name="tow"   	type="uint32" unit="ms" alt_unit="s" alt_unit_coef="0.001"/>
-      <field name="ac_id"   	type="uint8"/>
+    <message name="EXTERNAL_POSE" id="54" link="forwarded">
+      <description>
+        Position, speed and orientation in local frame from a remote vision system
+      </description>
+      <field name="ac_id"     type="uint8">AC id for which the data is meant</field>
+      <field name="timestamp" type="uint32" unit="ms">Timestamp from the measurement</field>
+      <field name="enu_x"     type="float" unit="m">ENU x position in vision frame</field>
+      <field name="enu_y"     type="float" unit="m">ENU y position in vision frame</field>
+      <field name="enu_z"     type="float" unit="m">ENU z position in vision frame</field>
+      <field name="enu_xd"    type="float" unit="m/s">ENU x speed in vision frame</field>
+      <field name="enu_yd"    type="float" unit="m/s">ENU y speed in vision frame</field>
+      <field name="enu_zd"    type="float" unit="m/s">ENU z speed in vision frame</field>
+      <field name="body_qi"   type="float">Body quaternion i in vision frame</field>
+      <field name="body_qx"   type="float">Body quaternion x in vision frame</field>
+      <field name="body_qy"   type="float">Body quaternion y in vision frame</field>
+      <field name="body_qz"   type="float">Body quaternion z in vision frame</field>
     </message>
 
-    <message name="REMOTE_GPS" id="55" link="forwarded">
-      <field name="ac_id"   type="uint8"/>
-      <field name="numsv"   type="uint8"/>
-      <field name="ecef_x"  type="int32" unit="cm"   alt_unit="m"/>
-      <field name="ecef_y"  type="int32" unit="cm"   alt_unit="m"/>
-      <field name="ecef_z"  type="int32" unit="cm"   alt_unit="m"/>
-      <field name="lat"     type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="lon"     type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
-      <field name="alt"     type="int32" unit="mm"   alt_unit="m">Height above WGS84 reference ellipsoid</field>
-      <field name="hmsl"    type="int32" unit="mm"   alt_unit="m">Height above Mean Sea Level (geoid)</field>
-      <field name="ecef_xd" type="int32" unit="cm/s" alt_unit="m/s"/>
-      <field name="ecef_yd" type="int32" unit="cm/s" alt_unit="m/s"/>
-      <field name="ecef_zd" type="int32" unit="cm/s" alt_unit="m/s"/>
-      <field name="tow"     type="uint32"/>
-      <field name="course"  type="int32"  alt_unit="deg" alt_unit_coef="0.0000057296"/>
+    <message name="EXTERNAL_POSE_SMALL" id="55" link="forwarded">
+      <description>
+        Position, speed and orientation in local frame from a remote vision system
+        Smaller message where position, speed is in cm multiplied by a resolution
+      </description>
+      <field name="ac_id"     type="uint8">AC id for which the data is meant</field>
+      <field name="timestamp" type="uint32" unit="ms">Timestamp from the measurement</field>
+      <field name="enu_pos"   type="uint32">ENU position in vision frame(bits 31-21 east position [cm*pos_res] : bits 20-10 north position [cm*pos_res] : bits 9-0 up position [cm*pos_res])</field>
+      <field name="enu_speed" type="uint32">ENU speed in vision frame(bits 31-21 east position [cm*pos_res] : bits 20-10 north position [cm*pos_res] : bits 9-0 up position [cm*pos_res])</field>
+      <field name="heading"   type="int16"  unit="1e4rad" alt_unit="deg" alt_unit_coef="0.0057296">Heading in ENU vision frame</field>
     </message>
 
     <message name="REMOTE_GPS_LOCAL" id="56" link="forwarded">
