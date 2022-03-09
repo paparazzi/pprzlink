@@ -312,10 +312,10 @@ def test():
     parser.add_argument("-b", "--baudrate", help="baudrate", dest='baud', default=115200, type=int)
     parser.add_argument("-id", "--ac_id", help="aircraft id (receiver)", dest='ac_id', default=42, type=int)
     parser.add_argument("--interface_id", help="interface id (sender)", dest='id', default=0, type=int)
-    parser.add_argument("-t", "--transport", help="serial or xbee", dest='transport', default="serial")
+    parser.add_argument("-t", "--transport", help="pprz or xbee", dest='transport', default="serial")
     args = parser.parse_args()
     messages_xml_map.parse_messages(args.file)
-    if args.transport == "serial":
+    if args.transport == "pprz":
         interface = SerialMessagesInterface(lambda s, m: print("new message from %i: %s" % (s, m)), device=args.dev,
                                                baudrate=args.baud, msg_class=args.msg_class, interface_id=args.id, verbose=True)
         print("Starting serial interface on %s at %i baud" % (args.dev, args.baud))
