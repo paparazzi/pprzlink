@@ -47,6 +47,15 @@ type field = {
 }
 
 type link_mode = Forwarded | Broadcasted
+
+type header = {
+    sender_id : sender_id;
+    receiver_id : receiver_id;
+    class_id : class_id;
+    component_id: int;
+    message_id : message_id;
+  }
+
 type message = {
   name : string; (** Lowercase *)
   fields : (string * field) list;
@@ -65,7 +74,7 @@ type values = (string * value) list
 
 type payload = string
 
-
+let broadcast_id = 0XFF
 let separator = ","
 let regexp_separator = Str.regexp ","
 let split_array = fun s -> Str.split regexp_separator s
@@ -591,12 +600,12 @@ module type MESSAGES = sig
   val message_of_id : message_id -> message
   val message_of_name : string ->  message_id * message
 
-  val values_of_payload : Protocol.payload -> message_id * sender_id * values
+  val values_of_payload : Protocol.payload -> header *  values
   (** [values_of_bin payload] Parses a raw payload, returns the
-      message id, the A/C id and the list of (field_name, value) *)
+      header and the list of (field_name, value) *)
 
-  val payload_of_values : message_id -> sender_id -> values -> Protocol.payload
-  (** [payload_of_values id sender_id vs] Returns a payload *)
+  val payload_of_values : message_id -> sender_id -> receiver_id -> values -> Protocol.payload
+  (** [payload_of_values id sender_id receiver_id vs] Returns a payload *)
 
   val values_of_string : string -> message_id * values
   (** May raise [(Unknown_msg_name msg_name)] *)
@@ -652,8 +661,17 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     try
       let id = Char.code (Bytes.get buffer offset_msg_id) in
       let sender_id = Char.code (Bytes.get buffer offset_sender_id) in
-      let c_id = value_of_byte (Char.code (Bytes.get buffer offset_class_id)) mask_class_id shift_class_id in
-      if not (valid_class_id c_id) then failwith (sprintf "PprzLink.invalid class ID %d" c_id);
+      let receiver_id = Char.code (Bytes.get buffer offset_receiver_id) in
+      let class_id = value_of_byte (Char.code (Bytes.get buffer offset_class_id)) mask_class_id shift_class_id in
+      if not (valid_class_id class_id) then failwith (sprintf "PprzLink.invalid class ID %d" class_id);
+      let component_id = value_of_byte (Char.code (Bytes.get buffer offset_component_id)) mask_component_id shift_component_id in
+      let header = {
+        sender_id;
+        receiver_id;
+        class_id;
+        component_id;
+        message_id=id;
+      } in
       let message = message_of_id id in
       DebugPL.call 'T' (fun f -> fprintf f "PprzLink.values id=%d\n" id);
       let rec loop = fun index fields ->
@@ -666,20 +684,20 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
           | (field_name, field_descr)::fs ->
             let (value, n) = value_field buffer index field_descr in
             (field_name, value) :: loop (index+n) fs in
-      (id, sender_id, loop offset_fields message.fields)
+      (header, loop offset_fields message.fields)
     with
         Invalid_argument _ ->
           failwith (sprintf "PprzLink.values_of_payload, wrong argument: %s" (DebugPL.xprint (Bytes.to_string buffer)))
 
 
-  let payload_of_values = fun id sender_id values ->
+  let payload_of_values = fun id sender_id receiver_id values ->
     let message = message_of_id id in
 
     (** The actual length is computed from the values *)
     let p = Bytes.make max_length '#' in
 
     Bytes.set p offset_sender_id (Char.chr sender_id);
-    Bytes.set p offset_receiver_id (Char.chr 0); (* for now, broadcast id *)
+    Bytes.set p offset_receiver_id (Char.chr receiver_id);
     let id_of_class = match class_id with None -> 0 | Some id -> id in (* if class id is not defined (e.g. ground class) it means that this function should not be called either *)
     Bytes.set p offset_class_id (Char.chr id_of_class); (* for now, component id is set to 0 *)
     Bytes.set p offset_msg_id (Char.chr id);
