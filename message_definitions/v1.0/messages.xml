@@ -1142,18 +1142,21 @@
     </message>
 
     <message name="IMU_GYRO_SCALED" id="131">
+      <field name="id"    type="uint8"/>
       <field name="gp"    type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="gq"    type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="gr"    type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
     </message>
 
     <message name="IMU_ACCEL_SCALED" id="132">
+      <field name="id"    type="uint8"/>
       <field name="ax"    type="int32" alt_unit="m/s2" alt_unit_coef="0.0009766"/>
       <field name="ay"    type="int32" alt_unit="m/s2" alt_unit_coef="0.0009766"/>
       <field name="az"    type="int32" alt_unit="m/s2" alt_unit_coef="0.0009766"/>
     </message>
 
     <message name="IMU_MAG_SCALED" id="133">
+      <field name="id"    type="uint8"/>
       <field name="mx"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="my"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="mz"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
@@ -1713,36 +1716,42 @@
     <!-- 199 is free -->
 
     <message name="IMU_GYRO" id="200">
+      <field name="id" type="uint8"/>
       <field name="gp" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
       <field name="gq" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
       <field name="gr" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
     </message>
 
     <message name="IMU_MAG" id="201">
+      <field name="id" type="uint8"/>
       <field name="mx" type="float" />
       <field name="my" type="float" />
       <field name="mz" type="float" />
     </message>
 
     <message name="IMU_ACCEL" id="202">
+      <field name="id" type="uint8"/>
       <field name="ax" type="float" unit="m/s-2"/>
       <field name="ay" type="float" unit="m/s-2"/>
       <field name="az" type="float" unit="m/s-2"/>
     </message>
 
     <message name="IMU_GYRO_RAW" id="203">
+      <field name="id" type="uint8"/>
       <field name="gp" type="int32" unit="adc"/>
       <field name="gq" type="int32" unit="adc"/>
       <field name="gr" type="int32" unit="adc"/>
     </message>
 
     <message name="IMU_ACCEL_RAW" id="204">
+      <field name="id" type="uint8"/>
       <field name="ax" type="int32" unit="adc"/>
       <field name="ay" type="int32" unit="adc"/>
       <field name="az" type="int32" unit="adc"/>
     </message>
 
     <message name="IMU_MAG_RAW" id="205">
+      <field name="id" type="uint8"/>
       <field name="mx" type="int32" unit="adc"/>
       <field name="my" type="int32" unit="adc"/>
       <field name="mz" type="int32" unit="adc"/>
@@ -1757,6 +1766,7 @@
     </message>
 
     <message name="IMU_MAG_CURRENT_CALIBRATION" id="207">
+      <field name="id" type="uint8"/>
       <field name="mx" type="int32" unit="adc"/>
       <field name="my" type="int32" unit="adc"/>
       <field name="mz" type="int32" unit="adc"/>
