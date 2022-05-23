@@ -845,7 +845,7 @@
       </description>
       <field name="status" type="uint8" values="STOPPED|RUNNING|ERROR">General status of the logger</field>
       <field name="errno" type="uint8">Error number, depend of the logging system, provides detailed information</field>
-      <field name="used" type="uint32" unit="bytes">Accumulated number of bytes written by the logger</field>
+      <field name="used" type="uint32" unit="bytes" alt_unit="MB" alt_unit_coef="0.000000953674316">Accumulated number of bytes written by the logger</field>
       <field name="filenames" type="char[]">The filenames currently in use by the logger (First sdlog, second Flight recorder for chibios)</field>
     </message>
 
