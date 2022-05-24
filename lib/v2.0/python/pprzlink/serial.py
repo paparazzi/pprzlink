@@ -140,12 +140,13 @@ class XbeeMessagesInterface(threading.Thread):
             self.id = self.GROUND_STATION_ADDR
         self.ser = serial.Serial(port, baudrate)
         self.rx_state = XbeeMessagesInterface.RxState.WAIT_START
-        self.bytes_to_read = 1
+        self.bytes_needed = 1
         self.running = True
         self._frame_id = 0
         self.responses = {}     # type: Dict[int, Any]
         self.verbose = verbose
         self.callback = callback
+        self.buffer = bytearray()
 
     def start(self) -> None:
         threading.Thread.start(self)
@@ -271,15 +272,17 @@ class XbeeMessagesInterface(threading.Thread):
 
     def run(self):
         while self.running:
-            if self.ser.in_waiting < self.bytes_to_read:
+            self.buffer.extend(self.ser.read())
+            if len(self.buffer) < self.bytes_needed:
                 continue
-            data = self.ser.read(self.bytes_to_read)
+            data = self.buffer[0:self.bytes_needed]
+            self.buffer = self.buffer[self.bytes_needed:]
             if self.rx_state == self.RxState.WAIT_START:
                 if data[0] == self.XBEE_API_START:
                     self.rx_state = self.RxState.GET_LEN
-                    self.bytes_to_read = 2
+                    self.bytes_needed = 2
             elif self.rx_state == self.RxState.GET_LEN:
-                self.bytes_to_read = ((data[0] << 8) + data[1]) + 1  # Add 1 byte for the checksum
+                self.bytes_needed = ((data[0] << 8) + data[1]) + 1  # Add 1 byte for the checksum
                 self.rx_state = self.RxState.GET_FRAME_DATA
             elif self.rx_state == self.RxState.GET_FRAME_DATA:
                 frame = data[:-1]
@@ -289,7 +292,7 @@ class XbeeMessagesInterface(threading.Thread):
                 else:
                     print("invalid chk: {}  {}".format(sum(frame), chk))
                 self.rx_state = self.RxState.WAIT_START
-                self.bytes_to_read = 1
+                self.bytes_needed = 1
         print("stopped")
 
 
