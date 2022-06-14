@@ -1663,7 +1663,21 @@
 
     <!-- 181 is free -->
     <!-- 182 is free -->
-    <!-- 183 is free -->
+    
+    <message name="STAB_ATTITUDE_FULL_INDI" id="183">
+      <field name="angular_rate_p" type="float"/>
+      <field name="angular_rate_q" type="float"/>
+      <field name="angular_rate_r" type="float"/>
+      <field name="body_accel_x"    type="float"/>
+      <field name="body_accel_y"    type="float"/>
+      <field name="body_accel_z"    type="float"/>
+      <field name="angular_accel_ref_p" type="float"/>
+      <field name="angular_accel_ref_q" type="float"/>
+      <field name="angular_accel_ref_r" type="float"/>
+      <field name="airspeed" type="float"/>
+      <field name="u" type="int16[]"/>
+    </message>
+
     <!-- 184 is free -->
     <!-- 185 is free -->
     <!-- 186 is free -->
