@@ -678,7 +678,20 @@
       <field name="phi" type="float[]" unit="m">Error signals</field>
     </message>
 
-    <!-- 76 is free -->
+    <message name="TARGET_POS_INFO" id="76">
+      <description>
+        Global position, speed and ID a target for functions like Follow Me
+      </description>
+      <field name="lat" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="lon" type="int32" unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="alt" type="int32" unit="mm" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+      <field name="speed" type="float" unit="m/s">Ground speed</field>
+      <field name="climb" type="float" unit="m/s">Climb speed</field>
+      <field name="course" type="float" unit="deg" format="%.1f"/>
+      <field name="off_heading" type="float" unit="deg">Offset heading</field>
+      <field name="off_distance" type="float" unit="m">Offset distance</field>
+      <field name="off_height" type="float" unit="m">Offset height</field>
+    </message>
 
     <message name="SWARM_FISH" id="77">
       <description>
