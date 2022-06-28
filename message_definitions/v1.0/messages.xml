@@ -688,6 +688,7 @@
       <field name="speed" type="float" unit="m/s">Ground speed</field>
       <field name="climb" type="float" unit="m/s">Climb speed</field>
       <field name="course" type="float" unit="deg" format="%.1f"/>
+      <field name="heading" type="float" unit="deg" format="%.1f"/>
       <field name="off_heading" type="float" unit="deg">Offset heading</field>
       <field name="off_distance" type="float" unit="m">Offset distance</field>
       <field name="off_height" type="float" unit="m">Offset height</field>
@@ -2666,6 +2667,7 @@
       <field name="speed" type="float" unit="m/s">Ground speed</field>
       <field name="climb" type="float" unit="m/s">Climb speed</field>
       <field name="course" type="float" unit="deg" format="%.1f"/>
+      <field name="heading" type="float" unit="deg" format="%.1f"/>
     </message>
 
     <message name="SMARTPROBE" id="60" link="forwarded">
