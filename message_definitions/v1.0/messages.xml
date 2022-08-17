@@ -2133,13 +2133,16 @@
       <description>
         Electronic Speed Controller data
       </description>
+      <field name="motor_id"    type="uint8">Motor ID</field>
+      <field name="node_id"     type="uint8">Node ID</field>
+      <field name="timestamp"   type="float">Timestamp</field>
       <field name="amps"        type="float" unit="A">Current consumption</field>
       <field name="bat_volts"   type="float" unit="V">Input battery voltage</field>
       <field name="power"       type="float" unit="W">Electrical power</field>
       <field name="rpm"         type="float" unit="rpm">Motor rotation speed</field>
       <field name="motor_volts" type="float" unit="V">Motor voltage</field>
-      <field name="energy"      type="float" unit="Wh">Accumulated consumed energy</field>
-      <field name="motor_id"    type="uint8">Motor ID</field>
+      <field name="temperature" type="float" unit="C">ESC temperature</field>
+      <field name="errors"      type="uint32">Amount of errors occured</field>
     </message>
 
     <message name="RTOS_MON" id="246">
