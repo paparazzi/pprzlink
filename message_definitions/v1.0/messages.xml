@@ -1191,7 +1191,11 @@
       <field name="comp_id"          type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
-    <!-- 135 is free -->
+    <message name="IMU_HEATER" id="135">
+      <field name="meas_temp"   type="float" unit="Celcius"/>
+      <field name="target_temp" type="float" unit="Celcius"/>
+      <field name="heat_cmd"    type="uint8" unit="%"/>
+    </message>
 
     <message name="RATE_LOOP" id="136">
       <description>Rotorcraft rate control loop.</description>
@@ -1747,17 +1751,19 @@
     </message>
 
     <message name="IMU_GYRO_RAW" id="203">
-      <field name="id" type="uint8"/>
-      <field name="gp" type="int32" unit="adc"/>
-      <field name="gq" type="int32" unit="adc"/>
-      <field name="gr" type="int32" unit="adc"/>
+      <field name="id"    type="uint8"/>
+      <field name="temp"  type="float" unit="Celcius"/>
+      <field name="gp"    type="int32" unit="adc"/>
+      <field name="gq"    type="int32" unit="adc"/>
+      <field name="gr"    type="int32" unit="adc"/>
     </message>
 
     <message name="IMU_ACCEL_RAW" id="204">
-      <field name="id" type="uint8"/>
-      <field name="ax" type="int32" unit="adc"/>
-      <field name="ay" type="int32" unit="adc"/>
-      <field name="az" type="int32" unit="adc"/>
+      <field name="id"    type="uint8"/>
+      <field name="temp"  type="float" unit="Celcius"/>
+      <field name="ax"    type="int32" unit="adc"/>
+      <field name="ay"    type="int32" unit="adc"/>
+      <field name="az"    type="int32" unit="adc"/>
     </message>
 
     <message name="IMU_MAG_RAW" id="205">
