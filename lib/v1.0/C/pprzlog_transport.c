@@ -51,6 +51,9 @@ static void accumulate_checksum(struct pprzlog_transport *trans, const uint8_t b
   trans->ck += byte;
 }
 
+static void put_priority(struct pprzlog_transport *trans __attribute__((unused)), struct link_device *dev __attribute__((unused)),
+                         long fd __attribute__((unused)), uint8_t prio __attribute__((unused))) {}
+
 static void put_bytes(struct pprzlog_transport *trans, struct link_device *dev, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       const void *bytes, uint16_t len)
@@ -122,5 +125,6 @@ void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec_t get_tim
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
   t->get_time_usec = get_time_usec;
+  t->trans_tx.put_priority = (put_priority_t) put_priority;
 }
 

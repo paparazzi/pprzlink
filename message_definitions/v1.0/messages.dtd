@@ -12,6 +12,7 @@
   name CDATA #REQUIRED
   id   CDATA #REQUIRED
   link CDATA #IMPLIED
+  priority CDATA #IMPLIED
 >
 
 <!ELEMENT description (#PCDATA)>

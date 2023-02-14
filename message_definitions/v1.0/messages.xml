@@ -14,7 +14,7 @@
       <field name="md5sum" type="uint8[]"/>
     </message>
 
-    <message name="PONG" id="3">
+    <message name="PONG" id="3" priority="2">
      <description>Answer to PING datalink message, to measure latencies</description>
     </message>
 
@@ -2321,7 +2321,7 @@
       <field name="ac_id" type="uint8"/>
     </message>
 
-    <message name="PING" id="8"/>
+    <message name="PING" id="8" priority="2"/>
 
     <message name="FORMATION_SLOT" id="9" link="broadcasted">
       <field name="ac_id" type="uint8"/>
@@ -2595,13 +2595,13 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <message name="RC_3CH" id="51" link="broadcasted">
+    <message name="RC_3CH" id="51" link="broadcasted" priority="2">
       <field name="throttle_mode" type="uint8" unit="byte_mask"/>
       <field name="roll"  type="int8"/>
       <field name="pitch" type="int8"/>
     </message>
 
-    <message name="RC_4CH" id="52" link="broadcasted">
+    <message name="RC_4CH" id="52" link="broadcasted" priority="2">
       <field name="ac_id"       type="uint8"/>
       <field name="mode"        type="uint8"/>
       <field name="throttle"    type="uint8"/>
@@ -2610,7 +2610,7 @@
       <field name="yaw"         type="int8"/>
     </message>
 
-    <message name="RC_5CH" id="53" link="broadcasted">
+    <message name="RC_5CH" id="53" link="broadcasted" priority="2">
       <field name="ac_id"       type="uint8"/>
       <field name="throttle"    type="uint8"/>
       <field name="roll"        type="int8"/>

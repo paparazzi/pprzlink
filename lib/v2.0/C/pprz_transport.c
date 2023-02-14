@@ -59,6 +59,9 @@ static void accumulate_checksum(struct pprz_transport *trans, const uint8_t byte
   trans->ck_b_tx += trans->ck_a_tx;
 }
 
+static void put_priority(struct pprzlink_msg *msg __attribute__((unused)), long fd __attribute__((unused)),
+                         uint8_t prio __attribute__((unused))) {}
+
 static void put_bytes(struct pprzlink_msg *msg, long fd,
                       enum TransportDataType type __attribute__((unused)), enum TransportDataFormat format __attribute__((unused)),
                       const void *bytes, uint16_t len)
@@ -130,6 +133,7 @@ void pprz_transport_init(struct pprz_transport *t)
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
+  t->trans_tx.put_priority = (put_priority_t) put_priority;
 }
 
 
