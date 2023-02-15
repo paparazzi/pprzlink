@@ -210,7 +210,11 @@ let rec formatted_string_of_value = fun format v ->
     | Int32 x -> sprintf (f "%ld") x
     | Int64 x -> sprintf (f "%Ld") x
     | Char x -> sprintf (f "%c") x
-    | String x ->sprintf "%s" x
+    | String x -> 
+      if String.contains x ' ' then
+        sprintf "\"%s\"" x
+      else
+        sprintf "%s" x
     | Array a ->
         let l = (Array.to_list (Array.map (formatted_string_of_value format) a)) in
         match a.(0) with
