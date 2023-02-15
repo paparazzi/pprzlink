@@ -2806,6 +2806,13 @@
       <field name="msg_data" type="uint8[]"/>
     </message>
 
+    <message name="INFO_MSG_UP" id="160" link="broadcasted">
+      <description>Message from ground to be logged on the drone</description>
+      <field name="ac_id" type="uint8"/>
+      <field name="fd" type="uint8" values="ALL|FLIGHT_RECORDER|PPRZLOG">where the message will be logged</field>
+      <field name="msg" type="char[]"/>
+    </message>
+    
   </msg_class>
 
 
@@ -3188,6 +3195,13 @@
       <field name="lats" type="string" format="csv"/>
       <field name="longs" type="string" format="csv"/>
       <field name="values" type="string" format="csv"/>
+    </message>
+
+    <message name="INFO_MSG_GROUND" id="101">
+      <description>Message from ground to be logged on the drone or send to other ground agents</description>
+      <field name="dest" type="string">ac_id:file_descriptor | ground_name | 0 (ground broadcast) | 0xFF (broadcast)</field>
+      <field name="source" type="string">ground_name of the agent sending the message</field>
+      <field name="msg" type="string"/>
     </message>
   </msg_class>
 
