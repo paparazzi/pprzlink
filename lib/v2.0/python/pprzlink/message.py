@@ -25,7 +25,10 @@ import sys
 import json
 import struct
 import re
+import typing
 from pprzlink import messages_xml_map
+from enum import IntEnum
+from dataclasses import dataclass
 
 
 class PprzMessageError(Exception):
@@ -37,6 +40,60 @@ class PprzMessageError(Exception):
     def __str__(self):
         return self.message
 
+@dataclass
+class PprzMessageField(object):
+    """
+    Dataclass representing a field in a Paparazzi Ivy message
+    
+    Required attributes:
+    - `name`: str
+        Field's name
+    - `typestr`: str
+        Field's type in C, as a string
+    
+    Optional attributes:
+    - `val`: Any
+        Field's current value
+    - `format`: str
+        C-like format string for readable display
+    - `unit`: str
+        Field's unit
+    - `values`: IntEnum
+        Enumeration of the possible values for `val`
+    - `alt_unit`: str
+        Alternative unit for the value. Mostly used to be human-friendly.
+    - `alt_unit_coef`: float
+        Conversion factor from base to alternative unit
+    - `alt_val`: float
+        Access `val` through its alternative unit, automatically
+        using the conversion factor (if defined) 
+    """     
+    
+    name:str
+    typestr:str
+    val:typing.Any = None
+    format:typing.Optional[str] = None
+    unit:typing.Optional[str] = None
+    values:typing.Optional[IntEnum] = None
+    alt_unit:typing.Optional[str] = None
+    alt_unit_coef:typing.Optional[float] = None
+    
+    @property
+    def alt_val(self) -> typing.Optional[float]:
+        if self.alt_unit_coef:
+            return self.alt_unit_coef * self.val
+        else:
+            return None
+        
+    @alt_val.setter
+    def alt_val(self,value:float) -> None:
+        if self.alt_unit_coef:
+            self.val = value / self.alt_unit_coef
+        else:
+            raise AttributeError("No conversion coefficient set")
+        
+    
+        
 
 class PprzMessage(object):
     """base Paparazzi message class"""
@@ -114,7 +171,8 @@ class PprzMessage(object):
         """Get list of field coefs."""
         return self._fieldcoefs
 
-    def fieldbintypes(self, t):
+    @staticmethod
+    def fieldbintypes(t):
         """Get type and length for binary format"""
         data_types = {
             'float': ['f', 4],
