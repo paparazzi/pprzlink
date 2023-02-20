@@ -93,11 +93,9 @@ class PprzMessageField(object):
             raise AttributeError("No conversion coefficient set")
         
     
-        
-
 class PprzMessage(object):
     """base Paparazzi message class"""
-
+    
     def __init__(self, class_name, msg, component_id=0):
         if isinstance(class_name, int):
             # class_name is an integer, find the name
@@ -114,161 +112,160 @@ class PprzMessage(object):
         else:
             self._name = msg
             self._id = messages_xml_map.get_msg_id(self._class_name, msg)
-        self._fieldnames = messages_xml_map.get_msg_fields(self._class_name, self._name)
-        self._fieldtypes = messages_xml_map.get_msg_fieldtypes(self._class_name, self._id)
-        self._fieldcoefs = messages_xml_map.get_msg_fieldcoefs(self._class_name, self._id)
-        self._fieldvalues = []
+        
+        self._fields_order:typing.List[str] = messages_xml_map.get_msg_fields(self._class_name, self._name)
+        _fieldtypes = messages_xml_map.get_msg_fieldtypes(self._class_name, self._id)
+        _fieldcoefs = messages_xml_map.get_msg_fieldcoefs(self._class_name, self._id)
+        _fieldvalues = []
         # set empty values according to type
-        for t in self._fieldtypes:
+        for t in _fieldtypes:
             if t == "char[]":
-                self._fieldvalues.append('')
+                _fieldvalues.append('')
             elif '[' in t:
-                self._fieldvalues.append([0])
+                _fieldvalues.append([0])
             else:
-                self._fieldvalues.append(0)
+                _fieldvalues.append(0)
         if messages_xml_map.message_dictionary_broadcast[self._name]=='forwarded':
             self.broadcasted = False
         else:
             self.broadcasted = True
+            
+            
+        self._fields:typing.Dict[str,PprzMessageField] = dict()
+        for i,n in enumerate(self._fields_order):
+            self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],alt_unit_coef=_fieldcoefs[i])
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Get the message name."""
         return self._name
 
     @property
-    def msg_id(self):
+    def msg_id(self) -> int:
         """Get the message id."""
         return self._id
 
     @property
-    def class_id(self):
+    def class_id(self) -> int:
         """Get the class id."""
         return self._class_id
 
     @property
-    def msg_class(self):
+    def msg_class(self) -> str:
         """Get the message class."""
         return self._class_name
 
     @property
-    def fieldnames(self):
+    def fieldnames(self) -> typing.List[str]:
         """Get list of field names."""
-        return self._fieldnames
+        return list(self._fields.keys())
 
     @property
-    def fieldvalues(self):
+    def fieldvalues(self) -> typing.List:
         """Get list of field values."""
-        return self._fieldvalues
+        return list(f.val for f in self._fields.values())
 
     @property
-    def fieldtypes(self):
+    def fieldtypes(self) -> typing.List[str]:
         """Get list of field types."""
-        return self._fieldtypes
+        return list(f.typestr for f in self._fields.values())
 
     @property
-    def fieldcoefs(self):
+    def fieldcoefs(self) -> typing.List[float]:
         """Get list of field coefs."""
-        return self._fieldcoefs
+        return list(f.alt_unit_coef for f in self._fields.values())
 
     @staticmethod
-    def fieldbintypes(t):
+    def fieldbintypes(t:str) -> typing.Tuple[str,int]:
         """Get type and length for binary format"""
         data_types = {
-            'float': ['f', 4],
-            'double': ['d', 8],
-            'uint8': ['B', 1],
-            'uint16': ['H', 2],
-            'uint32': ['L', 4],
-            'int8': ['b', 1],
-            'int16': ['h', 2],
-            'int32': ['l', 4],
-            'char': ['c', 1]
+            'float': ('f', 4),
+            'double': ('d', 8),
+            'uint8': ('B', 1),
+            'uint16': ('H', 2),
+            'uint32': ('L', 4),
+            'int8': ('b', 1),
+            'int16': ('h', 2),
+            'int32': ('l', 4),
+            'char': ('c', 1)
         }
         base_type = t.split('[')[0]
         return data_types[base_type]
 
     def get_field(self, idx):
         """Get field value by index."""
-        return self._fieldvalues[idx]
+        return self._fields[self._fields_order[idx]]
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr:str):
         # Try to dynamically return the field value for the given name
-        for idx, f in enumerate(self.fieldnames):
-            if f == attr:
-                return self.fieldvalues[idx]
-        raise AttributeError("No such attribute %s" % attr)
+        return self._fields[attr].val
 
-    def __getitem__(self, key):
+    def __getitem__(self, key:str):
         # Try to dynamically return the field value for the given name
-        for idx, f in enumerate(self.fieldnames):
-            if f == key:
-                return self.fieldvalues[idx]
-        raise AttributeError("Msg %s has no field of name %s" % (self.name, key))
-
+        return self._fields[key].val
+    
     def __setitem__(self, key, value):
         self.set_value_by_name(key, value)
 
     def set_values(self, values):
+        """Set all values by index."""
         #print("msg %s: %s" % (self.name, ", ".join(self.fieldnames)))
-        if len(values) == len(self.fieldnames):
-            self._fieldvalues = values
+        if len(values) == len(self._fields_order):
+            for i,v in enumerate(values):
+                self._fields[self._fields_order[i]].val = v
         else:
             raise PprzMessageError("Error: Msg %s has %d fields, tried to set %i values" %
                                    (self.name, len(self.fieldnames), len(values)))
 
-    def set_value_by_name(self, name, value):
+    def set_value_by_name(self, name:str, value) -> None:
         # Try to set a value from its name
-        for idx, f in enumerate(self.fieldnames):
-            if f == name:
-                self._fieldvalues[idx] = value
-                return
-        raise AttributeError("Msg %s has no field of name %s" % (self.name, name))
-
-    def __str__(self):
+        self._fields[name].val = value
+        
+    def __str__(self) -> str:
         ret = '%s.%s {' % (self.msg_class, self.name)
-        for idx, f in enumerate(self.fieldnames):
-            ret += '%s : %s, ' % (f, self.fieldvalues[idx])
+        for k, f in self._fields.items():
+            ret += '%s : %s, ' % (k,f.val)
         ret = ret + '}'
         return ret
 
-    def to_dict(self, payload_only=False):
+    def to_dict(self, payload_only=False) -> typing.Dict[str,typing.Any]:
         d = {}
         if not payload_only:
             d['msgname'] = self.name
             d['msgclass'] = self.msg_class
-        for idx, f in enumerate(self.fieldnames):
-            d[f] = self.fieldvalues[idx]
+        for k, f in self._fields.items():
+            d[k] = f.val
         return d
 
-    def to_json(self, payload_only=False):
+    def to_json(self, payload_only=False) -> str:
         return json.dumps(self.to_dict(payload_only))
 
-    def to_csv(self, payload_only=False):
+    def to_csv(self, payload_only=False) -> str:
         """ return message as CSV string for use with RAW_DATALINK
         msg_name;field1;field2;
         """
         return str(self.name) + ';' + self.payload_to_ivy_string(sep=';')
 
-    def payload_to_ivy_string(self, sep=' '):
+    def payload_to_ivy_string(self, sep=' ') -> str:
         fields = []
-        for idx, t in enumerate(self.fieldtypes):
-            if "char[" in t:
+        for n in self._fields_order:
+            f = self._fields[n]
+            if "char[" in f.typestr:
                 str_value =''
-                for c in self.fieldvalues[idx]:
+                for c in f.val:
                     if isinstance(c, bytes):
                         str_value += c.decode()
                     else:
                         str_value += c
                 fields.append('"' + str_value + '"')
-            elif '[' in t:
-                fields.append(','.join([str(x) for x in self.fieldvalues[idx]]))
+            elif '[' in f.typestr:
+                fields.append(','.join([str(x) for x in f.val]))
             else:
-                fields.append(str(self.fieldvalues[idx]))
+                fields.append(str(f.val))
         ivy_str = sep.join(fields)
         return ivy_str
 
-    def ivy_string_to_payload(self, data):
+    def ivy_string_to_payload(self, data:str) -> None:
         """
         parse Ivy data string to PPRZ values
         header and message name should have been removed
@@ -278,7 +275,7 @@ class PprzMessage(object):
 
         """
         # first split on array delimiters
-        # then slip on spaces and remove empty stings
+        # then split on spaces and remove empty stings
         values = []
         for el in re.split('([|\"][^|\"]*[|\"])', data):
             if '|' not in el and '"' not in el:
@@ -295,23 +292,24 @@ class PprzMessage(object):
                 values.append(str.strip(el))
         self.set_values(values)
 
-    def payload_to_binary(self):
+    def payload_to_binary(self) -> bytes:
         struct_string = "<"
         data = []
         length = 0
         r = re.compile('[\[\]]')
-        for idx, t in enumerate(self.fieldtypes):
-            bin_type = self.fieldbintypes(t)
-            s = r.split(t)
+        for n in self._fields_order:
+            f = self._fields[n]
+            bin_type = self.fieldbintypes(f.typestr)
+            s = r.split(f.typestr)
             if len(s) > 1: # this is an array
-                array_length = len(self.fieldvalues[idx])
+                array_length = len(f.val)
                 if len(s[1]) == 0: # this is a variable length array
                     struct_string += 'B'
                     data.append(array_length)
                     length += 1
                 struct_string += bin_type[0] * array_length
                 length += bin_type[1] * array_length
-                for x in self.fieldvalues[idx]:
+                for x in f.val:
                     if bin_type[0]=='f' or bin_type[0]== 'd':
                         data.append(float(x))
                     elif bin_type[0]== 'B' or bin_type[0]== 'H' or bin_type[0]== 'L' or bin_type[0]== 'b' or bin_type[0]== 'h' or bin_type[0]== 'l':
@@ -325,21 +323,22 @@ class PprzMessage(object):
                 length += bin_type[1]
                 # Assign the right type according to field description
                 if bin_type[0]=='f' or bin_type[0]== 'd':
-                    data.append(float(self.fieldvalues[idx]))
+                    data.append(float(f.val))
                 elif bin_type[0]== 'B' or bin_type[0]== 'H' or bin_type[0]== 'L' or bin_type[0]== 'b' or bin_type[0]== 'h' or bin_type[0]== 'l':
-                    data.append(int(self.fieldvalues[idx]))
+                    data.append(int(f.val))
                 else:
-                    data.append(self.fieldvalues[idx])
+                    data.append(f.val)
         msg = struct.pack(struct_string, *data)
         return msg
 
-    def binary_to_payload(self, data):
+    def binary_to_payload(self, data:bytes) -> None:
         msg_offset = 0
         values = []
         r = re.compile('[\[\]]')
-        for idx, t in enumerate(self.fieldtypes):
-            bin_type = self.fieldbintypes(t)
-            s = r.split(t)
+        for n in self._fields_order:
+            f = self._fields[n]
+            bin_type = self.fieldbintypes(f.typestr)
+            s = r.split(f.typestr)
             if len(s) > 1: # this is an array
                 if len(s[1]) == 0: # this is a variable length array
                     array_length = data[msg_offset]
