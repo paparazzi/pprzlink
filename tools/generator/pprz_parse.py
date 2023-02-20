@@ -10,7 +10,7 @@ based on:
     Released under GNU GPL version 3 or later
 '''
 
-import xml.parsers.expat, os, errno, time, sys, operator, struct
+import xml.parsers.expat, os, errno, time, sys, operator, struct, typing
 
 PROTOCOL_1_0 = "1.0"
 PROTOCOL_2_0 = "2.0"
@@ -25,14 +25,7 @@ class PPRZParseError(Exception):
         return self.message
 
 class PPRZField(object):
-    def __init__(self, name, type, xml, description=''):
-        self.field_name = name
-        #self.name_upper = name.upper()
-        self.description = description
-        self.array_type = None
-        self.array_length = ''
-        self.array_extra_length = ''
-        lengths = {
+    type_lengths = {
         'float'    : '4',
         'double'   : '8',
         'char'     : '1',
@@ -45,6 +38,14 @@ class PPRZField(object):
         'int64_t'  : '8',
         'uint64_t' : '8',
         }
+    
+    def __init__(self, name:str, type:str, xml, description=''):
+        self.field_name:str = name
+        #self.name_upper = name.upper()
+        self.description:str = description
+        self.array_type = None
+        self.array_length:str = ''
+        self.array_extra_length:str = ''
 
         aidx = type.find("[")
         if aidx != -1:
@@ -57,11 +58,11 @@ class PPRZField(object):
                 self.array_type = 'FixedArray'
                 self.array_length = type[aidx+1:-1]
             type = type[0:aidx]
-        if type in lengths:
-            self.type_length = lengths[type]
+        if type in self.type_lengths:
+            self.type_length = self.type_lengths[type]
             self.type = type
-        elif (type+"_t") in lengths:
-            self.type_length = lengths[type+"_t"]
+        elif (type+"_t") in self.type_lengths:
+            self.type_length = self.type_lengths[type+"_t"]
             self.type = type+'_t'
         else:
             raise PPRZParseError("unknown type '%s'" % type)
@@ -73,16 +74,35 @@ class PPRZField(object):
             self.type_upper = self.type[0:-2].upper()
         else:
             self.type_upper = self.type.upper()
+            
+    def python_typestring(self) -> str:
+        if self.type == "float" or self.type == "double":
+            basetype = "float"
+        else:
+            basetype = "int"
+            
+        if self.array_type is None:
+            return basetype
+        else:
+            if self.type == "char":
+                return "str"
+            else:
+                return f"typing.List[{basetype}]"
+    @property
+    def py_type(self) -> str:
+        return self.python_typestring()
+        
+        
 
 
 class PPRZMsg(object):
-    def __init__(self, name, id, linenumber, description=''):
-        self.msg_name = name
-        self.linenumber = linenumber
-        self.id = int(id)
-        self.description = description
-        self.fields = []
-        self.fieldnames = []
+    def __init__(self, name:str, id:int, linenumber:int, description:str=''):
+        self.msg_name:str = name
+        self.linenumber:int = linenumber
+        self.id:int = int(id)
+        self.description:str = description
+        self.fields:typing.List[PPRZField] = []
+        self.fieldnames:typing.List[str] = []
 
 class PPRZXML(object):
     '''parse a pprzlink XML file for a given class'''
@@ -90,7 +110,7 @@ class PPRZXML(object):
         self.filename = filename
         self.class_name = class_name
         self.class_id= None
-        self.message = []
+        self.message:typing.List[PPRZMsg] = []
         self.protocol_version = protocol_version
 
         if protocol_version == PROTOCOL_1_0:
