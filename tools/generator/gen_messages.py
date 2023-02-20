@@ -25,7 +25,7 @@ DEFAULT_LANGUAGE = 'C'
 DEFAULT_VALIDATE = True
 
 # List the supported languages. This is done globally because it's used by the GUI wrapper too
-supportedLanguages = ["C", "C_standalone"]
+supportedLanguages = ["C", "C_standalone", "Python"]
 
 
 def gen_messages(opts) :
@@ -94,6 +94,9 @@ def gen_messages(opts) :
     elif opts.language == 'c_standalone':
         gen_message_c_standalone = __import__(xml.generator_module + "_c_standalone")
         gen_message_c_standalone.generate(opts.output, xml, opts.opt)
+    elif opts.language == 'python' or opts.language == 'py':
+        gen_message_py = __import__(xml.generator_module + "_py")
+        gen_message_py.generate(opts.output, xml)
     else:
         print("Unsupported language %s" % opts.language)
 
