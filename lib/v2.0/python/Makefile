@@ -20,6 +20,7 @@
 #
 
 MAKE = make
+DESTDIR ?=$(shell python3 -c 'import site; print(site.getsitepackages()[0])')
 
 all:
 
@@ -29,5 +30,12 @@ install:
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	$(Q)cp -r pprzlink $(DESTDIR)
 
-.PHONY: all install
+uninstall:
+	$(Q)rm -r pprzlink $(DESTDIR)
+
+reinstall:
+	$(Q)make uninstall
+	$(Q)make install
+
+.PHONY: all install uninstall reinstall
 
