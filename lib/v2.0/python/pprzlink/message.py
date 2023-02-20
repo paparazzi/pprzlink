@@ -192,9 +192,13 @@ class PprzMessage(object):
         base_type = t.split('[')[0]
         return data_types[base_type]
 
-    def get_field(self, idx):
+    def get_field(self, idx:int):
         """Get field value by index."""
-        return self._fields[self._fields_order[idx]]
+        return self._fields[self._fields_order[idx]].val
+    
+    def get_full_field(self,name:str) -> PprzMessageField:
+        """Get the underlying PprzMessageField object"""
+        return self._fields[name]
 
     def __getattr__(self, attr:str):
         # Try to dynamically return the field value for the given name
@@ -204,10 +208,10 @@ class PprzMessage(object):
         # Try to dynamically return the field value for the given name
         return self._fields[key].val
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, key:str, value) -> None:
         self.set_value_by_name(key, value)
 
-    def set_values(self, values):
+    def set_values(self, values:typing.List) -> None:
         """Set all values by index."""
         #print("msg %s: %s" % (self.name, ", ".join(self.fieldnames)))
         if len(values) == len(self._fields_order):
