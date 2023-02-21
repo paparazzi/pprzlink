@@ -18,8 +18,9 @@ def generate_imports(file:io.TextIOWrapper) -> None:
 #                                                                            #
 ##############################################################################
 
-from pprzlink.message import PprzMessage
-import typing
+from pprzlink.message import PprzMessage,PprzMessageField
+import typing,enum
+from dataclasses import dataclass,field
     """
     file.write(imports)
 
@@ -32,14 +33,45 @@ class PprzMessage_${msg_name}(PprzMessage):
     Message's description:
     ${msg_description}
     \"\"\"
+    
+    ${{fields:
+    @dataclass
+    class PprzMessageField_${field_name}(PprzMessageField):
+        \"\"\"
+        Automatically generated message field specification associated to the field '${field_name}'
+        
+        Field's description:
+        ${description}
+        \"\"\"
+        
+        ${values_enum_class_str}
+        
+        name = '${field_name}'
+        typestr = '${type}'
+        val:typing.Optional[${py_type}] = None
+        format = ${format}
+        unit = ${unit}
+        values = ${values_enum_class_name}
+        alt_unit = ${alt_unit}
+        alt_unit_coef = ${alt_unit_coef}
+        
+        def __setattr__(self, __name: str, __value: typing.Any) -> None:
+            if (__name != 'val'):
+                return None
+            return super().__setattr__(__name, __value)
+    }}
+    
     def __init__(self,component_id=0):
         super().__init__('${class_name}', '${msg_name}', component_id)
+        ${{fields:
+        self._fields['${field_name}'] = self.PprzMessageField_${field_name}()
+        }}
     
     ${{fields:
     @property
     def ${field_name}_(self) -> ${py_type}:
         \"\"\"
-        Automatically generated property associated to the field '${field_name}'
+        Automatically generated property associated to the field's value of '${field_name}'
         
         Field's description:
         ${description}
@@ -49,6 +81,20 @@ class PprzMessage_${msg_name}(PprzMessage):
     @${field_name}_.setter
     def ${field_name}_(self,value:${py_type}) -> None:
         self['${field_name}'] = value
+        
+    @property
+    def ${field_name}_full_field(self) -> PprzMessageField_${field_name}:
+        \"\"\"
+        Automatically generated property associated to the field '${field_name}'
+        
+        Field's description:
+        ${description}
+        \"\"\"
+        return self.get_full_field('${field_name}')
+        
+    @${field_name}_full_field.setter
+    def ${field_name}_(self,value:PprzMessageField_${field_name}) -> None:
+        self.set_full_field('${field_name}',value)
     }}
             """
     

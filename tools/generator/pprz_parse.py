@@ -10,7 +10,7 @@ based on:
     Released under GNU GPL version 3 or later
 '''
 
-import xml.parsers.expat, os, errno, time, sys, operator, struct, typing
+import xml.parsers.expat, os, errno, time, sys, operator, struct, typing, enum
 
 PROTOCOL_1_0 = "1.0"
 PROTOCOL_2_0 = "2.0"
@@ -39,13 +39,45 @@ class PPRZField(object):
         'uint64_t' : '8',
         }
     
-    def __init__(self, name:str, type:str, xml, description=''):
+    varchar_convert = [
+        ('0', '_ZERO_'),
+        ('1', '_ONE_'),
+        ('2', '_TWO_'),
+        ('3', '_THREE_'),
+        ('4', '_FOUR_'),
+        ('5', '_FIVE_'),
+        ('6', '_SIX_'),
+        ('7', '_SEVEN_'),
+        ('8', '_EIGHT_'),
+        ('9', '_NINE_'),
+        ('+', '_PLUS_'),
+        ('-', '_MINUS_'),
+        (' ', '_')
+    ]
+    
+    def __init__(self, name:str, type:str, xml, description='',additional_attributes:typing.Optional[typing.Dict[str,str]] = None):
         self.field_name:str = name
         #self.name_upper = name.upper()
         self.description:str = description
         self.array_type = None
         self.array_length:str = ''
         self.array_extra_length:str = ''
+        
+        self._format:typing.Optional[str] = additional_attributes['format'] if 'format' in additional_attributes else None
+        self._unit:typing.Optional[str] = additional_attributes['unit'] if 'unit' in additional_attributes else None
+        
+        raw_values_str = additional_attributes['values'] if 'values' in additional_attributes else None
+        if raw_values_str is not None:
+            #print("Before: ", raw_values_str)
+            for (p,r) in self.varchar_convert:
+                raw_values_str = raw_values_str.replace(p,r)
+            #print("After: ", raw_values_str)
+            
+        
+        self.values_str:typing.Optional[typing.List[str]] = raw_values_str.split('|') if raw_values_str is not None else None
+        
+        self._alt_unit:typing.Optional[str] = additional_attributes['alt_unit'] if 'alt_unit' in additional_attributes else None
+        self.alt_unit_coef:str = additional_attributes['alt_unit_coef'] if 'alt_unit_coef' in additional_attributes else 'None'
 
         aidx = type.find("[")
         if aidx != -1:
@@ -75,6 +107,27 @@ class PPRZField(object):
         else:
             self.type_upper = self.type.upper()
             
+    @property
+    def format(self) -> str:
+        if self._format is None:
+            return 'None'
+        else:
+            return f"'{self._format}'"
+        
+    @property
+    def unit(self) -> str:
+        if self._unit is None:
+            return 'None'
+        else:
+            return f"'{self._unit}'"
+        
+    @property
+    def alt_unit(self) -> str:
+        if self._alt_unit is None:
+            return 'None'
+        else:
+            return f"'{self._alt_unit}'"
+            
     def python_typestring(self) -> str:
         if self.type == "float" or self.type == "double":
             basetype = "float"
@@ -90,9 +143,30 @@ class PPRZField(object):
                 return f"typing.List[{basetype}]"
     @property
     def py_type(self) -> str:
+        """
+        Gives the associated string of the Python's type matching the indicated C's type
+        """
         return self.python_typestring()
-        
-        
+    
+    @property 
+    def values_enum_class_name(self) -> str:
+        if self.values_str is None:
+            return 'None'
+        else:
+            return self.field_name + "_ValuesEnum"
+    
+    @property
+    def values_enum_class_str(self) -> str:
+        """
+        Gives a one-line string defining a `ValuesEnum` class matching the ones given, if they were provided
+        """
+        if self.values_str is None:
+            return ''
+        else:
+            output = "class "+self.values_enum_class_name+"(enum.Enum): "
+            for i,n in enumerate(self.values_str):
+                output += f"{n}={i}; "
+            return output
 
 
 class PPRZMsg(object):
@@ -155,7 +229,7 @@ class PPRZXML(object):
             elif in_element == "protocol.msg_class.message.field":
                 check_attrs(attrs, ['name', 'type'], 'field')
                 if self.current_class == self.class_name:
-                    self.message[-1].fields.append(PPRZField(attrs['name'], attrs['type'], self))
+                    self.message[-1].fields.append(PPRZField(attrs['name'], attrs['type'], self, additional_attributes=attrs))
 
         def end_element(name):
             in_element = '.'.join(in_element_list)
