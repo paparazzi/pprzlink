@@ -27,7 +27,7 @@ import struct
 import re
 import typing
 from pprzlink import messages_xml_map
-from enum import IntEnum
+from enum import EnumMeta
 from dataclasses import dataclass
 
 
@@ -58,7 +58,7 @@ class PprzMessageField(object):
         C-like format string for readable display
     - `unit`: str
         Field's unit
-    - `values`: IntEnum
+    - `values`: EnumMeta
         Enumeration of the possible values for `val`
     - `alt_unit`: str
         Alternative unit for the value. Mostly used to be human-friendly.
@@ -74,9 +74,32 @@ class PprzMessageField(object):
     val:typing.Any = None
     format:typing.Optional[str] = None
     unit:typing.Optional[str] = None
-    values:typing.Optional[IntEnum] = None
+    values:typing.Optional[EnumMeta] = None
     alt_unit:typing.Optional[str] = None
     alt_unit_coef:typing.Optional[float] = None
+    
+    @property
+    def is_enum(self) -> bool:
+        """
+        Check if this field's values are enum-based
+        """
+        return isinstance(self.values,EnumMeta)
+    
+    @property
+    def val_enum(self) -> str:
+        """
+        Access and modify `self.val` through the names in the enum `self.values`
+        
+        Fails is no enum is set for `self.values`
+        (i.e. it is not an instance of `EnumMeta`)
+        """
+        assert self.is_enum
+        return self.values(self.val).name
+    
+    @val_enum.setter
+    def val_enum(self,enum_attr:str) -> None:
+        assert self.is_enum
+        self.val = self.values[enum_attr]
     
     @property
     def alt_val(self) -> typing.Optional[float]:
@@ -91,6 +114,35 @@ class PprzMessageField(object):
             self.val = value / self.alt_unit_coef
         else:
             raise AttributeError("No conversion coefficient set")
+        
+    def python_typestring(self) -> str:
+        if self.type == "float" or self.type == "double":
+            basetype = "float"
+        else:
+            basetype = "int"
+            
+        if self.array_type is None:
+            return basetype
+        else:
+            if self.type == "char":
+                return "str"
+            else:
+                return f"typing.List[{basetype}]"
+    
+    def python_type(self) -> typing.Type:
+        if self.type == "float" or self.type == "double":
+            basetype = float
+        else:
+            basetype = int
+            
+        if self.array_type is None:
+            return basetype
+        else:
+            if self.type == "char":
+                return str
+            else:
+                return typing.List[{basetype}]
+        
         
     
 class PprzMessage(object):
@@ -199,6 +251,10 @@ class PprzMessage(object):
     def get_full_field(self,name:str) -> PprzMessageField:
         """Get the underlying PprzMessageField object"""
         return self._fields[name]
+    
+    def set_full_field(self,name:str, field:PprzMessageField) -> None:
+        """Set the underlying PprzMessageField object"""
+        self._fields[name] = field
 
     def __getattr__(self, attr:str):
         # Try to dynamically return the field value for the given name
