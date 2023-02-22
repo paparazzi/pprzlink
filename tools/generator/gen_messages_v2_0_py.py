@@ -20,7 +20,7 @@ def generate_imports(file:io.TextIOWrapper) -> None:
 
 from pprzlink.message import PprzMessage,PprzMessageField
 import typing,enum
-from dataclasses import dataclass,field
+from dataclasses import dataclass
     """
     file.write(imports)
 
@@ -113,7 +113,7 @@ def generate(output:str, xml:pprz_parse.PPRZXML):
 
     # print(f"Destination dir: {directory}")
     
-    file = open(os.path.join(directory,xml.class_name+".py"), mode='w')
-    generate_imports(file)
     for m in xml.message:
-        generate_one(file,xml,m)
+        with open(os.path.join(directory,m.msg_name+".py"), mode='w') as file:
+            generate_imports(file)
+            generate_one(file,xml,m)
