@@ -10,7 +10,7 @@ based on:
     Released under GNU GPL version 3 or later
 '''
 
-import xml.parsers.expat, os, errno, time, sys, operator, struct, typing, enum
+import xml.parsers.expat, os, errno, time, sys, operator, struct, typing, enum, string
 
 PROTOCOL_1_0 = "1.0"
 PROTOCOL_2_0 = "2.0"
@@ -23,6 +23,12 @@ class PPRZParseError(Exception):
         self.exception_info = sys.exc_info()
     def __str__(self):
         return self.message
+
+values_chars:typing.Set[str] = set()
+python_var_allowed_chars:typing.Set[str] = {c for c in string.ascii_letters}
+python_var_allowed_chars.add('_')
+python_var_sus:typing.Set[str] = {str(n) for n in range(0,10)}
+
 
 class PPRZField(object):
     type_lengths = {
@@ -39,21 +45,21 @@ class PPRZField(object):
         'uint64_t' : '8',
         }
     
-    varchar_convert = [
-        ('0', '_ZERO_'),
-        ('1', '_ONE_'),
-        ('2', '_TWO_'),
-        ('3', '_THREE_'),
-        ('4', '_FOUR_'),
-        ('5', '_FIVE_'),
-        ('6', '_SIX_'),
-        ('7', '_SEVEN_'),
-        ('8', '_EIGHT_'),
-        ('9', '_NINE_'),
-        ('+', '_PLUS_'),
-        ('-', '_MINUS_'),
-        (' ', '_')
-    ]
+    varchar_convert = {
+        '0': '_ZERO_',
+        '1': '_ONE_',
+        '2': '_TWO_',
+        '3': '_THREE_',
+        '4': '_FOUR_',
+        '5': '_FIVE_',
+        '6': '_SIX_',
+        '7': '_SEVEN_',
+        '8': '_EIGHT_',
+        '9': '_NINE_',
+        '+': '_PLUS_',
+        '-': '_MINUS_',
+        ' ': '_'
+    }
     
     def __init__(self, name:str, type:str, xml, description='',additional_attributes:typing.Optional[typing.Dict[str,str]] = None):
         self.field_name:str = name
@@ -66,10 +72,15 @@ class PPRZField(object):
         self._format:typing.Optional[str] = additional_attributes['format'] if 'format' in additional_attributes else None
         self._unit:typing.Optional[str] = additional_attributes['unit'] if 'unit' in additional_attributes else None
         
-        raw_values_str = additional_attributes['values'] if 'values' in additional_attributes else None
+        raw_values_str = additional_attributes['values'] if 'values' in additional_attributes else None 
+        
+        
         if raw_values_str is not None:
+            for c in filter(lambda x : x != '|',raw_values_str):
+                values_chars.add(c)
+            
             #print("Before: ", raw_values_str)
-            for (p,r) in self.varchar_convert:
+            for p,r in self.varchar_convert.items():
                 raw_values_str = raw_values_str.replace(p,r)
             #print("After: ", raw_values_str)
             
