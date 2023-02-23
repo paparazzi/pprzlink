@@ -406,7 +406,7 @@ class PprzMessage(object):
                 else:
                     array_length = int(s[1])
                 array_value = []
-                for count in range(0, array_length):
+                for _ in range(0, array_length):
                     array_value.append(struct.unpack('<' + bin_type[0], data[msg_offset:msg_offset + bin_type[1]])[0])
                     msg_offset = msg_offset + bin_type[1]
                 values.append(array_value)
