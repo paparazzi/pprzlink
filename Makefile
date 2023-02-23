@@ -82,6 +82,9 @@ post_messages_install:
 	@echo 'Copy extra lib files'
 	$(Q)cp $(MESSAGES_XML) $(MESSAGES_DTD) $(UNITS_XML) $(MESSAGES_INSTALL)
 	$(Q)Q=$(Q) MESSAGES_INCLUDE=$(MESSAGES_INCLUDE) MESSAGES_LIB=$(MESSAGES_LIB) $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C install
+
+post_messages_python_install:
+	@echo 'Copy extra Python lib files'
 	$(Q)cp -a lib/v$(PPRZLINK_LIB_VERSION)/python/pprzlink/. $(LIB_PYTHON)
 
 pygen_messages: pre_messages_dir
@@ -97,7 +100,7 @@ pygen_python_messages: pre_messages_dir
 	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(INTERMCU_PYTHON) $(MESSAGES_XML) intermcu
 
 
-pymessages: pygen_messages pygen_python_messages post_messages_install
+pymessages: pygen_messages pygen_python_messages post_messages_install post_messages_python_install
 
 clean :
 	$(Q)$(MAKE) -C tools/generator clean
