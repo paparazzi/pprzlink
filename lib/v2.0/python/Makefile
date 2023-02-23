@@ -31,7 +31,7 @@ install:
 	$(Q)cp -r pprzlink $(DESTDIR)
 
 uninstall:
-	$(Q)rm -r $(DESTDIR)/pprzlink 
+	$(Q)rm -rf $(DESTDIR)/pprzlink 
 
 reinstall:
 	$(Q)make uninstall
