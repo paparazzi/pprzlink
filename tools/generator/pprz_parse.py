@@ -46,16 +46,16 @@ class PPRZField(object):
         }
     
     varchar_convert = {
-        '0': '_ZERO_',
-        '1': '_ONE_',
-        '2': '_TWO_',
-        '3': '_THREE_',
-        '4': '_FOUR_',
-        '5': '_FIVE_',
-        '6': '_SIX_',
-        '7': '_SEVEN_',
-        '8': '_EIGHT_',
-        '9': '_NINE_',
+        '0': '_0',
+        '1': '_1',
+        '2': '_2',
+        '3': '_3',
+        '4': '_4',
+        '5': '_5',
+        '6': '_6',
+        '7': '_7',
+        '8': '_8',
+        '9': '_9',
         '+': '_PLUS_',
         '-': '_MINUS_',
         ' ': '_'
@@ -181,13 +181,18 @@ class PPRZField(object):
 
 
 class PPRZMsg(object):
-    def __init__(self, name:str, id:int, linenumber:int, description:str=''):
+    def __init__(self, name:str, id:int, linenumber:int, description:str='', link:str=''):
         self.msg_name:str = name
         self.linenumber:int = linenumber
         self.id:int = int(id)
         self.description:str = description
         self.fields:typing.List[PPRZField] = []
         self.fieldnames:typing.List[str] = []
+        self.link:str = link
+        
+    @property
+    def broadcast(self) -> bool:
+        return self.link != 'forwarded' 
 
 class PPRZXML(object):
     '''parse a pprzlink XML file for a given class'''
@@ -236,7 +241,11 @@ class PPRZXML(object):
             elif in_element == "protocol.msg_class.message":
                 check_attrs(attrs, ['name', 'id'], 'message')
                 if self.current_class == self.class_name:
-                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber))
+                    try:
+                        link = attrs['link']
+                    except KeyError:
+                        link = ''
+                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber, link=link))
             elif in_element == "protocol.msg_class.message.field":
                 check_attrs(attrs, ['name', 'type'], 'field')
                 if self.current_class == self.class_name:
