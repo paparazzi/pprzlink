@@ -57,21 +57,25 @@ class PprzMessage_${msg_name}(PprzMessage):
         alt_unit = ${alt_unit}
         alt_unit_coef = ${alt_unit_coef}
         
+        def __init__(self) -> None:
+            super().__init__('${field_name}','${type}')
+        
         def __setattr__(self, __name: str, __value: typing.Any) -> None:
             if (__name != 'val'):
                 return None
             return super().__setattr__(__name, __value)
     }}
     
-    def __init__(self,component_id=0):
-        self._class_id = ${class_id}
-        self._class_name = '${class_name}'
-        self._component_id = component_id
-        self._id = ${msg_id}
-        self._name = '${msg_name}'
-        self.broadcasted = ${msg_broadcast}
+    def __init__(self,component_id:int=0):
+        self._class_id:int = ${class_id}
+        self._class_name:str = '${class_name}'
+        self._component_id:int = component_id
+        self._id:int = ${msg_id}
+        self._name:str = '${msg_name}'
+        self.broadcasted:bool = ${msg_broadcast}
         
-        self._fields_order = []
+        self._fields:typing.Dict[str,PprzMessageField] = dict()
+        self._fields_order:typing.List[str] = []
         ${{fields:
         self._fields_order.append('${field_name}')
         self._fields['${field_name}'] = self.PprzMessageField_${field_name}()
@@ -147,8 +151,10 @@ try:
     ivy.start()
 
     ${{messages:
-    ivy.subscribe(log_callback,${msg_name}.PprzMessage_${msg_name}())
+    ivy.subscribe(log_callback,PprzMessage_${msg_name}())
     }}
+    
+    print("Startup successful!")
 
     # Wait untill ^C is pressed
     while True:
@@ -172,15 +178,14 @@ def generate(output:str, xml:pprz_parse.PPRZXML):
 
     # print(f"Destination dir: {directory}")
     
-    for m in xml.message:
-        with open(os.path.join(directory,m.msg_name+".py"), mode='w') as file:
-            generate_imports(file)
+    with open(os.path.join(directory,xml.class_name+".py"), mode='w') as file:
+        generate_imports(file)
+        for m in xml.message:
             generate_one(file,xml,m)
             
-    with open(os.path.join(directory,"__init__.py"), mode='w') as module_file:
-        module_list = [m.msg_name for m in xml.message]
-        module_file.write(f"__all__ = {str(module_list)}")
+    # with open(os.path.join(directory,"__init__.py"), mode='w') as module_file:
+    #     module_list = [m.msg_name for m in xml.message]
+    #     module_file.write(f"__all__ = {str(module_list)}")
     
-    _,sole_directory_name = os.path.split(directory)
-    with open(os.path.join(os.path.join(directory,os.pardir),sole_directory_name+"_inspector.py"),mode='w') as inspector_file:
-        generate_inspector(inspector_file,xml,sole_directory_name)
+    with open(os.path.join(directory,xml.class_name+"_inspector.py"),mode='w') as inspector_file:
+        generate_inspector(inspector_file,xml,xml.class_name)
