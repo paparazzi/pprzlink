@@ -256,9 +256,9 @@ class PprzMessage(object):
         """Set the underlying PprzMessageField object"""
         self._fields[name] = field
 
-    def __getattr__(self, attr:str):
-        # Try to dynamically return the field value for the given name
-        return self._fields[attr].val
+    # def __getattr__(self, attr:str):
+    #     # Try to dynamically return the field value for the given name
+    #     return self._fields[attr].val
 
     def __getitem__(self, key:str):
         # Try to dynamically return the field value for the given name
