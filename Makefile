@@ -23,6 +23,7 @@
 Q ?=@
 
 MAKE = make
+PY ?= python3 
 
 PPRZLINK_MSG_VERSION ?= 1.0
 PPRZLINK_LIB_VERSION ?= 2.0
@@ -91,15 +92,15 @@ post_messages_python_install:
 
 pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(TELEMETRY_H) $(MESSAGES_XML) telemetry
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(DATALINK_H) $(MESSAGES_XML) datalink
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
 
 pygen_python_messages: pre_messages_dir
 	@echo 'Generate Python at location $(MESSAGE_PYTHON)'
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) telemetry
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) datalink
-	$(Q)./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) intermcu
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) telemetry
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) datalink
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) intermcu
 
 
 pymessages: pygen_messages pygen_python_messages post_messages_install post_messages_python_install
@@ -120,8 +121,8 @@ uninstall: clean
 	$(Q)rm -rf var bin build $(MESSAGES_INCLUDE) $(MESSAGES_LIB)
 
 validate_messages:
-	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) telemetry
-	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
-	$(Q)./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
+	$(Q) $(PY) ./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) telemetry
+	$(Q) $(PY) ./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
+	$(Q) $(PY) ./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
 
 .PHONY: libpprzlink++-install libpprzlink++ libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
