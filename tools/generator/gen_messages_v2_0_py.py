@@ -94,6 +94,7 @@ class PprzMessage_${msg_name}(PprzMessage):
         
     @${field_name}_.setter
     def ${field_name}_(self,value:${py_type}) -> None:
+        assert isinstance(value,${py_type})
         self['${field_name}'] = value
         
     @property
