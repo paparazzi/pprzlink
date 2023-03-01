@@ -115,6 +115,8 @@ class PprzMessageField(object):
         else:
             raise AttributeError("No conversion coefficient set")
         
+    
+    @property
     def python_typestring(self) -> str:
         if self.type == "float" or self.type == "double":
             basetype = "float"
@@ -129,6 +131,7 @@ class PprzMessageField(object):
             else:
                 return f"typing.List[{basetype}]"
     
+    @property
     def python_type(self) -> typing.Type:
         if self.type == "float" or self.type == "double":
             basetype = float
@@ -142,11 +145,32 @@ class PprzMessageField(object):
                 return str
             else:
                 return typing.List[{basetype}]
-        
-        
+
+    @property        
+    def python_simple_type(self) -> type:
+        if self.type == "float" or self.type == "double":
+            basetype = float
+        else:
+            basetype = int
+            
+        if self.array_type is None:
+            return basetype
+        else:
+            if self.type == "char":
+                return str
+            else:
+                return list
+            
+    def parse(self,strval:typing.Any) -> None:
+        if self.is_enum:
+            self.val_enum = strval
+        else:
+            self.val = self.python_simple_type(strval)
     
 class PprzMessage(object):
     """base Paparazzi message class"""
+    
+    __slots__ = ('_class_id','_class_name','_component_id','_id','_name','_fields_order','broadcasted','_fields','_fields_typing_dict')
     
     def __init__(self, class_name, msg, component_id=0):
         if isinstance(class_name, int):
@@ -266,6 +290,14 @@ class PprzMessage(object):
     
     def __setitem__(self, key:str, value) -> None:
         self.set_value_by_name(key, value)
+        
+    def parse_values(self, values:typing.List) -> None:
+        if len(values) == len(self._fields_order):
+            for i,v in enumerate(values):
+                self._fields[self._fields_order[i]].parse(v)
+        else:
+            raise PprzMessageError("Error: Msg %s has %d fields, tried to set %i values" %
+                                   (self.name, len(self.fieldnames), len(values)))
 
     def set_values(self, values:typing.List) -> None:
         """Set all values by index."""
@@ -276,6 +308,10 @@ class PprzMessage(object):
         else:
             raise PprzMessageError("Error: Msg %s has %d fields, tried to set %i values" %
                                    (self.name, len(self.fieldnames), len(values)))
+
+    def parse_value_by_name(self, name:str, value) -> None:
+        # Try to set then convert a value from its name
+        self._fields[name].parse(value)
 
     def set_value_by_name(self, name:str, value) -> None:
         # Try to set a value from its name
@@ -350,7 +386,7 @@ class PprzMessage(object):
             else:
                 # add string array (stripped)
                 values.append(str.strip(el))
-        self.set_values(values)
+        self.parse_values(values)
 
     def payload_to_binary(self) -> bytes:
         struct_string = "<"

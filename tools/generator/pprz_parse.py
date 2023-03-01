@@ -155,9 +155,21 @@ class PPRZField(object):
     @property
     def py_type(self) -> str:
         """
-        Gives the associated string of the Python's type matching the indicated C's type
+        Gives the associated string of the Python's `typing` matching the indicated C's type
         """
         return self.python_typestring()
+    
+    @property
+    def py_simple_type(self) -> str:
+        """
+        Gives the associated string of the Python's type matching the indicated C's type
+        """
+        if self.array_type is None:
+            return self.python_typestring()
+        elif self.type == "char":
+            return "str"
+        else:
+            return "list"
     
     @property 
     def values_enum_class_name(self) -> str:

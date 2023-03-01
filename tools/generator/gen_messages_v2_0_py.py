@@ -36,6 +36,8 @@ class PprzMessage_${msg_name}(PprzMessage):
     ${msg_description}
     \"\"\"
     
+    __slots__ = ()
+    
     ${{fields:
     @dataclass
     class PprzMessageField_${field_name}(PprzMessageField):
@@ -64,6 +66,19 @@ class PprzMessage_${msg_name}(PprzMessage):
             if (__name != 'val'):
                 return None
             return super().__setattr__(__name, __value)
+            
+        
+        @property
+        def python_typestring(self) -> str:
+            return '${py_type}'
+            
+        @property
+        def python_type(self) -> typing.Type:
+            return ${py_type}
+
+        @property        
+        def python_simple_type(self) -> type:
+            return ${py_simple_type}
     }}
     
     def __init__(self,component_id:int=0):
@@ -94,7 +109,7 @@ class PprzMessage_${msg_name}(PprzMessage):
         
     @${field_name}_.setter
     def ${field_name}_(self,value:${py_type}) -> None:
-        assert isinstance(value,${py_type})
+        assert isinstance(value,${py_simple_type})
         self._fields['${field_name}'].val = value
         
     @property
@@ -108,7 +123,8 @@ class PprzMessage_${msg_name}(PprzMessage):
         return self.get_full_field('${field_name}')
         
     @${field_name}_full_field.setter
-    def ${field_name}_(self,value:PprzMessageField_${field_name}) -> None:
+    def ${field_name}_full_field(self,value:PprzMessageField_${field_name}) -> None:
+        assert isinstance(value,PprzMessageField)
         self.set_full_field('${field_name}',value)
     }}
             """
