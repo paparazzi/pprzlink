@@ -252,8 +252,7 @@ class IvyMessagesInterface(object):
                 return None
         else:
             if 'ac_id' in msg.fieldnames:
-                ac_id_idx = msg.fieldnames.index('ac_id')
-                ac_id = msg.fieldvalues[ac_id_idx]
+                ac_id = msg['ac_id']
             else:
                 ac_id = 0
         # finally call the callback, passing the aircraft id, request id (might be None) and parsed message
