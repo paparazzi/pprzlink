@@ -90,12 +90,12 @@ class PprzMessage_${msg_name}(PprzMessage):
         Field's description:
         ${description}
         \"\"\"
-        return self['${field_name}']
+        return self._fields['${field_name}'].val
         
     @${field_name}_.setter
     def ${field_name}_(self,value:${py_type}) -> None:
         assert isinstance(value,${py_type})
-        self['${field_name}'] = value
+        self._fields['${field_name}'].val = value
         
     @property
     def ${field_name}_full_field(self) -> PprzMessageField_${field_name}:
