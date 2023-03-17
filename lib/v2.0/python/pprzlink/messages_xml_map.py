@@ -58,6 +58,8 @@ def parse_messages(messages_file=''):
     if not messages_file:
         messages_file = default_messages_file
     if not os.path.isfile(messages_file):
+        messages_file = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"messages.xml")) 
+    if not os.path.isfile(messages_file):
         raise MessagesNotFound(messages_file)
     #print("Parsing %s" % messages_file)
     from lxml import etree
