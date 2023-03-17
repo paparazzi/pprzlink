@@ -73,7 +73,7 @@ class IvyMessagesInterface(object):
             
             for c in agent_name:
                 try:
-                    assert c in string.ascii_letters | string.digits | "+-_"
+                    assert c in string.ascii_letters + string.digits + "+-_"
                 except AssertionError:
                     raise ValueError(f"Invalid name: {agent_name}\n(Contains {c} which is neither a letter, a digit or any of '+','-','_')")
         self.agent_name = agent_name
