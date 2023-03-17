@@ -347,12 +347,18 @@ class PprzMessage(object):
         for n in self._fields_order:
             f = self._fields[n]
             if "char[" in f.typestr:
-                str_value =''
-                for c in f.val:
-                    if isinstance(c, bytes):
-                        str_value += c.decode()
-                    else:
-                        str_value += c
+                if isinstance(f.val,str):
+                    str_value = f.val
+                else:
+                    str_value =''
+                    try:
+                        for c in f.val:
+                            if isinstance(c, bytes):
+                                str_value += c.decode()
+                            else:
+                                str_value += c
+                    except TypeError:
+                        str_value = str(f.val)
                 fields.append('"' + str_value + '"')
             elif '[' in f.typestr:
                 fields.append(','.join([str(x) for x in f.val]))
