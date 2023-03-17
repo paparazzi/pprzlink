@@ -20,7 +20,7 @@
 #
 
 MAKE = make
-DESTDIR ?=$(shell python3 -c 'import site; print(site.getsitepackages()[0])')
+DESTDIR ?=$(shell python3 -m site --user-site)
 
 all:
 
