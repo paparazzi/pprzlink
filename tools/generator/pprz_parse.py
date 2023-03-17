@@ -86,9 +86,23 @@ class PPRZField(object):
             
         
         self.values_str:typing.Optional[typing.List[str]] = raw_values_str.split('|') if raw_values_str is not None else None
+        if self.values_str is not None:
+            multiset:typing.Dict[str,int] = dict()
+            for i,s in enumerate(self.values_str):
+                if s in multiset:
+                    self.values_str[i] = s +"_" + str(multiset[s])
+                    multiset[s] += 1
+                else:
+                    multiset[s] = 1
+            
         
         self._alt_unit:typing.Optional[str] = additional_attributes['alt_unit'] if 'alt_unit' in additional_attributes else None
         self.alt_unit_coef:str = additional_attributes['alt_unit_coef'] if 'alt_unit_coef' in additional_attributes else 'None'
+
+        if type == "string":
+            type = "char[]"
+            
+        self.raw_type = type
 
         aidx = type.find("[")
         if aidx != -1:

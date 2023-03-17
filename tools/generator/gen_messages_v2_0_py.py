@@ -51,7 +51,7 @@ class PprzMessage_${msg_name}(PprzMessage):
         ${values_enum_class_str}
         
         name = '${field_name}'
-        typestr = '${type}'
+        typestr = '${raw_type}'
         val:typing.Optional[${py_type}] = None
         format = ${format}
         unit = ${unit}
