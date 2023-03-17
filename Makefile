@@ -41,9 +41,8 @@ MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 LIB_PYTHON ?= $(MESSAGES_INSTALL)/python
 LIB_PYTHON_PPRZ ?= $(LIB_PYTHON)/pprzlink
 MESSAGES_PYTHON ?= $(LIB_PYTHON_PPRZ)/generated
-TELEMETRY_PYTHON ?= $(MESSAGES_PYTHON)/telemetry
-DATALINK_PYTHON ?= $(MESSAGES_PYTHON)/datalink
-INTERMCU_PYTHON ?= $(MESSAGES_PYTHON)/intermcu
+ALERT_PYTHON ?= $(MESSAGES_PYTHON)/alert
+GROUND_PYTHON ?= $(MESSAGES_PYTHON)/ground
 TELEMETRY_H ?= $(MESSAGES_INCLUDE)/messages.h
 DATALINK_H ?= $(MESSAGES_INCLUDE)/dl_protocol.h
 INTERMCU_H ?= $(MESSAGES_INCLUDE)/intermcu_msg.h
@@ -88,7 +87,7 @@ post_messages_install:
 post_messages_python_install:
 	@echo 'Copy extra Python lib files'
 	$(Q)cp -a lib/v$(PPRZLINK_LIB_VERSION)/python/. $(LIB_PYTHON)
-	$(shell echo "__all__ = ['telemetry','datalink','intermcu']" >> $(MESSAGES_PYTHON)/__init__.py)
+	$(shell echo "__all__ = ['telemetry','datalink','intermcu','alert','ground']" >> $(MESSAGES_PYTHON)/__init__.py)
 
 pygen_messages: pre_messages_dir
 	@echo 'Generate C messages (Python) at location $(MESSAGES_INCLUDE)'
@@ -101,11 +100,14 @@ pygen_python_messages: pre_messages_dir
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) telemetry
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) datalink
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) intermcu
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) alert
+	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) ground
 
 
 pymessages: pygen_messages pygen_python_messages post_messages_install post_messages_python_install
 
 libpprzlink-pygen-python-install: pygen_python_messages post_messages_python_install
+	$(Q)cp $(MESSAGES_XML) $(LIB_PYTHON_PPRZ)
 ifdef $(DESTDIR)
 	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/python $(MAKE) -C $(LIB_PYTHON) install
 else
