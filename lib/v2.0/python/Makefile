@@ -19,8 +19,10 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+PY ?= python3
+
 MAKE = make
-DESTDIR ?=$(shell python3 -m site --user-site)
+DESTDIR ?=$(shell $(PY) -m site --user-site)
 
 all:
 
