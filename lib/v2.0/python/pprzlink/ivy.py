@@ -24,6 +24,7 @@ import os
 import re
 import platform
 import typing
+import string
 
 from pprzlink.message import PprzMessage
 from pprzlink.request_uid import RequestUIDFactory
@@ -65,9 +66,16 @@ class IvyMessagesInterface(object):
     """
     This class is the interface between the paparazzi messages and the Ivy bus.
     """
-    def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
+    def __init__(self, agent_name:typing.Optional[str]=None, start_ivy:bool=True, verbose:bool=False, ivy_bus=IVY_BUS):
         if agent_name is None:
             agent_name = "IvyMessagesInterface %i" % os.getpid()
+        else:
+            
+            for c in agent_name:
+                try:
+                    assert c in string.ascii_letters | string.digits | "+-_"
+                except AssertionError:
+                    raise ValueError(f"Invalid name: {agent_name}\n(Contains {c} which is neither a letter, a digit or any of '+','-','_')")
         self.agent_name = agent_name
         self.verbose = verbose
         self._ivy_bus = ivy_bus
