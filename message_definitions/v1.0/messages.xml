@@ -1485,7 +1485,26 @@
       <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
-    <!-- 158 is free -->
+    <message name="INS_FLOW_INFO" id="158">
+      <field name="vy"  type="float" unit="m/s"/>
+      <field name="phi"  type="float" unit="deg"/>
+      <field name="p"  type="float" unit="deg/s"/>
+      <field name="vx"  type="float" unit="m/s"/>
+      <field name="theta"  type="float" unit="deg"/>
+      <field name="q"  type="float" unit="deg/s"/>
+      <field name="z"  type="float" unit="m"/>
+      <field name="vz"  type="float" unit="m/s"/>
+      <field name="vy_GT"  type="float" unit="m/s"/>
+      <field name="phi_GT"  type="float" unit="deg"/>
+      <field name="p_GT"  type="float" unit="deg/s"/>
+      <field name="vx_GT"  type="float" unit="m/s"/>
+      <field name="theta_GT"  type="float" unit="deg"/>
+      <field name="q_GT"  type="float" unit="deg/s"/>
+      <field name="z_GT"  type="float" unit="m"/>
+      <field name="vz_GT"  type="float" unit="m/s"/>
+      <field name="thrust_bias"  type="float" unit="N"/>
+      <field name="use_filter"  type="int32" unit="-"/>
+    </message>
 
     <message name="ROTORCRAFT_NAV_STATUS" id="159">
       <field name="block_time" type="uint16" unit="s"/>
