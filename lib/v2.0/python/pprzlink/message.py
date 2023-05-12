@@ -20,7 +20,7 @@ Paparazzi message representation
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function,annotations
 import sys
 import json
 import struct
@@ -332,6 +332,22 @@ class PprzMessage(object):
         for k, f in self._fields.items():
             d[k] = f.val
         return d
+    
+    @staticmethod
+    def from_dict(d:typing.Dict[str,typing.Any]) -> PprzMessage:
+        msg_name = d['msgname']
+        msg_class = d['msgclass']
+        
+        pprz_msg = PprzMessage(msg_class,msg_name)
+        for k,f in d.items():
+            
+            # Skip already processed keys
+            if k == 'msgname' or k == 'msgclass':
+                continue
+            
+            else:
+                pprz_msg[k] = f
+        return pprz_msg
 
     def to_json(self, payload_only=False) -> str:
         return json.dumps(self.to_dict(payload_only))
