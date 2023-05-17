@@ -197,7 +197,7 @@ class IvyMessagesInterface(object):
         self.unbind(bind_id)
 
     @staticmethod
-    def parse_pprz_msg(ivy_msg):
+    def parse_pprz_msg(ivy_msg:str):
         """
         Parse an Ivy message into a PprzMessage.
 
@@ -266,7 +266,7 @@ class IvyMessagesInterface(object):
         # finally call the callback, passing the aircraft id, request id (might be None) and parsed message
         return ac_id, request_id, msg
 
-    def send_raw_datalink(self, msg):
+    def send_raw_datalink(self, msg:PprzMessage):
         """
         Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
 
