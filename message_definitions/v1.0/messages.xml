@@ -679,9 +679,12 @@
       - k_psi  : Gain for the fixed-wing aircraft control (horizontal angle)
       - L      : Error function gain
       - w_dot  : Intended virtual step (before multiplication with ground speed)
+      - kx     : Internal field X gain    
+      - ky     : Internal field Y gain
+      - kz     : Internal field Z gain
       </description>
       <field name="traj" type="uint8">Kind of trajectory</field>
-      <field name="config" type="float[8]"> Parameters describing the GVF parametric algorithm</field>
+      <field name="config" type="float[11]"> Parameters describing the GVF parametric algorithm</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
       <field name="phi" type="float[]" unit="m">Error signals</field>
       <field name="rot" type="float[4]">Rotation applied to every trajectory (as an (w,x,y,z) unit quaternion)</field>
