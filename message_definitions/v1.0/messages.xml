@@ -670,10 +670,18 @@
     <message name="GVF_PARAMETRIC" id="75">
       <description>
       Information about the parametric trajectory followed by the Guidance Vector Field algorithm.
+      Parameters describing the GVF parametric algorithm:
+      - w      : The virtual parameter
+      - delta_T: Time since last update
+      - s*beta : Rescale for w (s is a direction, +1|-1; beta is a magnitude)
+      - k_roll : Gain for the fixed-wing aircraft control (roll)
+      - k_climb: Gain for the fixed-wing aircraft control (climb)
+      - k_psi  : Gain for the fixed-wing aircraft control (horizontal angle)
+      - L      : Error function gain
+      - w_dot  : Intended virtual step (before multiplication with ground speed)
       </description>
       <field name="traj" type="uint8">Kind of trajectory</field>
-      <field name="s" type="int8" values="1|-1">Direction to be followed</field>
-      <field name="w" type="float">Virtual coordinate of the algorithm</field>
+      <field name="config" type="float[8]"> Parameters describing the GVF parametric algorithm</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
       <field name="phi" type="float[]" unit="m">Error signals</field>
       <field name="rot" type="float[4]">Rotation applied to every trajectory (as an (w,x,y,z) unit quaternion)</field>
@@ -1753,8 +1761,9 @@
 
     <message name="GVF_PAR_COORD" id="199">
       <description>Telemetry message for monitoring the status of the Distributed GVF Coordination Algorithm.</description>
-      <field name="table" type="float[]"> The size of the array is 4 x (maximum number of possible neighbors). The elements per each neighbor are: 1. ID of the neighbor, 2. Delta W of the neighbor, 3. Desired inter-vehicle W, 4. Last time in ms we received a msg from the neighbor</field>
+      <field name="table" type="float[]"> The size of the array is 5 x (maximum number of possible neighbors). The elements per each neighbor are: 1. ID of the neighbor, 2. The current W value of the neighbor, 3. The W_dot value of the neighbor, 4. Desired inter-vehicle W, 5. Time since the last neighbor W update (ms)</field>
       <field name="errors" type="float[]"> The size of the array is the maximum number of possible neighbors. Errors w.r.t. desired inter-vehicle W</field>
+      <field name="timestamp" type="uint32"> Message timestamp (ms) </field>
     </message>
     <message name="IMU_GYRO" id="200">
       <field name="id" type="uint8"/>
@@ -1844,7 +1853,7 @@
       <field name="commands" type="int32[]">Commands send to actuators</field>
     </message>
 
-    <message name="GVF_PARAMETRIC_W" id="212">
+    <message name="GVF_PARAMETRIC_G_W" id="212">
       <description>Air-to-air message for the Distributed GVF Parametric coordination algorithm. It transmits the ac's W and W_dot to its neighbor
       </description>
       <field name="w" type="float"/>
@@ -2828,6 +2837,14 @@
       <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
       <field name="nei_id" type="uint8">ID of the neighbor for the table</field>
       <field name="desired_deltaw" type="float">Desired W to have w.r.t. the neighbor</field>
+    </message>
+    
+    <message name="GVF_PARAMETRIC_W" id="162" link="forwarded">
+      <description>Air-to-air message for the Distributed GVF Parametric coordination algorithm. It transmits the ac's W and W_dot to its neighbor (echoed from ground)/
+      </description>
+      <field name="ac_id" type="uint8"/>
+      <field name="w" type="float"/>
+      <field name="w_dot" type="float"/>
     </message>
     
     
