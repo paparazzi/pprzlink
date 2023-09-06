@@ -35,7 +35,7 @@ extern "C" {
 
 #include "pprzlink/pprzlink_transport.h"
 
-typedef uint32_t (*get_time_usec_t)(void);
+typedef uint32_t (*get_time_usec100_t)(void);
 
 struct pprzlog_transport {
   // generic transmission interface
@@ -43,11 +43,11 @@ struct pprzlog_transport {
   // specific pprz transport_tx variables
   uint8_t ck;
   // get current time function pointer
-  get_time_usec_t get_time_usec;
+  get_time_usec100_t get_time_usec100;
 };
 
 // Init function
-extern void pprzlog_transport_init(struct pprzlog_transport *t, uint32_t (*get_time_usec_t)(void));
+extern void pprzlog_transport_init(struct pprzlog_transport *t, uint32_t (*get_time_usec100_t)(void));
 
 #ifdef __cplusplus
 } /* extern "C" */
