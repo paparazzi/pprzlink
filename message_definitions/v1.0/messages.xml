@@ -114,12 +114,13 @@
     </message>
 
     <message name="ENERGY" id="12">
-      <field name="throttle" type="uint8" unit="%">Throttle setting</field>
-      <field name="voltage"  type="float" unit="V">Input battery voltage</field>
-      <field name="current"  type="float" unit="A">Current consumption</field>
-      <field name="power"    type="float" unit="W">Electrical power</field>
-      <field name="charge"   type="float" unit="Ah">Accumulated consumed charge</field>
-      <field name="energy"   type="float" unit="Wh">Accumulated consumed energy</field>
+      <field name="throttle"  type="uint8" unit="%">Throttle setting</field>
+      <field name="voltage"   type="float" unit="V">Input battery voltage</field>
+      <field name="current"   type="float" unit="A">Current consumption</field>
+      <field name="power"     type="float" unit="W">Electrical power</field>
+      <field name="avg_power" type="float" unit="W">Average electrical power</field>
+      <field name="charge"    type="float" unit="Ah">Accumulated consumed charge</field>
+      <field name="energy"    type="float" unit="Wh">Accumulated consumed energy</field>
     </message>
 
     <message name="DEBUG_MCU_LINK" id="13">
@@ -2164,6 +2165,8 @@
       <field name="rpm"         type="float" unit="rpm">Motor rotation speed</field>
       <field name="motor_volts" type="float" unit="V">Motor voltage</field>
       <field name="energy"      type="float" unit="Wh">Accumulated consumed energy</field>
+      <field name="temperature" type="float" unit="K">Temperature of the ESC</field>
+      <field name="node_id"     type="uint8">Node ID</field>
       <field name="motor_id"    type="uint8">Motor ID</field>
     </message>
 
