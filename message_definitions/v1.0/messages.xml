@@ -1760,7 +1760,30 @@
 
     <!-- 194 is free -->
     <!-- 195 is free -->
-    <!-- 196 is free -->
+
+    <message name="AIRSPEED_WIND_ESTIMATOR_EKF" id="196">
+      <field name="u_est"     type="float" unit="m/s"/>
+      <field name="v_est"     type="float" unit="m/s"/>
+      <field name="w_est"     type="float" unit="m/s"/>
+      <field name="mu_N"      type="float" unit="m/s"/>
+      <field name="mu_E"      type="float" unit="m/s"/>
+      <field name="mu_D"      type="float" unit="m/s"/>
+      <field name="offset_x"  type="float" unit="-"/>
+      <field name="offset_y"  type="float" unit="-"/>
+      <field name="offset_z"  type="float" unit="-"/>
+      <field name="healthy"   type="uint8" unit="bool"/>
+      <field name="crashes_n"  type="uint16" unit="-"/>
+      <field name="innov_V_gnd_x"  type="float" unit="-"/>
+      <field name="innov_V_gnd_y"  type="float" unit="-"/>
+      <field name="innov_V_gnd_z"  type="float" unit="-"/>
+      <field name="innov_acc_x"  type="float" unit="-"/>
+      <field name="innov_acc_y"  type="float" unit="-"/>
+      <field name="innov_acc_z"  type="float" unit="-"/>
+      <field name="innov_V_pitot"  type="float" unit="-"/>
+      <field name="debug_1"  type="float" unit="-"/>
+      <field name="debug_2"  type="float" unit="-"/>
+      <field name="debug_3"  type="float" unit="-"/>
+    </message>
 
     <message name="NPS_SENSORS_SCALED" id="197">
       <field name="acc_x"    type="float" />
