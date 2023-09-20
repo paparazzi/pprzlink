@@ -453,8 +453,8 @@
     </message>
 
     <message name="AIRSPEED" id="54">
-      <field name="airspeed" type="float" unit="m/s"/>
-      <field name="airspeed_sp" type="float" unit="m/s"/>
+      <field name="airspeed" type="float" unit="m/s">Fused airspeed from all sources</field>
+      <field name="airspeed_sp" type="float" unit="m/s">Airspeed setpoint</field>
       <field name="airspeed_cnt" type="float" unit="m/s"/>
       <field name="groundspeed_sp" type="float" unit="m/s"/>
     </message>
@@ -479,11 +479,7 @@
       <field name="scaled" type="float"/>
     </message>
 
-    <message name="AIRSPEED_ETS" id="57">
-      <field name="adc" type="uint16"/>
-      <field name="offset" type="uint16"/>
-      <field name="scaled" type="float"/>
-    </message>
+    <!-- 57 is free-->
 
     <message name="VISION_OUTBACK" id="58">
       <field name="status" type="uint8"/>
@@ -1238,9 +1234,12 @@
       <field name="status" type="uint8" values="UNINIT|RUNNING|LOCKED"/>
     </message>
 
-    <message name="AIRSPEED_MS45XX" id="138">
+    <message name="AIRSPEED_RAW" id="138">
+      <field name="sensor_id" type="uint8"/>
+      <field name="raw" type="uint16"/>
+      <field name="offset"  type="float" unit="Pa"/>
       <field name="diffPress" type="float" unit="Pa"/>
-      <field name="temperature" type="int16" unit="0.1 deg_celcius" alt_unit="deg_celcius" alt_unit_coef="0.1"/>
+      <field name="temperature" type="float" unit="deg_celcius"/>
       <field name="airspeed" type="float" unit="m/s"/>
     </message>
 
