@@ -1714,7 +1714,15 @@
 
     <!-- 181 is free -->
     <!-- 182 is free -->
-    <!-- 183 is free -->
+
+    <message name="DOUBLET" id="183">
+      <field name="active"              type="uint8">Doublet is active</field>
+      <field name="axis"                type="uint8">Current doublet axis</field>
+      <field name="amplitude"           type="int16">Amplitude</field>
+      <field name="current_value"       type="int16">Current doublet value</field>
+      <field name="doublet_mode_3211"   type="uint8">Mode 3211 enabled</field>
+    </message>
+
     <!-- 184 is free -->
     <!-- 185 is free -->
     <!-- 186 is free -->
