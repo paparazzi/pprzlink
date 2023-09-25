@@ -1901,16 +1901,26 @@
     </message>
 
     <message name="STAB_ATTITUDE_INDI" id="216">
-      <field name="angular_accel_p" type="float"/>
-      <field name="angular_accel_q" type="float"/>
-      <field name="angular_accel_r" type="float"/>
-      <field name="angular_accel_ref_p" type="float"/>
-      <field name="angular_accel_ref_q" type="float"/>
-      <field name="angular_accel_ref_r" type="float"/>
-      <field name="g1_p" type="float"/>
+      <field name="body_accel_x" type="float" unit="m/s2"/><!-- setpoint -->
+      <field name="body_accel_y" type="float" unit="m/s2"/>
+      <field name="body_accel_z" type="float" unit="m/s2"/>
+      <field name="angular_rate_p" type="float" unit="rad/s"/><!-- rate tracking -->
+      <field name="angular_rate_q" type="float" unit="rad/s"/>
+      <field name="angular_rate_r" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_p" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_q" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_r" type="float" unit="rad/s"/>
+      <field name="angular_accel_p" type="float" unit="rad/s2"/><!-- angular acceleration -->
+      <field name="angular_accel_q" type="float" unit="rad/s2"/>
+      <field name="angular_accel_r" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_p" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_q" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_r" type="float" unit="rad/s2"/>
+      <field name="g1_p" type="float"/><!-- INDI Simple G-matrix -->
       <field name="g1_q" type="float"/>
       <field name="g1_r" type="float"/>
       <field name="g2_r" type="float"/>
+      <field name="u" type="float[]"/><!-- outputs -->
     </message>
 
     <message name="ROTORCRAFT_FP_MIN" id="217">
