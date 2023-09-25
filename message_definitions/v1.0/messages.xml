@@ -1904,18 +1904,18 @@
       <field name="body_accel_x" type="float" unit="m/s2"/><!-- setpoint -->
       <field name="body_accel_y" type="float" unit="m/s2"/>
       <field name="body_accel_z" type="float" unit="m/s2"/>
-      <field name="angular_rate_p" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/><!-- rate tracking -->
-      <field name="angular_rate_q" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_rate_r" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_p" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_q" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_r" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_accel_p" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/><!-- angular acceleration -->
-      <field name="angular_accel_q" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_accel_r" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_p" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_q" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_r" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="angular_rate_p" type="float" unit="rad/s"/><!-- rate tracking -->
+      <field name="angular_rate_q" type="float" unit="rad/s"/>
+      <field name="angular_rate_r" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_p" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_q" type="float" unit="rad/s"/>
+      <field name="angular_rate_ref_r" type="float" unit="rad/s"/>
+      <field name="angular_accel_p" type="float" unit="rad/s2"/><!-- angular acceleration -->
+      <field name="angular_accel_q" type="float" unit="rad/s2"/>
+      <field name="angular_accel_r" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_p" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_q" type="float" unit="rad/s2"/>
+      <field name="angular_accel_ref_r" type="float" unit="rad/s2"/>
       <field name="g1_p" type="float"/><!-- INDI Simple G-matrix -->
       <field name="g1_q" type="float"/>
       <field name="g1_r" type="float"/>
