@@ -446,10 +446,9 @@
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
     </message>
 
-    <message name="DEBUG_IR_I2C" id="53">
-      <field name="ir1" type="int16" unit="adc"/>
-      <field name="ir2" type="int16" unit="adc"/>
-      <field name="top" type="int16" unit="adc"/>
+    <message name="DEBUG_VECT" id="53">
+      <field name="name" type="char[]"/>
+      <field name="vector" type="float[]"/>
     </message>
 
     <message name="AIRSPEED" id="54">
