@@ -1993,6 +1993,7 @@
       <field name="pstate" type="float"> gain state in adaptive gain control: indicative of height (-) </field>
       <field name="pused" type="float"> gain used for control, includes the effect of the p-gain of adaptive control (-) </field>
       <field name="sonar" type="float"> measurement from the sonar (mm)</field>
+      <field name="front_divergence" type="float"> divergence from front cam </field>
     </message>
 
     <message name="VIDEO_SYNC" id="225">
