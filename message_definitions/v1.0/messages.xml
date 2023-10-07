@@ -60,13 +60,7 @@
       <field name="theta" type="float" unit="rad" alt_unit="deg"/>
     </message>
 
-    <message name="IR_SENSORS" id="7">
-      <field name="ir1" type="int16"/>
-      <field name="ir2" type="int16"/>
-      <field name="longitudinal" type="int16"/>
-      <field name="lateral" type="int16"/>
-      <field name="vertical" type="int16"/>
-    </message>
+    <!-- 7 is free-->
 
     <message name="GPS" id="8">
       <field name="mode"       type="uint8"  unit="byte_mask"/>
@@ -123,11 +117,7 @@
       <field name="energy"    type="float" unit="Wh">Accumulated consumed energy</field>
     </message>
 
-    <message name="DEBUG_MCU_LINK" id="13">
-      <field name="i2c_nb_err" type="uint8"></field>
-      <field name="i2c_mcu1_nb_err" type="uint8"></field>
-      <field name="ppm_rate" type="uint8"></field>
-    </message>
+    <!-- 13 is free-->
 
     <message name="CALIBRATION" id="14">
       <field name="climb_sum_err" type="float" format="%.1f"/>
@@ -162,14 +152,7 @@
       <field name="val2" type="uint16"/>
     </message>
 
-    <message name="ECU" id="19">
-      <field name="stg_in" type="uint8" unit="bool"/>
-      <field name="stb_in" type="uint8" unit="bool"/>
-      <field name="ain1" type="float" unit="V"/>
-      <field name="ain2" type="float" unit="V"/>
-      <field name="ain3" type="float" unit="V"/>
-      <field name="ain4" type="float" unit="V"/>
-    </message>
+    <!-- 19 is free-->
 
     <message name="CAM" id="20">
       <field name="pan" type="int16" unit="deg"/>
@@ -394,12 +377,7 @@
       <field name="exponential"         type="uint8" unit="bool">Exponential chirp active</field>
     </message>
 
-    <message name="BARO_WORDS" id="46">
-      <field name="w1"  type="uint16"/>
-      <field name="w2"  type="uint16"/>
-      <field name="w3"  type="uint16"/>
-      <field name="w4"  type="uint16"/>
-    </message>
+    <!-- 46 is free-->
 
     <message name="WP_MOVED_LLA" id="47">
       <field name="wp_id" type="uint8"/>
