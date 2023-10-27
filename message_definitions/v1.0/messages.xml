@@ -1697,7 +1697,28 @@
       <field name="pprz_cmd"            type="int32"/>
     </message>
 
-    <!-- 182 is free -->
+    <message name="ONELOOP_ANDI" id="182">
+      <field name="phi_ref" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="theta_ref" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="psi_ref" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="phi" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="psi" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578"/>
+      <field name="p_ref" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="q_ref" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="r_ref" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="p" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="q" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="r" type="float" unit="rad/s" alt_unit="deg/s" alt_unit_coef="57.29578"/>
+      <field name="p_dot_ref" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="q_dot_ref" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="r_dot_ref" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="p_dot" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="q_dot" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="r_dot" type="float" unit="rad/s^2" alt_unit="deg/s^2" alt_unit_coef="57.29578"/>
+      <field name="nu" type="float[]" unit="none"/>
+      <field name="u" type="float[]" unit="none"/>
+    </message>
 
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
@@ -1707,11 +1728,41 @@
       <field name="doublet_mode_3211"   type="uint8">Mode 3211 enabled</field>
     </message>
 
-    <!-- 184 is free -->
+    <message name="ONELOOP_GUIDANCE" id="184">
+      <field name="pos_N_ref" type="float" unit="m"/>
+      <field name="pos_E_ref" type="float" unit="m"/>
+      <field name="pos_D_ref" type="float" unit="m"/>
+      <field name="pos_N" type="float" unit="m"/>
+      <field name="pos_E" type="float" unit="m"/>
+      <field name="pos_D" type="float" unit="m"/>
+      <field name="vel_N_ref" type="float" unit="m/s"/>
+      <field name="vel_E_ref" type="float" unit="m/s"/>
+      <field name="vel_D_ref" type="float" unit="m/s"/>
+      <field name="vel_N" type="float" unit="m/s"/>
+      <field name="vel_E" type="float" unit="m/s"/>
+      <field name="vel_D" type="float" unit="m/s"/>
+      <field name="acc_N_ref" type="float" unit="m/s^2"/>
+      <field name="acc_E_ref" type="float" unit="m/s^2"/>
+      <field name="acc_D_ref" type="float" unit="m/s^2"/>
+      <field name="acc_N" type="float" unit="m/s^2"/>
+      <field name="acc_E" type="float" unit="m/s^2"/>
+      <field name="acc_D" type="float" unit="m/s^2"/>
+      <field name="jerk_N" type="float" unit="m/s^3"/>
+      <field name="jerk_E" type="float" unit="m/s^3"/>
+      <field name="jerk_D" type="float" unit="m/s^3"/>
+      <field name="andi_u" type="float[]" unit="none"/>
+    </message>
     <!-- 185 is free -->
     <!-- 186 is free -->
     <!-- 187 is free -->
-    <!-- 188 is free -->
+    <message name="ONELOOP_G" id="188">
+      <field name="G1_aN" type="float[]" unit="none"/>
+      <field name="G1_aE" type="float[]" unit="none"/>
+      <field name="G1_aZ" type="float[]" unit="none"/>
+      <field name="G1_roll" type="float[]" unit="none"/>
+      <field name="G1_pitch" type="float[]" unit="none"/>
+      <field name="G1_yaw" type="float[]" unit="none"/>
+    </message>
     <!-- 189 is free -->
     <!-- 190 is free -->
     <!-- 191 is free -->
