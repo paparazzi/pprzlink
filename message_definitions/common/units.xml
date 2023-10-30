@@ -19,4 +19,6 @@
   <unit from="rad" to="deg" coef="57.2957795131" auto="display"/>
   <unit from="deg/s" to="rad/s" coef="0.0174532925" auto="code"/>
   <unit from="rad/s" to="deg/s" coef="57.2957795131" auto="display"/>
+  <unit from="deg/s2" to="rad/s2" coef="0.0174532925" auto="code"/>
+  <unit from="rad/s2" to="deg/s2" coef="57.2957795131" auto="display"/>
 </units>
