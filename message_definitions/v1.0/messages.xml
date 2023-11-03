@@ -1705,7 +1705,7 @@
       <field name="doublet_mode_3211"   type="uint8">Mode 3211 enabled</field>
     </message>
 
-    <message name="GUIDANCE_GENERAL" id="184">
+    <message name="GUIDANCE" id="184">
       <field name="pos_N_ref" type="float"    unit="m"/>
       <field name="pos_E_ref" type="float"    unit="m"/>
       <field name="pos_D_ref" type="float"    unit="m"/>
@@ -1928,7 +1928,7 @@
       <field name="msg" type="char[]"/>
     </message>
 
-    <message name="STAB_ATTITUDE_GENERAL" id="216">
+    <message name="STAB_ATTITUDE" id="216">
       <field name="phi"                 type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/><!-- attitude tracking -->
       <field name="theta"               type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
       <field name="psi"                 type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
