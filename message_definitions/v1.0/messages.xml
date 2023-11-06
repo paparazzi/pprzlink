@@ -1870,7 +1870,7 @@
       <field name="overrun_cnt" type="uint16"/>
       <field name="noise_err_cnt" type="uint16"/>
       <field name="framing_err_cnt" type="uint16"/>
-      <field name="bus_number" type="uint8"/>
+      <field name="bus_number" type="uint8"/></field>
     </message>
 
   <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
@@ -1929,26 +1929,26 @@
     </message>
 
     <message name="STAB_ATTITUDE" id="216">
-      <field name="phi"                 type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/><!-- attitude tracking -->
-      <field name="theta"               type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
-      <field name="psi"                 type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
-      <field name="phi_ref"             type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
-      <field name="theta_ref"           type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
-      <field name="psi_ref"             type="float"    unit="rad"     alt_unit="deg"      alt_unit_coef="57.29578"/>
-      <field name="angular_rate_p"      type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/><!-- rate tracking -->
-      <field name="angular_rate_q"      type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/>
-      <field name="angular_rate_r"      type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_p"  type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_q"  type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/>
-      <field name="angular_rate_ref_r"  type="float"    unit="rad/s"   alt_unit="deg/s"    alt_unit_coef="57.29578"/>
-      <field name="angular_accel_p"     type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/><!-- angular acceleration -->
-      <field name="angular_accel_q"     type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/>
-      <field name="angular_accel_r"     type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_p" type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_q" type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/>
-      <field name="angular_accel_ref_r" type="float"    unit="rad/s^2" alt_unit="deg/s^2"  alt_unit_coef="57.29578"/>
-      <field name="nu"                  type="float[]"  unit="none"/><!-- inputs-->
-      <field name="u"                   type="float[]"  unit="none"/><!-- outputs -->
+      <field name="phi"                 type="float"    unit="rad"     alt_unit="deg"    /><!-- attitude tracking -->
+      <field name="theta"               type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="psi"                 type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="phi_ref"             type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="theta_ref"           type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="psi_ref"             type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="angular_rate_p"      type="float"    unit="rad/s"   alt_unit="deg/s"  /><!-- rate tracking -->
+      <field name="angular_rate_q"      type="float"    unit="rad/s"   alt_unit="deg/s"  />
+      <field name="angular_rate_r"      type="float"    unit="rad/s"   alt_unit="deg/s"  />
+      <field name="angular_rate_ref_p"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
+      <field name="angular_rate_ref_q"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
+      <field name="angular_rate_ref_r"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
+      <field name="angular_accel_p"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/><!-- angular acceleration -->
+      <field name="angular_accel_q"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="angular_accel_r"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="angular_accel_ref_p" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="angular_accel_ref_q" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="angular_accel_ref_r" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="nu"                  type="float[]"  unit="none">Input of control allocation</field>
+      <field name="u"                   type="float[]"  unit="none">Output of control allocation</field>
     </message>
 
     <message name="ROTORCRAFT_FP_MIN" id="217">
