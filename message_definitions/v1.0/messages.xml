@@ -1870,7 +1870,7 @@
       <field name="overrun_cnt" type="uint16"/>
       <field name="noise_err_cnt" type="uint16"/>
       <field name="framing_err_cnt" type="uint16"/>
-      <field name="bus_number" type="uint8"/></field>
+      <field name="bus_number" type="uint8"/>
     </message>
 
   <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
