@@ -25,6 +25,7 @@ import re
 import platform
 import typing
 import string
+import sys
 
 from pprzlink.message import PprzMessage
 from pprzlink.request_uid import RequestUIDFactory
