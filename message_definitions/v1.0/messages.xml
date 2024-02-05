@@ -377,7 +377,7 @@
       <field name="exponential"         type="uint8" unit="bool">Exponential chirp active</field>
     </message>
 
-    <message name="EXTERNAL_POSE_2" id="46">
+    <message name="EXTERNAL_POSE_DOWN" id="46">
       <description>
         Position, speed and orientation in local frame from a remote vision system
       </description>
