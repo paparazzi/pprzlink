@@ -10,7 +10,7 @@ based on:
     Released under GNU GPL version 3 or later
 '''
 
-import xml.parsers.expat, os, errno, time, sys, operator, struct
+import xml.parsers.expat, os, errno, time, sys, operator, struct, typing, enum, string
 
 PROTOCOL_1_0 = "1.0"
 PROTOCOL_2_0 = "2.0"
@@ -24,15 +24,14 @@ class PPRZParseError(Exception):
     def __str__(self):
         return self.message
 
+values_chars:typing.Set[str] = set()
+python_var_allowed_chars:typing.Set[str] = {c for c in string.ascii_letters}
+python_var_allowed_chars.add('_')
+python_var_sus:typing.Set[str] = {str(n) for n in range(0,10)}
+
+
 class PPRZField(object):
-    def __init__(self, name, type, xml, description=''):
-        self.field_name = name
-        #self.name_upper = name.upper()
-        self.description = description
-        self.array_type = None
-        self.array_length = ''
-        self.array_extra_length = ''
-        lengths = {
+    type_lengths = {
         'float'    : '4',
         'double'   : '8',
         'char'     : '1',
@@ -45,6 +44,65 @@ class PPRZField(object):
         'int64_t'  : '8',
         'uint64_t' : '8',
         }
+    
+    varchar_convert = {
+        '0': '_0',
+        '1': '_1',
+        '2': '_2',
+        '3': '_3',
+        '4': '_4',
+        '5': '_5',
+        '6': '_6',
+        '7': '_7',
+        '8': '_8',
+        '9': '_9',
+        '+': '_PLUS_',
+        '-': '_MINUS_',
+        ' ': '_'
+    }
+    
+    def __init__(self, name:str, type:str, xml, description='',additional_attributes:typing.Optional[typing.Dict[str,str]] = None):
+        self.field_name:str = name
+        #self.name_upper = name.upper()
+        self.description:str = description
+        self.array_type = None
+        self.array_length:str = ''
+        self.array_extra_length:str = ''
+        
+        self._format:typing.Optional[str] = additional_attributes['format'] if 'format' in additional_attributes else None
+        self._unit:typing.Optional[str] = additional_attributes['unit'] if 'unit' in additional_attributes else None
+        
+        raw_values_str = additional_attributes['values'] if 'values' in additional_attributes else None 
+        
+        
+        if raw_values_str is not None:
+            for c in filter(lambda x : x != '|',raw_values_str):
+                values_chars.add(c)
+            
+            #print("Before: ", raw_values_str)
+            for p,r in self.varchar_convert.items():
+                raw_values_str = raw_values_str.replace(p,r)
+            #print("After: ", raw_values_str)
+            
+        
+        self.values_str:typing.Optional[typing.List[str]] = raw_values_str.split('|') if raw_values_str is not None else None
+        if self.values_str is not None:
+            multiset:typing.Dict[str,int] = dict()
+            for i,s in enumerate(self.values_str):
+                if s in multiset:
+                    self.values_str[i] = s +"_" + str(multiset[s])
+                    multiset[s] += 1
+                else:
+                    multiset[s] = 1
+            
+        
+        self._alt_unit:typing.Optional[str] = additional_attributes['alt_unit'] if 'alt_unit' in additional_attributes else None
+        self.alt_unit_coef:str = additional_attributes['alt_unit_coef'] if 'alt_unit_coef' in additional_attributes else 'None'
+
+        if type == "string":
+            type = "char[]"
+            
+        self.raw_type = type
 
         aidx = type.find("[")
         if aidx != -1:
@@ -57,11 +115,11 @@ class PPRZField(object):
                 self.array_type = 'FixedArray'
                 self.array_length = type[aidx+1:-1]
             type = type[0:aidx]
-        if type in lengths:
-            self.type_length = lengths[type]
+        if type in self.type_lengths:
+            self.type_length = self.type_lengths[type]
             self.type = type
-        elif (type+"_t") in lengths:
-            self.type_length = lengths[type+"_t"]
+        elif (type+"_t") in self.type_lengths:
+            self.type_length = self.type_lengths[type+"_t"]
             self.type = type+'_t'
         else:
             raise PPRZParseError("unknown type '%s'" % type)
@@ -73,16 +131,94 @@ class PPRZField(object):
             self.type_upper = self.type[0:-2].upper()
         else:
             self.type_upper = self.type.upper()
+            
+    @property
+    def format(self) -> str:
+        if self._format is None:
+            return 'None'
+        else:
+            return f"'{self._format}'"
+        
+    @property
+    def unit(self) -> str:
+        if self._unit is None:
+            return 'None'
+        else:
+            return f"'{self._unit}'"
+        
+    @property
+    def alt_unit(self) -> str:
+        if self._alt_unit is None:
+            return 'None'
+        else:
+            return f"'{self._alt_unit}'"
+            
+    def python_typestring(self) -> str:
+        if self.type == "float" or self.type == "double":
+            basetype = "float"
+        else:
+            basetype = "int"
+            
+        if self.array_type is None:
+            return basetype
+        else:
+            if self.type == "char":
+                return "str"
+            else:
+                return f"typing.List[{basetype}]"
+    @property
+    def py_type(self) -> str:
+        """
+        Gives the associated string of the Python's `typing` matching the indicated C's type
+        """
+        return self.python_typestring()
+    
+    @property
+    def py_simple_type(self) -> str:
+        """
+        Gives the associated string of the Python's type matching the indicated C's type
+        """
+        if self.array_type is None:
+            return self.python_typestring()
+        elif self.type == "char":
+            return "str"
+        else:
+            return "list"
+    
+    @property 
+    def values_enum_class_name(self) -> str:
+        if self.values_str is None:
+            return 'None'
+        else:
+            return self.field_name + "_ValuesEnum"
+    
+    @property
+    def values_enum_class_str(self) -> str:
+        """
+        Gives a one-line string defining a `ValuesEnum` class matching the ones given, if they were provided
+        """
+        if self.values_str is None:
+            return ''
+        else:
+            output = "class "+self.values_enum_class_name+"(enum.Enum): "
+            for i,n in enumerate(self.values_str):
+                output += f"{n}={i}; "
+            return output
 
 
 class PPRZMsg(object):
-    def __init__(self, name, id, linenumber, description=''):
-        self.msg_name = name
-        self.linenumber = linenumber
-        self.id = int(id)
-        self.description = description
-        self.fields = []
-        self.fieldnames = []
+    def __init__(self, name:str, id:int, linenumber:int, description:str='', link:str=''):
+        self.msg_name:str = name
+        self.linenumber:int = linenumber
+        self.id:int = int(id)
+        self.description:str = description
+        self.fields:typing.List[PPRZField] = []
+        self.fieldnames:typing.List[str] = []
+        self.link:str = link
+        
+    @property
+    def broadcast(self) -> bool:
+        return self.link != 'forwarded' 
 
 class PPRZXML(object):
     '''parse a pprzlink XML file for a given class'''
@@ -90,7 +226,7 @@ class PPRZXML(object):
         self.filename = filename
         self.class_name = class_name
         self.class_id= None
-        self.message = []
+        self.message:typing.List[PPRZMsg] = []
         self.protocol_version = protocol_version
 
         if protocol_version == PROTOCOL_1_0:
@@ -131,11 +267,15 @@ class PPRZXML(object):
             elif in_element == "protocol.msg_class.message":
                 check_attrs(attrs, ['name', 'id'], 'message')
                 if self.current_class == self.class_name:
-                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber))
+                    try:
+                        link = attrs['link']
+                    except KeyError:
+                        link = ''
+                    self.message.append(PPRZMsg(attrs['name'], attrs['id'], p.CurrentLineNumber, link=link))
             elif in_element == "protocol.msg_class.message.field":
                 check_attrs(attrs, ['name', 'type'], 'field')
                 if self.current_class == self.class_name:
-                    self.message[-1].fields.append(PPRZField(attrs['name'], attrs['type'], self))
+                    self.message[-1].fields.append(PPRZField(attrs['name'], attrs['type'], self, additional_attributes=attrs))
 
         def end_element(name):
             in_element = '.'.join(in_element_list)

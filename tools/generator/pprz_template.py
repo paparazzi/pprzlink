@@ -11,6 +11,7 @@ based on:
 '''
 
 from pprz_parse import PPRZParseError
+import typing
 
 class PPRZTemplate(object):
     '''simple templating system'''
@@ -28,8 +29,8 @@ class PPRZTemplate(object):
         self.trim_leading_lf = trim_leading_lf
         self.checkmissing = checkmissing
 
-    def find_end(self, text, start_token, end_token, ignore_end_token=None):
-        '''find the of a token.
+    def find_end(self, text:str, start_token:str, end_token:str, ignore_end_token=None) -> int:
+        '''find the end of a token.
         Returns the offset in the string immediately after the matching end_token'''
         if not text.startswith(start_token):
             raise PPRZParseError("invalid token start")
@@ -54,16 +55,16 @@ class PPRZTemplate(object):
                 nesting += 1
         return offset
 
-    def find_var_end(self, text):
-        '''find the of a variable'''
+    def find_var_end(self, text:str) -> int:
+        '''find the end of a variable'''
         return self.find_end(text, self.start_var_token, self.end_var_token)
 
-    def find_rep_end(self, text):
-        '''find the of a repitition'''
+    def find_rep_end(self, text:str) -> int:
+        '''find the end of a repitition'''
         return self.find_end(text, self.start_rep_token, self.end_rep_token, ignore_end_token=self.end_var_token)
 
-    def substitute(self, text, subvars={},
-                   trim_leading_lf=None, checkmissing=None):
+    def substitute(self, text:str, subvars:typing.Union[object,typing.Dict[str,str]]={},
+                   trim_leading_lf=None, checkmissing=None) -> str:
         '''substitute variables in a string'''
 
         if trim_leading_lf is None:
@@ -73,7 +74,7 @@ class PPRZTemplate(object):
 
         # handle repititions
         while True:
-            subidx = text.find(self.start_rep_token)
+            subidx:int = text.find(self.start_rep_token)
             if subidx == -1:
                 break
             endidx = self.find_rep_end(text[subidx:])
@@ -82,10 +83,10 @@ class PPRZTemplate(object):
             part1 = text[0:subidx]
             part2 = text[subidx+len(self.start_rep_token):subidx+(endidx-len(self.end_rep_token))]
             part3 = text[subidx+endidx:]
-            a = part2.split(':')
+            a:str = part2.split(':')
             field_name = a[0]
             rest = ':'.join(a[1:])
-            v = None
+            v:typing.Optional[str] = None
             if isinstance(subvars, dict):
                 v = subvars.get(field_name, None)
             else:
@@ -120,7 +121,7 @@ class PPRZTemplate(object):
                                                                 trim_leading_lf=False, checkmissing=False)
                 value = subvars[varname]
             else:
-                value = getattr(subvars, varname, None)
+                value:typing.Optional[str] = getattr(subvars, varname, None)
                 if value is None:
                     if checkmissing:
                         raise PPRZParseError("unknown variable in '%s%s%s'" % (
@@ -130,6 +131,6 @@ class PPRZTemplate(object):
             text = text.replace("%s%s%s" % (self.start_var_token, varname, self.end_var_token), str(value))
         return text
 
-    def write(self, file, text, subvars={}, trim_leading_lf=True):
+    def write(self, file, text:str, subvars={}, trim_leading_lf=True):
         '''write to a file with variable substitution'''
         file.write(self.substitute(text, subvars=subvars, trim_leading_lf=trim_leading_lf))

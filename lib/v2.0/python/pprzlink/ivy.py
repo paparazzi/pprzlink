@@ -20,13 +20,37 @@ from __future__ import absolute_import, division
 from ivy.std_api import *
 from ivy.ivy import IvyIllegalStateError
 import logging
-import os
+import os,sys
 import re
 import platform
+import typing
+import string
+import sys
 
 from pprzlink.message import PprzMessage
-from pprzlink import messages_xml_map
 from pprzlink.request_uid import RequestUIDFactory
+
+try:
+    import pprzlink.generated
+    from pprzlink.generated import *
+    import inspect
+    
+    STATIC_MSG_CLASSES = True
+    
+    def pprzmessage_subclass_perdicate(o) -> bool:
+        __pattern = "PprzMessage_"
+        return inspect.isclass(o) and o.__name__[:len(__pattern)] == __pattern
+    
+    msg_str_to_class:typing.Dict[str,typing.Type] = dict()
+    for submodule_name in pprzlink.generated.__all__:
+        for name, obj in inspect.getmembers(sys.modules[pprzlink.generated.__name__ + "." + submodule_name],pprzmessage_subclass_perdicate):
+            msg_str_to_class[name.split('_',maxsplit=1)[1]] = obj
+        
+except ImportError:
+    from pprzlink import messages_xml_map
+    STATIC_MSG_CLASSES = False
+    msg_str_to_class = None
+
 
 
 if os.getenv('IVY_BUS') is not None:
@@ -43,17 +67,25 @@ class IvyMessagesInterface(object):
     """
     This class is the interface between the paparazzi messages and the Ivy bus.
     """
-    def __init__(self, agent_name=None, start_ivy=True, verbose=False, ivy_bus=IVY_BUS):
+    def __init__(self, agent_name:typing.Optional[str]=None, start_ivy:bool=True, verbose:bool=False, ivy_bus=IVY_BUS):
         if agent_name is None:
             agent_name = "IvyMessagesInterface %i" % os.getpid()
+        else:
+            
+            for c in agent_name:
+                try:
+                    assert c in string.ascii_letters + string.digits + "+-_"
+                except AssertionError:
+                    raise ValueError(f"Invalid name: {agent_name}\n(Contains {c} which is neither a letter, a digit or any of '+','-','_')")
         self.agent_name = agent_name
         self.verbose = verbose
         self._ivy_bus = ivy_bus
         self._running = False
 
-        # make sure all messages are parsed before we start creating them in callbacks
-        # the message parsing should really be redone...
-        messages_xml_map.parse_messages()
+        if not STATIC_MSG_CLASSES:
+            # make sure all messages are parsed before we start creating them in callbacks
+            # the message parsing should really be redone...
+            messages_xml_map.parse_messages()
 
         # bindings with associated callback functions
         self.bindings = {}
@@ -166,7 +198,7 @@ class IvyMessagesInterface(object):
         self.unbind(bind_id)
 
     @staticmethod
-    def parse_pprz_msg(ivy_msg):
+    def parse_pprz_msg(ivy_msg:str):
         """
         Parse an Ivy message into a PprzMessage.
 
@@ -200,13 +232,22 @@ class IvyMessagesInterface(object):
             payload = data.group(3)
             request_id = None
         # check which message class it is
-        try:
-            msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
-        except ValueError:
-            logger.error("Ignoring unknown message " + ivy_msg)
-            return
+        if not STATIC_MSG_CLASSES:
+            try:
+                msg_class, msg_name = messages_xml_map.find_msg_by_name(msg_name)
+            except ValueError:
+                logger.error("Ignoring unknown message " + ivy_msg)
+                return
+            msg = PprzMessage(msg_class, msg_name)
+        else:
+            try:
+                msg:PprzMessage = msg_str_to_class[msg_name.upper()]()
+                msg_class = msg.msg_class
+            except KeyError:
+                logger.error("Ignoring unknown message " + ivy_msg)
+                return
 
-        msg = PprzMessage(msg_class, msg_name)
+        
         msg.ivy_string_to_payload(payload)
         # pass non-telemetry messages with ac_id 0 or ac_id attrib value
         if msg_class == "telemetry":
@@ -220,14 +261,13 @@ class IvyMessagesInterface(object):
                 return None
         else:
             if 'ac_id' in msg.fieldnames:
-                ac_id_idx = msg.fieldnames.index('ac_id')
-                ac_id = msg.fieldvalues[ac_id_idx]
+                ac_id = msg['ac_id']
             else:
                 ac_id = 0
         # finally call the callback, passing the aircraft id, request id (might be None) and parsed message
         return ac_id, request_id, msg
 
-    def send_raw_datalink(self, msg):
+    def send_raw_datalink(self, msg:PprzMessage):
         """
         Send a PprzMessage of datalink msg_class embedded in RAW_DATALINK message
 
