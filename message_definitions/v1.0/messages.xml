@@ -1745,11 +1745,11 @@
     </message>
     
     <message name="MISSION_ITEM" id="185">
-      <field name="count" type="uint8_t"/>
-      <field name="seq"   type="uint8_t"/>
-      <field name="cmd"   type="uint16_t"/>
-      <field name="lat"   type="int32_t"/>
-      <field name="lon"   type="int32_t"/>
+      <field name="count" type="uint8"/>
+      <field name="seq"   type="uint8"/>
+      <field name="cmd"   type="uint16"/>
+      <field name="lat"   type="int32"/>
+      <field name="lon"   type="int32"/>
       <field name="alt"   type="float"/>
     </message>
 
