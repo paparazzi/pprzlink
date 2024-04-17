@@ -1746,7 +1746,7 @@
     
     <message name="MISSION_ITEM" id="185">
       <field name="count" type="uint8"/>
-      <field name="seq"   type="uint8"/>
+      <field name="seq"   type="uint16"/>
       <field name="cmd"   type="uint16"/>
       <field name="lat"   type="int32"/>
       <field name="lon"   type="int32"/>
