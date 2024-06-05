@@ -241,7 +241,7 @@ class PprzMessage(object):
         struct_string = "<"
         data = []
         length = 0
-        r = re.compile('[\[\]]')
+        r = re.compile(r'[\[\]]')
         for idx, t in enumerate(self.fieldtypes):
             bin_type = self.fieldbintypes(t)
             s = r.split(t)
@@ -278,7 +278,7 @@ class PprzMessage(object):
     def binary_to_payload(self, data):
         msg_offset = 0
         values = []
-        r = re.compile('[\[\]]')
+        r = re.compile(r'[\[\]]')
         for idx, t in enumerate(self.fieldtypes):
             bin_type = self.fieldbintypes(t)
             s = r.split(t)
