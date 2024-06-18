@@ -931,7 +931,7 @@
       <field name="values" type="uint16[]" unit="none"/>
     </message>
 
-    <message name="ACTUATORS" id="105">
+    <message name="ACTUATORS_RAW" id="105">
       <field name="values" type="int16[]" unit="none"/>
     </message>
 
@@ -1640,7 +1640,10 @@
       <field name="mag_y" type="float" unit="mGauss">Magnetometer y-bias in mGauss</field>
       <field name="mag_z" type="float" unit="mGauss">Magnetometer z-bias in mGauss</field>
     </message>
-    <!-- 172 is free -->
+
+    <message name="ACTUATORS" id="172">
+      <field name="values" type="int16[]" unit="none"/>
+    </message>
 
     <message name="AHRS_EULER" id="173">
       <field name="phi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
@@ -1745,8 +1748,22 @@
     </message>
     <!-- 185 is free -->
     <!-- 186 is free -->
-    <!-- 187 is free -->
-    <!-- 188 is free -->
+
+    <message name="WLS_v" id="187">
+      <field name="gamma"               type="float"    />
+      <field name="iter"                type="uint8"    />
+      <field name="v"                   type="float[]"  />
+      <field name="Wv"                  type="float[]"  />
+    </message>
+
+    <message name="WLS_u" id="188">
+      <field name="Wu"                  type="float[]"  />
+      <field name="u_pref"              type="float[]"  />
+      <field name="u_min"               type="float[]"  />
+      <field name="u_max"               type="float[]"  />
+      <field name="u"                   type="float[]"  />
+    </message>
+
     <!-- 189 is free -->
     <!-- 190 is free -->
     <!-- 191 is free -->
