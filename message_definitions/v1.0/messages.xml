@@ -1745,8 +1745,22 @@
     </message>
     <!-- 185 is free -->
     <!-- 186 is free -->
-    <!-- 187 is free -->
-    <!-- 188 is free -->
+
+    <message name="WLS_v" id="187">
+      <field name="gamma"               type="float"    />
+      <field name="iter"                type="uint8"    />
+      <field name="v"                   type="float[]"  />
+      <field name="Wv"                  type="float[]"  />
+    </message>
+
+    <message name="WLS_u" id="188">
+      <field name="Wu"                  type="float[]"  />
+      <field name="u_pref"              type="float[]"  />
+      <field name="u_min"               type="float[]"  />
+      <field name="u_max"               type="float[]"  />
+      <field name="u"                   type="float[]"  />
+    </message>
+
     <!-- 189 is free -->
     <!-- 190 is free -->
     <!-- 191 is free -->
