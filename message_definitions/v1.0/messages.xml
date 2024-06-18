@@ -931,7 +931,7 @@
       <field name="values" type="uint16[]" unit="none"/>
     </message>
 
-    <message name="ACTUATORS" id="105">
+    <message name="ACTUATORS_RAW" id="105">
       <field name="values" type="int16[]" unit="none"/>
     </message>
 
@@ -1641,7 +1641,7 @@
       <field name="mag_z" type="float" unit="mGauss">Magnetometer z-bias in mGauss</field>
     </message>
 
-    <message name="ACTUATORS_PPRZ" id="172">
+    <message name="ACTUATORS" id="172">
       <field name="values" type="int16[]" unit="none"/>
     </message>
 
