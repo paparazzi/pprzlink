@@ -14,6 +14,7 @@ import xml.parsers.expat, os, errno, time, sys, operator, struct
 
 PROTOCOL_1_0 = "1.0"
 PROTOCOL_2_0 = "2.0"
+PROTOCOL_OPENDDS = "DDS"
 MESSAGES_1_0 = "1.0"
 
 class PPRZParseError(Exception):
@@ -101,9 +102,13 @@ class PPRZXML(object):
             self.protocol_version_major = 2
             self.protocol_version_minor = 0
             self.generator_module = "gen_messages_v2_0"
+        elif protocol_version == PROTOCOL_OPENDDS:
+            self.protocol_version_major = 0
+            self.protocol_version_minor = 0
+            self.generator_module = "gen_messages_opendds"
         else:
             print("Unknown wire protocol version")
-            print("Available versions are: %s" % (PROTOCOL_1_0))
+            print("Available versions are: %s, %s and %s" % (PROTOCOL_1_0, PROTOCOL_2_0, PROTOCOL_OPENDDS))
             raise PPRZParseError('Unknown PPRZLink protocol version %s' % protocol_version)
 
         in_element_list = []
