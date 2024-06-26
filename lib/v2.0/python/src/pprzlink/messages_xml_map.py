@@ -114,37 +114,26 @@ def parse_messages(messages_file=''):
             message_dictionary[class_name][message_name] = []
             message_dictionary_types[class_name][message_id] = []
             message_dictionary_coefs[class_name][message_id] = []
+            message_dictionary_values_enum[class_name][message_id] = []
+            message_dictionary_units[class_name][message_id] = []
+            message_dictionary_formats[class_name][message_id] = []
+            message_dictionary_alt_units[class_name][message_id] = []
 
             for the_field in the_message.xpath('field[@name]'):
                 # for now, just save the field names -- in the future maybe expand this to save a struct?
                 message_dictionary[class_name][message_name].append(the_field.attrib['name'])
                 message_dictionary_types[class_name][message_id].append(the_field.attrib['type'])
-                try:
-                    message_dictionary_coefs[class_name][message_id].append(float(the_field.attrib['alt_unit_coef']))
-                except KeyError:
-                    # print("no such key")
-                    message_dictionary_coefs[class_name][message_id].append(1.)
-                    
                 
+                message_dictionary_coefs[class_name][message_id].append(float(the_field.attrib.get('alt_unit_coef',1.)))
+
                 try:
                     message_dictionary_values_enum[class_name][message_id].append(the_field.attrib['values'].split('|'))
                 except KeyError:
                     message_dictionary_values_enum[class_name][message_id].append(None)
 
-                try:
-                    message_dictionary_units[class_name][message_id].append(the_field.attrib['unit'])
-                except KeyError:
-                    message_dictionary_units[class_name][message_id].append(None)
-
-                try:
-                    message_dictionary_formats[class_name][message_id].append(the_field.attrib['format'])
-                except KeyError:
-                    message_dictionary_formats[class_name][message_id].append(None)
-
-                try:
-                    message_dictionary_alt_units[class_name][message_id].append(the_field.attrib['alt_unit'])
-                except KeyError:
-                    message_dictionary_alt_units[class_name][message_id].append(None)
+                message_dictionary_units[class_name][message_id].append(the_field.attrib.get('unit',None))
+                message_dictionary_formats[class_name][message_id].append(the_field.attrib.get('format',None))
+                message_dictionary_alt_units[class_name][message_id].append(the_field.attrib.get('alt_unit',None))
 
 
 

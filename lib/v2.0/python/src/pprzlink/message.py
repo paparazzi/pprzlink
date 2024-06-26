@@ -26,7 +26,7 @@ import json
 import struct
 import re
 import typing
-from pprzlink import messages_xml_map
+import messages_xml_map 
 from enum import EnumMeta,Enum
 from dataclasses import dataclass
 
