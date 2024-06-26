@@ -216,13 +216,13 @@ class PprzMessage(object):
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
             
-            fieldvalues_enum = None if _fieldvalues_enum is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum,start=0)
+            fieldvalues_enum = None if _fieldvalues_enum[i] is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
             
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
-                                               format=_fieldformats,
-                                               unit=_fieldunits,
+                                               format=_fieldformats[i],
+                                               unit=_fieldunits[i],
                                                values=fieldvalues_enum,
-                                               alt_unit=_fieldalt_units,
+                                               alt_unit=_fieldalt_units[i],
                                                alt_unit_coef=_fieldcoefs[i])
 
     @property
