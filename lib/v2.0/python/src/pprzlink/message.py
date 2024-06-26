@@ -218,13 +218,13 @@ class PprzMessage(object):
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
             
-            fieldvalues_enum = None if _fieldvalues_enum is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum,start=0)
+            fieldvalues_enum = None if _fieldvalues_enum[i] is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
             
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
-                                               format=_fieldformats,
-                                               unit=_fieldunits,
+                                               format=_fieldformats[i],
+                                               unit=_fieldunits[i],
                                                values=fieldvalues_enum,
-                                               alt_unit=_fieldalt_units,
+                                               alt_unit=_fieldalt_units[i],
                                                alt_unit_coef=_fieldcoefs[i])
 
     @property
@@ -313,6 +313,9 @@ class PprzMessage(object):
     def get_full_field(self,name:str) -> PprzMessageField:
         """Get the underlying PprzMessageField object"""
         return self._fields[name]
+    
+    def get_all_fields(self) -> typing.List[PprzMessageField]:
+        return list(self._fields.values())
     
     def set_full_field(self,name:str, field:PprzMessageField) -> None:
         """Set the underlying PprzMessageField object"""
