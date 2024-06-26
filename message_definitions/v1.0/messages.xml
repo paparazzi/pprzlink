@@ -377,22 +377,7 @@
       <field name="exponential"         type="uint8" unit="bool">Exponential chirp active</field>
     </message>
 
-    <message name="EXTERNAL_POSE_DOWN" id="46">
-      <description>
-        Position, speed and orientation in local frame from a remote vision system
-      </description>
-      <field name="timestamp" type="float" unit="mus">Timestamp from the measurement</field>
-      <field name="ned_x"     type="float" unit="m">NED x position in vision frame</field>
-      <field name="ned_y"     type="float" unit="m">NED y position in vision frame</field>
-      <field name="ned_z"     type="float" unit="m">NED z position in vision frame</field>
-      <field name="ned_xd"    type="float" unit="m/s">NED x speed in vision frame</field>
-      <field name="ned_yd"    type="float" unit="m/s">NED y speed in vision frame</field>
-      <field name="ned_zd"    type="float" unit="m/s">NED z speed in vision frame</field>
-      <field name="body_qi"   type="float">Body quaternion i in NED to body</field>
-      <field name="body_qx"   type="float">Body quaternion x in NED to body</field>
-      <field name="body_qy"   type="float">Body quaternion y in NED to body</field>
-      <field name="body_qz"   type="float">Body quaternion z in NED to body</field>
-    </message>
+    <!-- 46 is free-->
 
     <message name="WP_MOVED_LLA" id="47">
       <field name="wp_id" type="uint8"/>
@@ -1724,7 +1709,9 @@
       <field name="ADC_position"        type="uint16"/>
       <field name="pprz_cmd"            type="int32"/>
     </message>
+
     <!-- 182 is free -->
+
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
       <field name="axis"                type="uint8">Current doublet axis</field>
@@ -1733,29 +1720,7 @@
       <field name="doublet_mode_3211"   type="uint8">Mode 3211 enabled</field>
     </message>
 
-    <message name="GUIDANCE" id="184">
-      <field name="pos_N_ref" type="float"    unit="m"/>
-      <field name="pos_E_ref" type="float"    unit="m"/>
-      <field name="pos_D_ref" type="float"    unit="m"/>
-      <field name="pos_N"     type="float"    unit="m"/>
-      <field name="pos_E"     type="float"    unit="m"/>
-      <field name="pos_D"     type="float"    unit="m"/>
-      <field name="vel_N_ref" type="float"    unit="m/s"/>
-      <field name="vel_E_ref" type="float"    unit="m/s"/>
-      <field name="vel_D_ref" type="float"    unit="m/s"/>
-      <field name="vel_N"     type="float"    unit="m/s"/>
-      <field name="vel_E"     type="float"    unit="m/s"/>
-      <field name="vel_D"     type="float"    unit="m/s"/>
-      <field name="acc_N_ref" type="float"    unit="m/s^2"/>
-      <field name="acc_E_ref" type="float"    unit="m/s^2"/>
-      <field name="acc_D_ref" type="float"    unit="m/s^2"/>
-      <field name="acc_N"     type="float"    unit="m/s^2"/>
-      <field name="acc_E"     type="float"    unit="m/s^2"/>
-      <field name="acc_D"     type="float"    unit="m/s^2"/>
-      <field name="jerk_N"    type="float"    unit="m/s^3"/>
-      <field name="jerk_E"    type="float"    unit="m/s^3"/>
-      <field name="jerk_D"    type="float"    unit="m/s^3"/>
-    </message>
+    <!-- 184 is free -->
     <!-- 185 is free -->
     <!-- 186 is free -->
     <!-- 187 is free -->
@@ -2119,8 +2084,7 @@
       <field name="ap_h_mode"    type="uint8" values="KILL|RATE|ATTITUDE|HOVER|NAV|RC_DIRECT|CF|FORWARD|MODULE|FLIP|GUIDED"/>
       <field name="ap_v_mode"    type="uint8" values="KILL|RC_DIRECT|RC_CLIMB|CLIMB|HOVER|NAV|MODULE|FLIP|GUIDED"/>
       <field name="cpu_time"     type="uint16" unit="s"/>
-      <field name="vsupply"      type="float" unit="V">Main supply voltage</field>
-      <field name="vboard"       type="float" unit="V">AP Board voltage</field>
+      <field name="vsupply"      type="float" unit="V"/>
     </message>
 
     <message name="STATE_FILTER_STATUS" id="232">
@@ -2298,15 +2262,12 @@
       <field name="Crc1087"      type="uint32"  />
     </message>
 
-    <message name="EFF_MAT_G" id="250">
-      <field name="G1_aN"     type="float[]" unit="none"/>
-      <field name="G1_aE"     type="float[]" unit="none"/>
-      <field name="G1_aZ"     type="float[]" unit="none"/>
-      <field name="G1_roll"   type="float[]" unit="none"/>
-      <field name="G1_pitch"  type="float[]" unit="none"/>
-      <field name="G1_yaw"    type="float[]" unit="none"/>
+    <message name="INDI_G" id="250">
+      <field name="G1_roll" type="float[]" unit="none"/>
+      <field name="G1_pitch" type="float[]" unit="none"/>
+      <field name="G1_yaw" type="float[]" unit="none"/>
       <field name="G1_thrust" type="float[]" unit="none"/>
-      <field name="G2"        type="float[]" unit="none"/>
+      <field name="G2" type="float[]" unit="none"/>
     </message>
 
     <message name="GPS_RTK" id="251">
