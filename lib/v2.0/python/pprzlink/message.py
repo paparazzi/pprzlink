@@ -21,13 +21,15 @@ Paparazzi message representation
 """
 
 from __future__ import division, print_function,annotations
+from __future__ import division, print_function,annotations
 import sys
 import json
 import struct
 import re
 import typing
+import typing
 from pprzlink import messages_xml_map
-from enum import EnumMeta
+from enum import EnumMeta,Enum
 from dataclasses import dataclass
 
 
@@ -192,6 +194,12 @@ class PprzMessage(object):
         self._fields_order:typing.List[str] = messages_xml_map.get_msg_fields(self._class_name, self._name)
         _fieldtypes = messages_xml_map.get_msg_fieldtypes(self._class_name, self._id)
         _fieldcoefs = messages_xml_map.get_msg_fieldcoefs(self._class_name, self._id)
+        
+        _fieldvalues_enum = messages_xml_map.get_msg_values_enum(self._class_name, self._id)
+        _fieldunits = messages_xml_map.get_msg_units(self._class_name, self._id)
+        _fieldformats = messages_xml_map.get_msg_formats(self._class_name, self._id)
+        _fieldalt_units = messages_xml_map.get_msg_alt_units(self._class_name, self._id)
+        
         _fieldvalues = []
         # set empty values according to type
         for t in _fieldtypes:
@@ -209,7 +217,15 @@ class PprzMessage(object):
             
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
-            self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],alt_unit_coef=_fieldcoefs[i])
+            
+            fieldvalues_enum = None if _fieldvalues_enum is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum,start=0)
+            
+            self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
+                                               format=_fieldformats,
+                                               unit=_fieldunits,
+                                               values=fieldvalues_enum,
+                                               alt_unit=_fieldalt_units,
+                                               alt_unit_coef=_fieldcoefs[i])
 
     @property
     def name(self) -> str:
@@ -250,6 +266,28 @@ class PprzMessage(object):
     def fieldcoefs(self) -> typing.List[float]:
         """Get list of field coefs."""
         return list(f.alt_unit_coef for f in self._fields.values())
+    
+    
+    @property
+    def fieldvalues_enum(self) -> typing.List[typing.Optional[EnumMeta]]:
+        """Get list of the values Enum (or None when there are no enum)"""
+        return list(f.values for f in self._fields.values())
+
+    @property
+    def fieldunits(self) -> typing.List[typing.Optional[str]]:
+        """Get list of the values units (or None when it is not specified)"""
+        return list(f.unit for f in self._fields.values())
+
+    @property
+    def fieldformats(self) -> typing.List[typing.Optional[str]]:
+        """Get list of the values formats (or None when it is not specified)"""
+        return list(f.format for f in self._fields.values())
+
+    @property
+    def fieldalt_units(self) -> typing.List[typing.Optional[str]]:
+        """Get list of the values alternative units (or None when it is not specified)"""
+        return list(f.alt_unit for f in self._fields.values())
+
 
     @staticmethod
     def fieldbintypes(t:str) -> typing.Tuple[str,int]:
