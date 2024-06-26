@@ -84,7 +84,7 @@ static void start_message(struct pprzlog_transport *trans, struct link_device *d
   trans->ck = 0;
   uint8_t buf[] = { msg_len, 0 }; // TODO use correct source ID
   put_bytes(trans, dev, fd, DL_TYPE_UINT8, DL_FORMAT_SCALAR, buf, 2);
-  uint32_t ts = trans->get_time_usec() / 100;
+  uint32_t ts = trans->get_time_usec100();
   put_bytes(trans, dev, fd, DL_TYPE_TIMESTAMP, DL_FORMAT_SCALAR, (uint8_t *)(&ts), 4);
 }
 
@@ -110,7 +110,7 @@ static int check_available_space(struct pprzlog_transport *trans __attribute__((
   return dev->check_free_space(dev->periph, fd, bytes);
 }
 
-void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec_t get_time_usec)
+void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec100_t get_time_usec100)
 {
   t->trans_tx.size_of = (size_of_t) size_of;
   t->trans_tx.check_available_space = (check_available_space_t) check_available_space;
@@ -121,6 +121,6 @@ void pprzlog_transport_init(struct pprzlog_transport *t, get_time_usec_t get_tim
   t->trans_tx.overrun = (overrun_t) overrun;
   t->trans_tx.count_bytes = (count_bytes_t) count_bytes;
   t->trans_tx.impl = (void *)(t);
-  t->get_time_usec = get_time_usec;
+  t->get_time_usec100 = get_time_usec100;
 }
 

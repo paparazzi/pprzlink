@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools"]  # REQUIRED if [build-system] table is used
+build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.
+
+[project]
+name = "pprzlink"
+version = "2.0.0"
+
+description = "Paparazzi UAV message library"
+
+readme = "README.md"
+
+requires-python = ">=3.8"
+
+# https://packaging.python.org/en/latest/specifications/core-metadata/#license
+#license = {file = "LICENSE.txt"}
+
+
+keywords = ["paparazzi", "uav", "development"]
+
+authors = [
+  {name = "The Paparazzi Team", email = "author@example.com" }
+]
+
+maintainers = [
+  {name = "The Paparazzi Team", email = "author@example.com" }
+]
+
+# For a list of valid classifiers, see https://pypi.org/classifiers/
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 3 - Alpha",
+
+  # Indicate who your project is intended for
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Build Tools",
+
+  # Pick your license as you wish
+  "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+
+  # Specify the Python versions you support here. In particular, ensure
+  # that you indicate you support Python 3. These classifiers are *not*
+  # checked by "pip install". See instead "requires-python" key in this file.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [
+  "pyserial",
+  "lxml"
+]
+
+# https://packaging.python.org/en/latest/specifications/dependency-specifiers/#extras
+#[project.optional-dependencies]
+#dev = ["check-manifest"]
+#test = ["coverage"]
+
+
+[project.urls]
+"Homepage" = "https://github.com/paparazzi/pprzlink"
+"Bug Reports" = "https://github.com/paparazzi/pprzlink/issues"
+"Source" = "https://github.com/paparazzi/pprzlink"
+
+# The following would provide a command line executable called `sample`
+# which executes the function `main` from this package when invoked.
+#[project.scripts]
+#sample = "sample:main"
+
+
+# This is configuration specific to the `setuptools` build backend.
+# If you are using a different build backend, you will need to change this.
+[tool.setuptools]
+# If there are data files included in your packages that need to be
+# installed, specify them here.
+#package-data = {"sample" = ["*.dat"]}
