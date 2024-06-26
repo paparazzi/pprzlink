@@ -37,7 +37,13 @@ PROTOCOL_VERSION="2.0"
 
 message_dictionary = {}
 message_dictionary_types = {}
+message_dictionary_values_enum = {}
+
+message_dictionary_units = {}
+message_dictionary_formats = {}
+message_dictionary_alt_units = {}
 message_dictionary_coefs = {}
+
 message_dictionary_id_name = {}
 message_dictionary_name_id = {}
 message_dictionary_class_id_name = {}
@@ -79,6 +85,12 @@ def parse_messages(messages_file=''):
             message_dictionary[class_name] = {}
             message_dictionary_types[class_name] = {}
             message_dictionary_coefs[class_name] = {}
+            
+            
+            message_dictionary_values_enum[class_name] = {}
+            message_dictionary_units[class_name] = {}
+            message_dictionary_formats[class_name] = {}
+            message_dictionary_alt_units[class_name] = {}
         for the_message in the_class.xpath("message[@name]"):
             message_name = the_message.attrib['name']
             if 'id' in the_message.attrib:
@@ -112,6 +124,28 @@ def parse_messages(messages_file=''):
                 except KeyError:
                     # print("no such key")
                     message_dictionary_coefs[class_name][message_id].append(1.)
+                    
+                
+                try:
+                    message_dictionary_values_enum[class_name][message_id].append(the_field.attrib['values'].split('|'))
+                except KeyError:
+                    message_dictionary_values_enum[class_name][message_id].append(None)
+
+                try:
+                    message_dictionary_units[class_name][message_id].append(the_field.attrib['unit'])
+                except KeyError:
+                    message_dictionary_units[class_name][message_id].append(None)
+
+                try:
+                    message_dictionary_formats[class_name][message_id].append(the_field.attrib['format'])
+                except KeyError:
+                    message_dictionary_formats[class_name][message_id].append(None)
+
+                try:
+                    message_dictionary_alt_units[class_name][message_id].append(the_field.attrib['alt_unit'])
+                except KeyError:
+                    message_dictionary_alt_units[class_name][message_id].append(None)
+
 
 
 def _ensure_message_dictionary():
@@ -137,7 +171,7 @@ def get_msgs(msg_class):
     return message_dictionary[msg_class]
 
 
-def get_class_name(class_id):
+def get_class_name(class_id:int):
     _ensure_message_dictionary()
     if class_id not in message_dictionary_class_id_name:
         raise ValueError("Error: class_id %d not found." % class_id)
@@ -145,7 +179,7 @@ def get_class_name(class_id):
     return message_dictionary_class_id_name[class_id]
 
 
-def get_class_id(class_name):
+def get_class_id(class_name:str) -> int:
     _ensure_message_dictionary()
     if class_name not in message_dictionary_class_name_id:
         raise ValueError("Error: class_name %s not found." % class_name)
@@ -153,7 +187,7 @@ def get_class_id(class_name):
     return message_dictionary_class_name_id[class_name]
 
 
-def get_msg_name(msg_class, msg_id):
+def get_msg_name(msg_class:str, msg_id:int) -> str:
     _ensure_message_dictionary()
     if msg_class not in message_dictionary:
         raise ValueError("Error: msg_class %s not found." % msg_class)
@@ -164,7 +198,7 @@ def get_msg_name(msg_class, msg_id):
     return message_dictionary_id_name[msg_class][msg_id]
 
 
-def get_msg_fields(msg_class, msg_name):
+def get_msg_fields(msg_class:str, msg_name:str) -> list[str]:
     _ensure_message_dictionary()
     if msg_class not in message_dictionary:
         raise ValueError("Error: msg_class %s not found." % msg_class)
@@ -175,7 +209,7 @@ def get_msg_fields(msg_class, msg_name):
     return message_dictionary[msg_class][msg_name]
 
 
-def get_msg_id(msg_class, msg_name):
+def get_msg_id(msg_class:str, msg_name:str) -> int:
     _ensure_message_dictionary()
     if msg_class not in message_dictionary_name_id:
         raise ValueError("Error: msg_class %s not found." % msg_class)
@@ -186,7 +220,7 @@ def get_msg_id(msg_class, msg_name):
     return message_dictionary_name_id[msg_class][msg_name]
 
 
-def get_msg_fieldtypes(msg_class, msg_id):
+def get_msg_fieldtypes(msg_class:str, msg_id:int) -> list[str]:
     _ensure_message_dictionary()
 
     if msg_class not in message_dictionary_types:
@@ -198,7 +232,7 @@ def get_msg_fieldtypes(msg_class, msg_id):
     return message_dictionary_types[msg_class][msg_id]
 
 
-def get_msg_fieldcoefs(msg_class, msg_id):
+def get_msg_fieldcoefs(msg_class:str, msg_id:int) -> list[float]:
     _ensure_message_dictionary()
 
     if msg_class not in message_dictionary_coefs:
@@ -208,6 +242,47 @@ def get_msg_fieldcoefs(msg_class, msg_id):
         raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
 
     return message_dictionary_coefs[msg_class][msg_id]
+
+
+def get_msg_values_enum(msg_class:str, msg_id:int) -> list[list[str]]:
+    _ensure_message_dictionary()
+    if msg_class not in message_dictionary_coefs:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_coefs[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_values_enum[msg_class][msg_id]
+
+def get_msg_units(msg_class:str, msg_id:int) -> list[str]:
+    _ensure_message_dictionary()
+    if msg_class not in message_dictionary_coefs:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_coefs[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_units[msg_class][msg_id]
+
+def get_msg_formats(msg_class:str, msg_id:int) -> list[str]:
+    _ensure_message_dictionary()
+    if msg_class not in message_dictionary_coefs:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_coefs[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_formats[msg_class][msg_id]
+
+def get_msg_alt_units(msg_class:str, msg_id:int) -> list[str]:
+    _ensure_message_dictionary()
+    if msg_class not in message_dictionary_coefs:
+        raise ValueError("Error: msg_class %s not found." % msg_class)
+
+    if msg_id not in message_dictionary_coefs[msg_class]:
+        raise ValueError("Error: message with ID %d not found in msg_class %s." % (msg_id, msg_class))
+
+    return message_dictionary_alt_units[msg_class][msg_id]
 
 
 def test():
