@@ -21,13 +21,13 @@ Paparazzi message representation
 """
 
 from __future__ import division, print_function,annotations
-from __future__ import division, print_function,annotations
+
 import sys
 import json
 import struct
 import re
 import typing
-import typing
+
 from pprzlink import messages_xml_map
 from enum import EnumMeta,Enum
 from dataclasses import dataclass
