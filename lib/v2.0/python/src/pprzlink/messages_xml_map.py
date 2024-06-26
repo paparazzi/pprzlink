@@ -31,7 +31,7 @@ if PPRZ_HOME is not None:
     default_messages_file = '%s/var/messages.xml' % PPRZ_HOME
 else:
     default_messages_file = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                          "../../../../message_definitions/v1.0/messages.xml"))
+                                                          "../../../../../message_definitions/v1.0/messages.xml"))
 # Define the pprzlink protocol version
 PROTOCOL_VERSION="2.0"
 

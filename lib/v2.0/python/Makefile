@@ -30,7 +30,7 @@ install:
 	# Install correct version python library to DESTDIR
 	@echo INSTALL at location $(DESTDIR)
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
-	$(Q)cp -r pprzlink $(DESTDIR)
+	$(Q)cp -r src/pprzlink $(DESTDIR)
 
 uninstall:
 	$(Q)rm -rf $(DESTDIR)/pprzlink 
