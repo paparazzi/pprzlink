@@ -86,7 +86,7 @@ class PprzMessageField(object):
     
     @property
     def array_type(self) -> bool:
-        return '[]' in self.typestr
+        return '[]' in self.typestr or 'string' in self.typestr
     
     @property
     def is_enum(self) -> bool:
@@ -204,7 +204,7 @@ class PprzMessageField(object):
                     for i,v in enumerate(self.val):
                         self.val[i] = self.__basetype(v)
                         
-            except ValueError as e:
+            except (TypeError,ValueError) as e:
                 print(f"{self.name} : Tried to parse {strval} ({type(strval)}) using type {self.python_typestring}")
                 raise e
                     
@@ -258,7 +258,22 @@ class PprzMessage(object):
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
             
-            fieldvalues_enum = None if _fieldvalues_enum[i] is None else IntEnum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
+            if _fieldvalues_enum[i] is not None:
+                valcount:dict[str,int] = dict()
+                new_names = []
+                for s in _fieldvalues_enum[i]:
+                    valcount.setdefault(s,0)
+                    valcount[s] += 1
+                    if valcount[s] == 1:
+                        new_names.append(s)
+                    else:
+                        new_names.append(s+f"_{valcount[s]}")
+                    
+                
+                fieldvalues_enum = Enum(f"{n}_ValuesEnum",new_names,start=0)
+                
+            else:
+                fieldvalues_enum = None
             
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
                                                format=_fieldformats[i],
