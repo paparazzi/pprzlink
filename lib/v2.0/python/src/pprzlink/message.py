@@ -26,8 +26,14 @@ import json
 import struct
 import re
 import typing
-import messages_xml_map 
-from enum import EnumMeta,Enum
+import sys
+
+try:
+    import messages_xml_map 
+except ImportError:
+    from pprzlink import messages_xml_map
+
+from enum import IntEnum,Enum
 from dataclasses import dataclass
 
 
@@ -58,7 +64,7 @@ class PprzMessageField(object):
         C-like format string for readable display
     - `unit`: str
         Field's unit
-    - `values`: EnumMeta
+    - `values`: IntEnum
         Enumeration of the possible values for `val`
     - `alt_unit`: str
         Alternative unit for the value. Mostly used to be human-friendly.
@@ -74,16 +80,20 @@ class PprzMessageField(object):
     val:typing.Any = None
     format:typing.Optional[str] = None
     unit:typing.Optional[str] = None
-    values:typing.Optional[EnumMeta] = None
+    values:typing.Optional[IntEnum] = None
     alt_unit:typing.Optional[str] = None
     alt_unit_coef:typing.Optional[float] = None
+    
+    @property
+    def array_type(self) -> bool:
+        return '[]' in self.typestr
     
     @property
     def is_enum(self) -> bool:
         """
         Check if this field's values are enum-based
         """
-        return isinstance(self.values,EnumMeta)
+        return isinstance(self.values,IntEnum)
     
     @property
     def val_enum(self) -> str:
@@ -91,7 +101,7 @@ class PprzMessageField(object):
         Access and modify `self.val` through the names in the enum `self.values`
         
         Fails is no enum is set for `self.values`
-        (i.e. it is not an instance of `EnumMeta`)
+        (i.e. it is not an instance of `IntEnum`)
         """
         assert self.is_enum
         return self.values(self.val).name
@@ -115,57 +125,89 @@ class PprzMessageField(object):
         else:
             raise AttributeError("No conversion coefficient set")
         
+    @property
+    def __basetype(self) -> type:
+        if "float" in self.typestr or "double" in self.typestr:
+            return float
+        else:
+            return int
+    
+    @property
+    def __basetype_str(self) -> str:
+        if "float" in self.typestr or "double" in self.typestr:
+            return "float"
+        else:
+            return "int"
     
     @property
     def python_typestring(self) -> str:
-        if self.type == "float" or self.type == "double":
-            basetype = "float"
-        else:
-            basetype = "int"
+        basetype = self.__basetype_str
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return "str"
             else:
                 return f"typing.List[{basetype}]"
     
     @property
     def python_type(self) -> typing.Type:
-        if self.type == "float" or self.type == "double":
-            basetype = float
-        else:
-            basetype = int
+        basetype = self.__basetype
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return str
             else:
                 return typing.List[{basetype}]
 
     @property        
     def python_simple_type(self) -> type:
-        if self.type == "float" or self.type == "double":
+        if "float" in self.typestr or  "double" in self.typestr:
             basetype = float
         else:
             basetype = int
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return str
             else:
                 return list
             
     def parse(self,strval:typing.Any) -> None:
         if self.is_enum:
-            self.val_enum = strval
+            try:
+                intval = int(strval)
+                assert intval in [v.value for v in self.values]
+                self.val = intval
+            except (AssertionError,ValueError):
+                try:
+                    self.val_enum = strval
+                except KeyError:
+                    print(f"Warning: In field {self.name}, could not find {strval} in the enum:\n{[v for v in self.values]}\nFalling back to setting the value directly...",
+                        file=sys.stderr)
+                    self.val = strval
         else:
-            self.val = self.python_simple_type(strval)
+            try:
+                if self.python_simple_type == list and not(isinstance(strval,list)):
+                    self.val = [strval]
+                elif self.python_simple_type == list and isinstance(strval,list):
+                    self.val = strval
+                else:
+                    self.val = self.python_simple_type(strval)
+                
+                if self.array_type and self.python_simple_type != str:
+                    for i,v in enumerate(self.val):
+                        self.val[i] = self.__basetype(v)
+                        
+            except ValueError as e:
+                print(f"{self.name} : Tried to parse {strval} ({type(strval)}) using type {self.python_typestring}")
+                raise e
+                    
     
 class PprzMessage(object):
     """base Paparazzi message class"""
@@ -216,7 +258,7 @@ class PprzMessage(object):
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
             
-            fieldvalues_enum = None if _fieldvalues_enum[i] is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
+            fieldvalues_enum = None if _fieldvalues_enum[i] is None else IntEnum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
             
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
                                                format=_fieldformats[i],
@@ -267,7 +309,7 @@ class PprzMessage(object):
     
     
     @property
-    def fieldvalues_enum(self) -> typing.List[typing.Optional[EnumMeta]]:
+    def fieldvalues_enum(self) -> typing.List[typing.Optional[IntEnum]]:
         """Get list of the values Enum (or None when there are no enum)"""
         return list(f.values for f in self._fields.values())
 
