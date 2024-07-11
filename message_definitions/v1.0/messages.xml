@@ -1714,7 +1714,12 @@
       <field name="ADC_position"        type="uint16"/>
       <field name="pprz_cmd"            type="int32"/>
     </message>
-    <!-- 182 is free -->
+    
+    <message name="ACTUATOR_STATE" id="182">
+      <field name="u"                   type="float[]"  unit="none">Reconstructed state of actuators</field>
+      <field name="u_cmd"               type="float[]"  unit="none">Commanded state of actuators</field>
+    </message>
+
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
       <field name="axis"                type="uint8">Current doublet axis</field>
@@ -1746,8 +1751,20 @@
       <field name="jerk_E"    type="float"    unit="m/s^3"/>
       <field name="jerk_D"    type="float"    unit="m/s^3"/>
     </message>
-    <!-- 185 is free -->
-    <!-- 186 is free -->
+
+    <message name="EFF_MAT_STAB" id="185">
+      <field name="G1_roll"   type="float[]" unit="none"/>
+      <field name="G1_pitch"  type="float[]" unit="none"/>
+      <field name="G1_yaw"    type="float[]" unit="none"/>
+      <field name="G1_thrust" type="float[]" unit="none"/>
+      <field name="G2"        type="float[]" unit="none"/>
+    </message>
+
+    <message name="EFF_MAT_GUID" id="186">
+      <field name="G1_aN"     type="float[]" unit="none"/>
+      <field name="G1_aE"     type="float[]" unit="none"/>
+      <field name="G1_aD"     type="float[]" unit="none"/>
+    </message>
 
     <message name="WLS_v" id="187">
       <field name="gamma"               type="float"    />
@@ -1961,6 +1978,9 @@
     </message>
 
     <message name="STAB_ATTITUDE" id="216">
+      <field name="phi_des"             type="float"    unit="rad"     alt_unit="deg"    /><!-- attitude setpoint -->
+      <field name="theta_des"           type="float"    unit="rad"     alt_unit="deg"    />
+      <field name="psi_des"             type="float"    unit="rad"     alt_unit="deg"    />
       <field name="phi"                 type="float"    unit="rad"     alt_unit="deg"    /><!-- attitude tracking -->
       <field name="theta"               type="float"    unit="rad"     alt_unit="deg"    />
       <field name="psi"                 type="float"    unit="rad"     alt_unit="deg"    />
@@ -1979,9 +1999,11 @@
       <field name="angular_accel_ref_p" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
       <field name="angular_accel_ref_q" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
       <field name="angular_accel_ref_r" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
+      <field name="angular_jerk_ref_p"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/><!-- angular jerk -->
+      <field name="angular_jerk_ref_q"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/>
+      <field name="angular_jerk_ref_r"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/>
       <field name="nu"                  type="float[]"  unit="none">Input of control allocation</field>
-      <field name="u"                   type="float[]"  unit="none">Output of control allocation</field>
-    </message>
+      </message>
 
     <message name="ROTORCRAFT_FP_MIN" id="217">
       <description>Minimalistic message to track Rotorcraft over very low bandwidth links</description>
@@ -2293,16 +2315,7 @@
       <field name="Crc1087"      type="uint32"  />
     </message>
 
-    <message name="EFF_MAT_G" id="250">
-      <field name="G1_aN"     type="float[]" unit="none"/>
-      <field name="G1_aE"     type="float[]" unit="none"/>
-      <field name="G1_aZ"     type="float[]" unit="none"/>
-      <field name="G1_roll"   type="float[]" unit="none"/>
-      <field name="G1_pitch"  type="float[]" unit="none"/>
-      <field name="G1_yaw"    type="float[]" unit="none"/>
-      <field name="G1_thrust" type="float[]" unit="none"/>
-      <field name="G2"        type="float[]" unit="none"/>
-    </message>
+    <!-- 250 is free -->
 
     <message name="GPS_RTK" id="251">
       <field name="iTOW"          type="uint32" unit="ms"/>
@@ -2835,6 +2848,17 @@
       <field name="sideslip" type="float" unit="rad"/>
       <field name="update_flag" type="uint8">bit 0: baro, bit 1: airspeed, bit 2: aoa, bit 3: sideslip</field>
       <field name="ac_id" type="uint8"/>
+    </message>
+
+    <message name="RC_6CH" id="74" link="broadcasted">
+      <field name="ac_id"       type="uint8"/>
+      <field name="throttle"    type="uint8"/>
+      <field name="roll"        type="int8"/>
+      <field name="pitch"       type="int8"/>
+      <field name="yaw"         type="int8"/>
+      <field name="mode"        type="int8"/>
+      <field name="kill"        type="int8"/>
+      <field name="aux7"        type="int8"/>
     </message>
 
     <message name="KITE_COMMAND" id="96">
