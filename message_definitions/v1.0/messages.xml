@@ -1750,6 +1750,7 @@
     <!-- 186 is free -->
 
     <message name="WLS_v" id="187">
+      <field name="loop"                type="char[]"/>
       <field name="gamma"               type="float"    />
       <field name="iter"                type="uint8"    />
       <field name="v"                   type="float[]"  />
@@ -1757,6 +1758,7 @@
     </message>
 
     <message name="WLS_u" id="188">
+      <field name="loop"                type="char[]"/>
       <field name="Wu"                  type="float[]"  />
       <field name="u_pref"              type="float[]"  />
       <field name="u_min"               type="float[]"  />
