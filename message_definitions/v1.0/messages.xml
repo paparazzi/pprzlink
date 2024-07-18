@@ -1717,7 +1717,6 @@
     
     <message name="ACTUATOR_STATE" id="182">
       <field name="u"                   type="float[]"  unit="none">Reconstructed state of actuators</field>
-      <field name="u_cmd"               type="float[]"  unit="none">Commanded state of actuators</field>
     </message>
 
     <message name="DOUBLET" id="183">
