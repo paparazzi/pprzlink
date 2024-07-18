@@ -1980,33 +1980,6 @@
     </message>
 
     <message name="STAB_ATTITUDE" id="216">
-      <field name="phi_des"             type="float"    unit="rad"     alt_unit="deg"    /><!-- attitude setpoint -->
-      <field name="theta_des"           type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="psi_des"             type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="phi"                 type="float"    unit="rad"     alt_unit="deg"    /><!-- attitude tracking -->
-      <field name="theta"               type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="psi"                 type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="phi_ref"             type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="theta_ref"           type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="psi_ref"             type="float"    unit="rad"     alt_unit="deg"    />
-      <field name="angular_rate_p"      type="float"    unit="rad/s"   alt_unit="deg/s"  /><!-- rate tracking -->
-      <field name="angular_rate_q"      type="float"    unit="rad/s"   alt_unit="deg/s"  />
-      <field name="angular_rate_r"      type="float"    unit="rad/s"   alt_unit="deg/s"  />
-      <field name="angular_rate_ref_p"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
-      <field name="angular_rate_ref_q"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
-      <field name="angular_rate_ref_r"  type="float"    unit="rad/s"   alt_unit="deg/s"  />
-      <field name="angular_accel_p"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/><!-- angular acceleration -->
-      <field name="angular_accel_q"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
-      <field name="angular_accel_r"     type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
-      <field name="angular_accel_ref_p" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
-      <field name="angular_accel_ref_q" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
-      <field name="angular_accel_ref_r" type="float"    unit="rad/s2"  alt_unit="deg/s2"/>
-      <field name="angular_jerk_ref_p"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/><!-- angular jerk -->
-      <field name="angular_jerk_ref_q"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/>
-      <field name="angular_jerk_ref_r"  type="float"    unit="rad/s3"  alt_unit="deg/s3"/>
-      <field name="nu"                  type="float[]"  unit="none">Input of control allocation</field>
-      </message>
-    <message name="STAB_ATTITUDE" id="216">
       <field name="att_des"             type="float[]"  unit="rad"     alt_unit="deg"   >attitude setpoint</field>
       <field name="att"                 type="float[]"  unit="rad"     alt_unit="deg"   >attitude</field>
       <field name="att_ref"             type="float[]"  unit="rad"     alt_unit="deg"   >attitude reference</field>
