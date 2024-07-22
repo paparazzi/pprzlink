@@ -1715,9 +1715,7 @@
       <field name="pprz_cmd"            type="int32"/>
     </message>
     
-    <message name="ACTUATOR_STATE" id="182">
-      <field name="u"                   type="float[]"  unit="none">Reconstructed state of actuators</field>
-    </message>
+    <!--182 is free -->
 
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
@@ -1987,6 +1985,7 @@
       <field name="angular_accel"       type="float[]" alt_unit_coef="57.29578">angular acceleration</field>
       <field name="angular_accel_ref"   type="float[]" alt_unit_coef="57.29578">angular acceleration reference</field>
       <field name="angular_jerk_ref"    type="float[]" alt_unit_coef="57.29578">angular jerk reference</field>
+      <field name="u"                   type="float[]" >Reconstructed State of Actuators</field>
     </message>
 
     <message name="ROTORCRAFT_FP_MIN" id="217">
