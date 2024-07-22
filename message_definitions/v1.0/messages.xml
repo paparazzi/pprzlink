@@ -1979,14 +1979,14 @@
     </message>
 
     <message name="STAB_ATTITUDE" id="216">
-      <field name="att_des"             type="float[]">attitude setpoint</field>
-      <field name="att"                 type="float[]">attitude</field>
-      <field name="att_ref"             type="float[]">attitude reference</field>
-      <field name="angular_rate"        type="float[]">angular rate</field>
-      <field name="angular_rate_ref"    type="float[]">angular rate reference</field>
-      <field name="angular_accel"       type="float[]">angular acceleration</field>
-      <field name="angular_accel_ref"   type="float[]">angular acceleration reference</field>
-      <field name="angular_jerk_ref"    type="float[]">angular jerk reference</field>
+      <field name="att_des"             type="float[]" alt_unit_coef="57.29578">attitude setpoint</field>
+      <field name="att"                 type="float[]" alt_unit_coef="57.29578">attitude</field>
+      <field name="att_ref"             type="float[]" alt_unit_coef="57.29578">attitude reference</field>
+      <field name="angular_rate"        type="float[]" alt_unit_coef="57.29578">angular rate</field>
+      <field name="angular_rate_ref"    type="float[]" alt_unit_coef="57.29578">angular rate reference</field>
+      <field name="angular_accel"       type="float[]" alt_unit_coef="57.29578">angular acceleration</field>
+      <field name="angular_accel_ref"   type="float[]" alt_unit_coef="57.29578">angular acceleration reference</field>
+      <field name="angular_jerk_ref"    type="float[]" alt_unit_coef="57.29578">angular jerk reference</field>
     </message>
 
     <message name="ROTORCRAFT_FP_MIN" id="217">
