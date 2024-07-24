@@ -232,6 +232,7 @@ let default_format = function Scalar x | ArrayType x | FixedArrayType (x,_) ->
   try (List.assoc x types).format with
       Not_found -> failwith (sprintf "Unknown format '%s'" x)
 let default_value = fun x ->
+  Printf.printf "Running default value \n";
   match x with
       Scalar t -> (List.assoc t types).value
     | ArrayType t -> failwith "default_value: Array"
@@ -710,7 +711,9 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
       (fun (field_name, field) ->
         let v =
           try List.assoc field_name values with
-              Not_found -> default_value field._type in
+              Not_found -> 
+                Printf.printf "1\n";
+                default_value field._type in
         let size = sprint_value p !i field._type v in
         i := !i + size
       )
@@ -752,10 +755,16 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     (** Check that the values are compatible with this message *)
     List.iter
       (fun (k, _) ->
+        Printf.printf "Key: %s\n" k;
         if not (List.mem_assoc k msg.fields)
         then invalid_arg (sprintf "PprzLink.string_of_message: unknown field '%s' in message '%s'" k msg.name))
       values;
-
+    
+    (* Print the entire values list for debugging *)
+    Printf.printf "Values list: %s\n"
+      (String.concat "; " (List.map (fun (k, v) -> Printf.sprintf "(%s, %s)" k (string_of_value v)) values));
+    Printf.printf "Message name: %s\n" msg.name;
+   
     String.concat sep
       (msg.name::
          List.map
@@ -763,6 +772,8 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
        let v =
          try List.assoc field_name values with
              Not_found ->
+               Printf.printf "Field name not found: %s\n" field_name;
+               Printf.printf "2 \n";             
                default_value field._type in
        formatted_string_of_value field.fformat v)
      msg.fields)
