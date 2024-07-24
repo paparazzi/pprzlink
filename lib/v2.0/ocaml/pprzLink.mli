@@ -79,6 +79,9 @@ val size_of_field : field -> int
 val string_of_value : value -> string
 val formatted_string_of_value : format -> value -> string
 val int_of_value : value -> int (* May raise Invalid_argument *)
+
+val string_of_type : _type -> string
+
 type type_descr = {
     format : string ;
     glib_type : string;
