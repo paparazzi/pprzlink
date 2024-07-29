@@ -2839,18 +2839,7 @@
       <field name="ac_id" type="uint8"/>
     </message>
 
-    <message name="RC_6CH" id="74" link="broadcasted">
-      <field name="ac_id"       type="uint8"/>
-      <field name="throttle"    type="uint8"/>
-      <field name="roll"        type="int8"/>
-      <field name="pitch"       type="int8"/>
-      <field name="yaw"         type="int8"/>
-      <field name="mode"        type="int8"/>
-      <field name="kill"        type="int8"/>
-      <field name="aux7"        type="int8"/>
-    </message>
-
-    <message name="RC_UP" id="75" link="broadcasted">
+    <message name="RC_UP" id="74" link="broadcasted">
       <field name="ac_id"       type="uint8"/>
       <field name="channels"    type="int8[]"/>
     </message>
