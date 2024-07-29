@@ -755,7 +755,7 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
         if not (List.mem_assoc k msg.fields)
         then invalid_arg (sprintf "PprzLink.string_of_message: unknown field '%s' in message '%s'" k msg.name))
       values;
-    
+
     String.concat sep
       (msg.name::
          List.map
