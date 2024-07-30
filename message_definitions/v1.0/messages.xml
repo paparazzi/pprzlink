@@ -428,7 +428,7 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <!-- 53 is free -->
+    <!-- 51 is free -->
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
