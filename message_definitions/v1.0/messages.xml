@@ -428,12 +428,7 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-  <!-- Duplicate of RC_3CH defined in datalink section? -->
-    <message name="RC_3CH_" id="51">
-      <field name="throttle_mode" type="uint8" unit="byte_mask"/>
-      <field name="roll"  type="int8"/>
-      <field name="pitch" type="int8"/>
-    </message>
+    <!-- 53 is free -->
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
