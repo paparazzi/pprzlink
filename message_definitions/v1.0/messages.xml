@@ -428,12 +428,7 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-  <!-- Duplicate of RC_3CH defined in datalink section? -->
-    <message name="RC_3CH_" id="51">
-      <field name="throttle_mode" type="uint8" unit="byte_mask"/>
-      <field name="roll"  type="int8"/>
-      <field name="pitch" type="int8"/>
-    </message>
+    <!-- 51 is free -->
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
@@ -2682,30 +2677,9 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <message name="RC_3CH" id="51" link="broadcasted">
-      <field name="throttle_mode" type="uint8" unit="byte_mask"/>
-      <field name="roll"  type="int8"/>
-      <field name="pitch" type="int8"/>
-    </message>
-
-    <message name="RC_4CH" id="52" link="broadcasted">
-      <field name="ac_id"       type="uint8"/>
-      <field name="mode"        type="uint8"/>
-      <field name="throttle"    type="uint8"/>
-      <field name="roll"        type="int8"/>
-      <field name="pitch"       type="int8"/>
-      <field name="yaw"         type="int8"/>
-    </message>
-
-    <message name="RC_5CH" id="53" link="broadcasted">
-      <field name="ac_id"       type="uint8"/>
-      <field name="throttle"    type="uint8"/>
-      <field name="roll"        type="int8"/>
-      <field name="pitch"       type="int8"/>
-      <field name="yaw"         type="int8"/>
-      <field name="mode"        type="int8"/>
-      <field name="kill"        type="int8"/>
-    </message>
+    <!-- 51 is free -->
+    <!-- 52 is free -->
+    <!-- 53 is free -->
 
     <message name="EXTERNAL_POSE" id="54" link="forwarded">
       <description>
@@ -2831,6 +2805,11 @@
       <field name="sideslip" type="float" unit="rad"/>
       <field name="update_flag" type="uint8">bit 0: baro, bit 1: airspeed, bit 2: aoa, bit 3: sideslip</field>
       <field name="ac_id" type="uint8"/>
+    </message>
+
+    <message name="RC_UP" id="74" link="broadcasted">
+      <field name="ac_id"       type="uint8"/>
+      <field name="channels"    type="int8[]"/>
     </message>
 
     <message name="KITE_COMMAND" id="96">
