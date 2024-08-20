@@ -1708,15 +1708,20 @@
     </message>
 
     <message name="ROTATING_WING_STATE" id="181">
-      <field name="current_state" type="uint8" values="QUAD|SKEW|FW_THRUST|FW_IDLE|FW|FREE"/>
-      <field name="desired_state" type="uint8" values="QUAD|SKEW|FW_THRUST|FW_IDLE|FW|FREE"/>
-      <field name="wing_angle_deg"      type="float"/>
-      <field name="wing_angle_deg_sp"   type="float"/>
-      <field name="ADC_position"        type="uint16"/>
-      <field name="pprz_cmd"            type="int32"/>
+      <description>
+        State of the rotating wing navigation and skew control.
+      </description>
+      <field name="state"           type="uint8" values="FORCE_HOVER|REQ_HOVER|FORCE_FW|REQ_FW|FREE">Current state</field>
+      <field name="nav_state"       type="uint8" values="FORCE_HOVER|REQ_HOVER|FORCE_FW|REQ_FW|FREE">Current requeted state by NAV</field>
+      <field name="status"          type="uint16">Bitmask containing status information</field>
+      <field name="meas_skew_angle" type="float" unit="deg">Current measured skew angle</field>
+      <field name="sp_skew_angle"   type="float" unit="deg">Target skew angle</field>
+      <field name="nav_airspeed"    type="float" unit="m/s">Target navigation airspeed before bounding</field>
+      <field name="min_airspeed"    type="float" unit="m/s">Minimum airspeed bound for NAV</field>
+      <field name="max_airspeed"    type="float" unit="m/s">Maximum airspeed bound for NAV</field>
     </message>
-    
-    <!--182 is free -->
+
+    <!-- 182 is free -->
 
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
