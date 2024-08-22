@@ -1710,7 +1710,8 @@
       <description>
         State of the rotating wing navigation and skew control.
       </description>
-      <field name="state"           type="uint8" values="FORCE_HOVER|REQ_HOVER|FORCE_FW|REQ_FW|FREE">Current state of NAV</field>
+      <field name="state"           type="uint8" values="FORCE_HOVER|REQ_HOVER|FORCE_FW|REQ_FW|FREE">Current state</field>
+      <field name="nav_state"       type="uint8" values="FORCE_HOVER|REQ_HOVER|FORCE_FW|REQ_FW|FREE">Current requeted state by NAV</field>
       <field name="status"          type="uint16">Bitmask containing status information</field>
       <field name="meas_skew_angle" type="float" unit="deg">Current measured skew angle</field>
       <field name="sp_skew_angle"   type="float" unit="deg">Target skew angle</field>
