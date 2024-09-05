@@ -22,7 +22,7 @@ Paparazzi message representation
 
 from __future__ import division, print_function,annotations
 import sys
-import json
+import json,csv
 import struct
 import re
 import typing
@@ -35,7 +35,6 @@ except ImportError:
 
 from enum import IntEnum,Enum
 from dataclasses import dataclass
-
 
 class PprzMessageError(Exception):
     def __init__(self, message, inner_exception=None):
@@ -193,10 +192,16 @@ class PprzMessageField(object):
                     self.val = strval
         else:
             try:
+                            
                 if self.python_simple_type == list and not(isinstance(strval,list)):
                     self.val = [strval]
                 elif self.python_simple_type == list and isinstance(strval,list):
                     self.val = strval
+                elif self.python_simple_type == str and self.format == "csv":
+                    if isinstance(strval,list):
+                        self.val = strval
+                    else:
+                        self.val = next(csv.reader([self.val]))
                 else:
                     self.val = self.python_simple_type(strval)
                 
@@ -204,6 +209,7 @@ class PprzMessageField(object):
                     for i,v in enumerate(self.val):
                         self.val[i] = self.__basetype(v)
                         
+                
             except (TypeError,ValueError) as e:
                 print(f"{self.name} : Tried to parse {strval} ({type(strval)}) using type {self.python_typestring}")
                 raise e
@@ -580,6 +586,8 @@ def test():
     print("Listing %i messages in '%s' msg_class" % (len(messages), args.msg_class))
     for msg in messages:
         print(msg)
+        
+    
 
 
 if __name__ == '__main__':
