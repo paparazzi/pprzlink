@@ -117,7 +117,17 @@
       <field name="energy"    type="float" unit="Wh">Accumulated consumed energy</field>
     </message>
 
-    <!-- 13 is free-->
+    <message name="FUELCELL" id="13">
+      <field name="pressure"   type="uint8" unit="%">Cylinder Pressure Percentage</field>
+      <field name="press_reg"  type="float" unit="Bar">Regulator Output Voltage</field>
+      <field name="volt_bat"   type="float" unit="V">Support Battery</field>
+      <field name="power_out"  type="float" unit="W">Total Output Power</field>
+      <field name="power_cell" type="float" unit="W">Fuell Cell Power</field>
+      <field name="power_batt" type="float" unit="W">Battery Power</field>
+      <field name="state"      type="uint8">PSU State</field>
+      <field name="error"      type="uint8">Main error code</field>
+      <field name="suberror"   type="uint8">Subcode</field>
+    </message>
 
     <message name="CALIBRATION" id="14">
       <field name="climb_sum_err" type="float" format="%.1f"/>
