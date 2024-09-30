@@ -22,7 +22,7 @@ Paparazzi message representation
 
 from __future__ import division, print_function,annotations
 import sys
-import json
+import json,csv
 import struct
 import re
 import typing
@@ -193,10 +193,30 @@ class PprzMessageField(object):
                     self.val = strval
         else:
             try:
-                if self.python_simple_type == list and not(isinstance(strval,list)):
-                    self.val = [strval]
-                elif self.python_simple_type == list and isinstance(strval,list):
-                    self.val = strval
+                        
+                if self.python_simple_type == list:
+                    if not(isinstance(strval,list)):
+                        # If not a list, suppose it is a string with elements separated by commas
+                        self.val = strval.split(',')
+                    else:
+                        self.val = strval                    
+                    
+                elif self.python_simple_type == str and (self.format == "csv" or self.format == ";sv"):
+                    # Special treatment of CSV encoded strings: store them as list of strings instead of string
+                    if self.format[0] == ';':
+                        sep = ';'
+                    else:
+                        sep = ','
+                    
+                    if isinstance(strval,list):
+                        self.val = strval
+                    else:
+                        # Remove one trailing separator, if it exists
+                        if strval[-1] == sep:
+                            strval = strval[:-1]
+                            
+                        # Parse using the Python CSV module
+                        self.val = next(csv.reader([strval],delimiter=sep))
                 else:
                     self.val = self.python_simple_type(strval)
                 
@@ -491,13 +511,8 @@ class PprzMessage(object):
         for el in re.split('([|\"][^|\"]*[|\"])', data):
             if '|' not in el and '"' not in el:
                 # split non-array strings further up
-                for e in [d for d in el.split(' ') if d != '']:
-                    if ',' in e:
-                        # array but not a string
-                        values.append([x for x in e.split(',') if x != ''])
-                    else:
-                        # not an array
-                        values.append(e)
+                for e in [d for d in el.split(' ') if d != '']: 
+                    values.append(e)
             else:
                 # add string array (stripped)
                 values.append(str.strip(el))
