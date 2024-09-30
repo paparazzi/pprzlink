@@ -512,15 +512,7 @@ class PprzMessage(object):
             if '|' not in el and '"' not in el:
                 # split non-array strings further up
                 for e in [d for d in el.split(' ') if d != '']: 
-                    # Instead, try to let the type-based parser decode CSV str
                     values.append(e)
-                    
-                    # if ',' in e:
-                    #     # array but not a string
-                    #     values.append([x for x in e.split(',') if x != ''])
-                    # else:
-                    #     # not an array
-                    #     values.append(e)
             else:
                 # add string array (stripped)
                 values.append(str.strip(el))
