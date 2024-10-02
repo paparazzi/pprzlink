@@ -1769,7 +1769,15 @@
       <field name="jerk_E"    type="float"    unit="m/s^3"/>
       <field name="jerk_D"    type="float"    unit="m/s^3"/>
     </message>
-    <!-- 185 is free -->
+    
+    <message name="MISSION_ITEM" id="185">
+      <field name="count" type="uint8"/>
+      <field name="seq"   type="uint16"/>
+      <field name="cmd"   type="uint16"/>
+      <field name="lat"   type="int32"/>
+      <field name="lon"   type="int32"/>
+      <field name="alt"   type="float"/>
+    </message>
     <!-- 186 is free -->
 
     <message name="WLS_v" id="187">
