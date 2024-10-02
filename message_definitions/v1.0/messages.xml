@@ -1781,7 +1781,15 @@
       <field name="u"                   type="float[]"  />
     </message>
 
-    <!-- 189 is free -->
+    <message name="MISSION_ITEM" id="189">
+      <field name="count" type="uint8"/>
+      <field name="seq"   type="uint16"/>
+      <field name="cmd"   type="uint16"/>
+      <field name="lat"   type="int32"/>
+      <field name="lon"   type="int32"/>
+      <field name="alt"   type="float"/>
+    </message>
+
     <!-- 190 is free -->
     <!-- 191 is free -->
     <!-- 192 is free -->
