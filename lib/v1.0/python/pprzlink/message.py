@@ -20,7 +20,7 @@ Paparazzi message representation
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, annotations
 import sys
 import json
 import struct
