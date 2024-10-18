@@ -106,7 +106,7 @@ def generate(output, xml, msg_list):
     # filter messages
     msg_filtered = []
     for m in xml.message:
-        if m.msg_name in msg_list.split(','):
+        if m.msg_name in msg_list.split(',') or msg_list == '':
             msg_filtered.append(m)
     xml.message = msg_filtered
     print(xml)
