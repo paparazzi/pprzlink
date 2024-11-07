@@ -40,9 +40,9 @@ ${{message:#define PPRZ_MSG_ID_${msg_name} ${id}
 
 static inline void pprzlink_msg_send_${msg_name}(struct pprzlink_device_tx *dev, uint8_t sender_id, uint8_t receiver_id${{fields:, ${attrib_fun}}}) {
   uint8_t size = 4+4${{fields:${array_extra_length}+${length}}};
-  if (dev->check_space(size)) {
-    dev->put_char(PPRZLINK_STX);
-    dev->put_char(size);
+  if (dev->check_space(dev->user_data, size)) {
+    dev->put_char(dev->user_data, PPRZLINK_STX);
+    dev->put_char(dev->user_data, size);
     dev->ck_a = size;
     dev->ck_b = size;
     uint8_t head[4];
@@ -52,10 +52,10 @@ static inline void pprzlink_msg_send_${msg_name}(struct pprzlink_device_tx *dev,
     head[3] = PPRZ_MSG_ID_${msg_name};
     pprzlink_put_bytes(dev, head, 4);
     ${{fields:${array_byte}pprzlink_put_bytes(dev, (uint8_t *) _${field_name}, ${length});
-    }}dev->put_char(dev->ck_a);
-    dev->put_char(dev->ck_b);
+    }}dev->put_char(dev->user_data, dev->ck_a);
+    dev->put_char(dev->user_data, dev->ck_b);
     if (dev->send_message != NULL) {
-      dev->send_message();
+      dev->send_message(dev->user_data);
     }
   }
 }

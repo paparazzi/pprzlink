@@ -40,9 +40,9 @@ extern "C" {
 // TX definitions
 //
 
-typedef int (*check_space_t)(uint8_t); // in: number of bytes free space, out: true if enough space available
-typedef void (*put_char_t)(uint8_t); // in: byte to send
-typedef void (*send_message_t)(void); // if needed, terminate message sending
+typedef int (*check_space_t)(void*, uint8_t); // in: number of bytes free space, out: true if enough space available
+typedef void (*put_char_t)(void*, uint8_t); // in: byte to send
+typedef void (*send_message_t)(void*); // if needed, terminate message sending
 
 /** Transmission device structure
  */
@@ -51,6 +51,7 @@ struct pprzlink_device_tx {
   put_char_t put_char;
   send_message_t send_message;
   uint8_t ck_a, ck_b;
+  void *user_data;
 };
 
 /** Init TX device
@@ -58,14 +59,16 @@ struct pprzlink_device_tx {
  * @param cs function pointer to check free space in device
  * @param pc function pointer to send/add a single byte
  * @param sm function pointer to send to complete message or NULL if not needed
+ * @param user_data pointer to user data, accesable in all function calls
  */
-static inline struct pprzlink_device_tx pprzlink_device_tx_init(check_space_t cs, put_char_t pc, send_message_t sm) {
+static inline struct pprzlink_device_tx pprzlink_device_tx_init(check_space_t cs, put_char_t pc, send_message_t sm, void *user_data) {
   struct pprzlink_device_tx dev;
   dev.check_space = cs;
   dev.put_char = pc;
   dev.send_message = sm;
   dev.ck_a = 0;
   dev.ck_b = 0;
+  dev.user_data = user_data;
   return dev;
 }
 
@@ -78,7 +81,7 @@ static inline struct pprzlink_device_tx pprzlink_device_tx_init(check_space_t cs
 static inline void pprzlink_put_bytes(struct pprzlink_device_tx *dev, uint8_t *b, int len) {
   int i;
   for (i = 0; i < len; i++) {
-    dev->put_char(b[i]);
+    dev->put_char(dev->user_data, b[i]);
     dev->ck_a += b[i];
     dev->ck_b += dev->ck_a;
   }
@@ -88,8 +91,8 @@ static inline void pprzlink_put_bytes(struct pprzlink_device_tx *dev, uint8_t *b
 // RX definitions
 //
 
-typedef int (*char_available_t)(void); // out: true if at least one byte available
-typedef uint8_t (*get_char_t)(void); // out: get next available byte
+typedef int (*char_available_t)(void*); // out: true if at least one byte available
+typedef uint8_t (*get_char_t)(void*); // out: get next available byte
 
 // PPRZLINK parsing state machine
 #define PPRZLINK_UNINIT      0
@@ -117,6 +120,7 @@ struct pprzlink_device_rx {
  * @param ca function pointer to check for new bytes available
  * @param pc function pointer to get the next byte
  * @param buf pointer to the input payload buffer, should be long enough to parse any type of incoming messages (always less than 255 bytes)
+ * @param user_data pointer to user data, accesable in all function calls
  */
 static inline struct pprzlink_device_rx pprzlink_device_rx_init(char_available_t ca, get_char_t gc, uint8_t *buf, void *user_data) {
   struct pprzlink_device_rx dev;
@@ -193,9 +197,9 @@ typedef void (*new_message_t)(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t*, void
  */
 static inline void pprzlink_check_and_parse(struct pprzlink_device_rx *dev, new_message_t new_message)
 {
-  if (dev->char_available()) {
-    while (dev->char_available() && !dev->msg_received) {
-      pprzlink_parse(dev, dev->get_char());
+  if (dev->char_available(dev->user_data)) {
+    while (dev->char_available(dev->user_data) && !dev->msg_received) {
+      pprzlink_parse(dev, dev->get_char(dev->user_data));
     }
     if (dev->msg_received) {
       uint8_t sender_id = dev->payload[0];

@@ -3475,11 +3475,25 @@
       <field name="data" type="uint8[]"/>
     </message>
 
-    <message name="IMCU_FALCON" id="117">
-      <field name="pos" type="float[3]" unit="m"/>
-      <field name="quat" type="float[4]"/>
-      <field name="pos_var" type="float[3]" unit="m^2"/>
-      <field name="quat_var" type="float[3]" unit="rad^2"/>
+    <message name="IMCU_FALCON_SIXDOF" id="117">
+      <description>Sizdof (6 degree of freedom) pose information, specifically the pose of the Sixdof sensor with respect to the map (Frame cable front X: forward, Z: left, Y: down)</description>
+      <field name="pos" type="float[3]" unit="m">Position (x, y, z) in meters of the sensor with respect to the map</field>
+      <field name="quat" type="float[4]">Orientation as a quaternion of the sensor with respect to the map(qw, qx, qy, qz)</field>
+      <field name="pos_var" type="float[3]" unit="m^2">Variance of the position (var_x, var_y, var_z) in meters squared</field>
+      <field name="quat_var" type="float[3]" unit="rad^2">Variance of the orientation (var_h, var_p, var_r) in radians squared</field>
+    </message>
+
+    <message name="IMCU_FALCON_RELANGLE" id="118">
+      <description>Angle of a single beacon with respect to the sensor (Frame cable front X: forward, Z: left, Y: down)</description>
+      <field name="id" type="uint16_t">Unique id of the beacon</field>
+      <field name="angles" type="float[2]" unit="rad">Angular offset in the x- and z-axis in radians</field>
+      <field name="intensity" type="float">Light intensity of the beacon, this can be used to roughly indicate distance</field>
+      <field name="width" type="float" unit="pixels">Width of the detected peak in pixels, also useful for indicating distance</field>
+    </message>
+
+    <message name="IMCU_FALCON_CMD" id="119">
+      <description>Command to the Falcon sensor</description>
+      <field name="mode" type="uint8" values="OFF|SIXDOF|RELANGLE"/>
     </message>
 
   </msg_class>
