@@ -2393,22 +2393,19 @@
 
     <!-- 250 is free -->
 
-    <message name="GPS_RTK" id="251">
-      <field name="iTOW"          type="uint32" unit="ms"/>
-      <field name="refStationId"  type="uint16"/>
-      <field name="relPosN"       type="int32" unit="cm"/>
-      <field name="relPosE"       type="int32" unit="cm"/>
-      <field name="relPosD"       type="int32" unit="cm"/>
-      <field name="relPosHPN"     type="int8"  unit="mm"/>
-      <field name="relPosHPE"     type="int8"  unit="mm"/>
-      <field name="relPosHPD"     type="int8"  unit="mm"/>
-      <field name="accN"          type="uint32" unit="mm"/>
-      <field name="accE"          type="uint32" unit="mm"/>
-      <field name="accD"          type="uint32" unit="mm"/>
-      <field name="carrSoln"      type="uint8"  values="NONE|RTK FLOAT|RTK FIX"/>
-      <field name="relPosValid"   type="uint8"  values="FALSE|TRUE"/>
-      <field name="diffSoln"      type="uint8"  values="NONE|DGPS"/>
-      <field name="gnssFixOK"           type="uint8" values="NONE|3D"/>
+    <message name="GPS_RELPOS" id="251">
+      <field name="reference_id"  type="uint16">Reference station identification</field>
+      <field name="tow"           type="uint32" unit="ms">Time of week (GPS)</field>
+      <field name="posN"          type="double" unit="m">Relative position North to the reference station</field>
+      <field name="posE"          type="double" unit="m">Relative position East to the reference station</field>
+      <field name="posD"          type="double" unit="m">Relative position Down to the reference station</field>
+      <field name="distance"      type="double" unit="m">Relative distance to the reference station</field>
+      <field name="heading"       type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578">Relative heading to the reference station</field>
+      <field name="posAccN"       type="float" unit="m">Position accuracy North</field>
+      <field name="posAccE"       type="float" unit="m">Position accuracy East</field>
+      <field name="posAccD"       type="float" unit="m">Position accuracy Down</field>
+      <field name="distanceAcc"   type="float" unit="m">Distance accuracy</field>
+      <field name="headingAcc"    type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578">Heading accuracy</field>
     </message>
 
     <message name="GPS_SMALL" id="252">
