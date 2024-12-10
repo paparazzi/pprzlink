@@ -43,8 +43,9 @@ namespace pprzlink {
         // Is it a logfile?
         if(rootElem=="configuration") {
           root = root->FirstChildElement("protocol");
+        } else {
+          throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
         }
-        throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
       }
       auto msg_class = root->FirstChildElement("msg_class");
       while (msg_class!= nullptr)
