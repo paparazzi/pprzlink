@@ -35,12 +35,18 @@ namespace pprzlink {
   {
       tinyxml2::XMLDocument xml;
       xml.LoadFile(fileName.c_str());
-      std::string rootElem(xml.RootElement()->Value());
+      // Get a link to the root element
+      tinyxml2::XMLElement *root = xml.RootElement();
+      std::string rootElem(root->Value());
       if(rootElem!="protocol")
       {
+        // Is it a logfile?
+        if(rootElem=="configuration") {
+          root = root->FirstChildElement("protocol");
+        }
         throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
       }
-      auto msg_class = xml.RootElement()->FirstChildElement("msg_class");
+      auto msg_class = root->FirstChildElement("msg_class");
       while (msg_class!= nullptr)
       {
         auto className = msg_class->Attribute("name", nullptr);
