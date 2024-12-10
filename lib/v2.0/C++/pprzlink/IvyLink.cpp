@@ -356,6 +356,7 @@ namespace pprzlink {
             case BaseType::UINT16:
             case BaseType::UINT32:
             case BaseType::FLOAT:
+            case BaseType::DOUBLE:
             {
               // Parse all numbers as a double
               std::vector<double> values;
@@ -399,6 +400,7 @@ namespace pprzlink {
             case BaseType::UINT16:
             case BaseType::UINT32:
             case BaseType::FLOAT:
+            case BaseType::DOUBLE:
             {
               // Parse all numbers as a double
               double val;
@@ -505,6 +507,7 @@ namespace pprzlink {
               case BaseType::UINT16:
               case BaseType::UINT32:
               case BaseType::FLOAT:
+              case BaseType::DOUBLE:
               {
                 // Parse all numbers as a double
                 std::vector<double> values;
@@ -548,6 +551,7 @@ namespace pprzlink {
               case BaseType::UINT16:
               case BaseType::UINT32:
               case BaseType::FLOAT:
+              case BaseType::DOUBLE:
               {
                 // Parse all numbers as a double
                 double val;
