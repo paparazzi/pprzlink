@@ -346,6 +346,8 @@ namespace pprzlink {
           return std::any(static_cast<uint32_t>(value));
         case BaseType::FLOAT:
           return std::any(static_cast<float>(value));
+        case BaseType::DOUBLE:
+          return std::any(static_cast<double>(value));
         case BaseType::STRING:
           std::stringstream sstr;
           sstr << value;
