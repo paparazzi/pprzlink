@@ -33,7 +33,6 @@ namespace pprzlink {
 
   MessageDictionary::MessageDictionary(std::string const &fileName)
   {
-      this->lowerCaseAttribute =  true;
       tinyxml2::XMLDocument xml;
       xml.LoadFile(fileName.c_str());
       // Get a link to the root element
@@ -43,7 +42,6 @@ namespace pprzlink {
       {
         // Is it a logfile?
         if(rootElem=="configuration") {
-          this->lowerCaseAttribute = false;
           root = root->FirstChildElement("protocol");
           if(root== nullptr)
           {
@@ -58,7 +56,6 @@ namespace pprzlink {
 
   MessageDictionary::MessageDictionary(tinyxml2::XMLElement* root)
   {
-    this->lowerCaseAttribute =  false;
     this->loadXml(root, "XML");
   }
 

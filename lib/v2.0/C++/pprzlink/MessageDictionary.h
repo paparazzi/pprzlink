@@ -54,7 +54,6 @@ namespace pprzlink {
     std::map<std::string, MessageDefinition> messagesDict;
     boost::bimap<std::string, std::pair<int, int>> msgNameToId;
     boost::bimap<int,std::string> classMap;
-    bool lowerCaseAttribute;
   };
 }
 #endif //PPRZLINKCPP_MESSAGEDICTIONARY_H
