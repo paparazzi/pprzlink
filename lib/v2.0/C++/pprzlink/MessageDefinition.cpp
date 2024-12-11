@@ -36,38 +36,38 @@ namespace pprzlink {
   MessageDefinition::MessageDefinition(tinyxml2::XMLElement *xml, int classId)
     : classId(classId), id(-1)
   {
-    auto msgName = xml->Attribute("name", nullptr);
+    auto msgName = xml->Attribute("NAME", nullptr);
     if (msgName == nullptr)
     {
-      msgName = xml->Attribute("NAME");
+      msgName = xml->Attribute("name");
       if (msgName == nullptr)
       {
         throw bad_message_file("No name for message");
       }
       name = msgName;
     }
-    int msgId = xml->IntAttribute("id", -1);
+    int msgId = xml->IntAttribute("ID", -1);
     if (msgId == -1)
     {
-      msgId = xml->IntAttribute("ID");
+      msgId = xml->IntAttribute("id");
     }
     id = (uint8_t) msgId;
     auto field = xml->FirstChildElement("field");
     while (field != nullptr)
     {
-      auto fieldName = field->Attribute("name", nullptr);
+      auto fieldName = field->Attribute("NAME", nullptr);
       if (fieldName == nullptr)
       {
-        fieldName = field->Attribute("NAME", nullptr);
+        fieldName = field->Attribute("name", nullptr);
         if (fieldName == nullptr)
         {
           throw bad_message_file("Bad field");
         }
       }
-      auto fieldTypeStr = field->Attribute("type", nullptr);
+      auto fieldTypeStr = field->Attribute("TYPE", nullptr);
       if (fieldTypeStr == nullptr)
       {
-        fieldTypeStr = field->Attribute("TYPE", nullptr);
+        fieldTypeStr = field->Attribute("type", nullptr);
         if (fieldTypeStr == nullptr)
         {
           throw bad_message_file("Bad field");

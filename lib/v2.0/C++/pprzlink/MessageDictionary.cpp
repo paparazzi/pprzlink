@@ -69,15 +69,15 @@ namespace pprzlink {
       auto msg_class = root->FirstChildElement("msg_class");
       while (msg_class!= nullptr)
       {
-        auto className = msg_class->Attribute("name", nullptr);
+        auto className = msg_class->Attribute("NAME", nullptr);
         if (className == nullptr)
         {
-          className = msg_class->Attribute("NAME", nullptr);
+          className = msg_class->Attribute("name", nullptr);
         }
-        int classId = msg_class->IntAttribute("id", -1);
+        int classId = msg_class->IntAttribute("ID", -1);
         if (classId == -1)
         {
-          classId = msg_class->IntAttribute("ID", -1);
+          classId = msg_class->IntAttribute("id", -1);
         }
         if (className == nullptr || classId == -1)
         {
@@ -87,15 +87,15 @@ namespace pprzlink {
         auto message = msg_class->FirstChildElement("message");
         while (message!= nullptr)
         {
-          auto messageName = message->Attribute("name", nullptr);
+          auto messageName = message->Attribute("NAME", nullptr);
           if (messageName == nullptr)
           {
-            messageName = msg_class->Attribute("NAME", nullptr);
+            messageName = msg_class->Attribute("name", nullptr);
           }
-          int messageId = message->IntAttribute("id", -1);
+          int messageId = message->IntAttribute("ID", -1);
           if (messageId == -1)
           {
-            messageId = msg_class->IntAttribute("ID", -1);
+            messageId = msg_class->IntAttribute("id", -1);
           }
           if (messageName == nullptr || messageId == -1)
           {
