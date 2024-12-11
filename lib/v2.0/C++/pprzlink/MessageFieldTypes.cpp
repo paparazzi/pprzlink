@@ -39,6 +39,7 @@ namespace pprzlink {
     {BaseType::UINT16, 2},
     {BaseType::UINT32, 4},
     {BaseType::FLOAT, 4},
+    {BaseType::DOUBLE, 8},
     {BaseType::STRING, 0}
   };
 
@@ -51,6 +52,7 @@ namespace pprzlink {
     {BaseType::UINT16, "uint16"},
     {BaseType::UINT32, "uint32"},
     {BaseType::FLOAT, "float"},
+    {BaseType::DOUBLE, "double"},
     {BaseType::STRING, "string"}
   };
 

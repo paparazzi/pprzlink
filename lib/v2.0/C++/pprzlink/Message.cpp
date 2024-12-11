@@ -88,6 +88,9 @@ namespace pprzlink {
       case BaseType::FLOAT:
         stream << std::any_cast<float>(value);
         break;
+      case BaseType::DOUBLE:
+        stream << std::any_cast<double>(value);
+        break;
       case BaseType::STRING:
           stream << std::any_cast<std::string>(value);
           break;

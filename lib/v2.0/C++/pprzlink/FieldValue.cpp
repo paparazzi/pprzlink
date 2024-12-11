@@ -138,6 +138,18 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
         }
       }
         break;
+      case pprzlink::BaseType::DOUBLE:
+      {
+        std::vector<double> vec;
+        v.getValue(vec);
+        for (size_t i=0;i<vec.size();++i)
+        {
+          if (i!=0)
+            o << ",";
+          o << std::fixed << vec[i];
+        }
+      }
+        break;
       case pprzlink::BaseType::STRING:
       {
         std::vector<std::string> vec;
@@ -225,6 +237,13 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
       case pprzlink::BaseType::FLOAT:
       {
         float val;
+        v.getValue(val);
+        o  << std::fixed << val;
+      }
+        break;
+      case pprzlink::BaseType::DOUBLE:
+      {
+        double val;
         v.getValue(val);
         o  << std::fixed << val;
       }
@@ -347,6 +366,20 @@ namespace pprzlink {
             buffer.push_back((*ptrval & 0xFF000000u) >> 24u);
           }
             break;
+          case BaseType::DOUBLE:
+          {
+            char val = std::any_cast<double>(elem);
+            uint64_t *ptrval = (uint64_t *) &val;
+            buffer.push_back(*ptrval & 0x00000000000000FFu);
+            buffer.push_back((*ptrval & 0x000000000000FF00u) >> 8u);
+            buffer.push_back((*ptrval & 0x0000000000FF0000u) >> 16u);
+            buffer.push_back((*ptrval & 0x00000000FF000000u) >> 24u);
+            buffer.push_back((*ptrval & 0x000000FF00000000u) >> 32u);
+            buffer.push_back((*ptrval & 0x0000FF0000000000u) >> 40u);
+            buffer.push_back((*ptrval & 0x00FF000000000000u) >> 48u);
+            buffer.push_back((*ptrval & 0xFF00000000000000u) >> 56u);
+          }
+            break;
           case BaseType::STRING:
             throw std::logic_error("Cannot add an array of STRING to a buffer for field " + getName());
             break;
@@ -425,6 +458,21 @@ namespace pprzlink {
           buffer.push_back((*ptrval & 0x0000FF00u) >> 8u);
           buffer.push_back((*ptrval & 0x00FF0000u) >> 16u);
           buffer.push_back((*ptrval & 0xFF000000u) >> 24u);
+        }
+          break;
+        case BaseType::DOUBLE:
+        {
+          double val;
+          getValue(val);
+          uint64_t *ptrval = (uint64_t *) &val;
+          buffer.push_back(*ptrval & 0x00000000000000FFu);
+          buffer.push_back((*ptrval & 0x000000000000FF00u) >> 8u);
+          buffer.push_back((*ptrval & 0x0000000000FF0000u) >> 16u);
+          buffer.push_back((*ptrval & 0x00000000FF000000u) >> 24u);
+          buffer.push_back((*ptrval & 0x000000FF00000000u) >> 32u);
+          buffer.push_back((*ptrval & 0x0000FF0000000000u) >> 40u);
+          buffer.push_back((*ptrval & 0x00FF000000000000u) >> 48u);
+          buffer.push_back((*ptrval & 0xFF00000000000000u) >> 56u);
         }
           break;
         case BaseType::STRING:
