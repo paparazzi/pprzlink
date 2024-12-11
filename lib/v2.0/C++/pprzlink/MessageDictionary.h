@@ -26,13 +26,15 @@
 #define PPRZLINKCPP_MESSAGEDICTIONARY_H
 
 #include <map>
+#include <tinyxml2.h>
 #include <boost/bimap.hpp>
 #include <pprzlink/MessageDefinition.h>
 
 namespace pprzlink {
   class MessageDictionary {
   public:
-    explicit MessageDictionary(std::string const &fileName);
+    MessageDictionary(std::string const &fileName);
+    MessageDictionary(tinyxml2::XMLElement* root);
 
     [[nodiscard]] const MessageDefinition &getDefinition(std::string const &name) const;
 
@@ -48,9 +50,11 @@ namespace pprzlink {
     [[nodiscard]] std::vector<MessageDefinition> getMsgsForClass(int classId) const;
 
   private:
+    void loadXml(tinyxml2::XMLElement* root, std::string const &fileName);
     std::map<std::string, MessageDefinition> messagesDict;
     boost::bimap<std::string, std::pair<int, int>> msgNameToId;
     boost::bimap<int,std::string> classMap;
+    bool lowerCaseAttribute;
   };
 }
 #endif //PPRZLINKCPP_MESSAGEDICTIONARY_H

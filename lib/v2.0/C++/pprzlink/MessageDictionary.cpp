@@ -33,6 +33,7 @@ namespace pprzlink {
 
   MessageDictionary::MessageDictionary(std::string const &fileName)
   {
+      this->lowerCaseAttribute =  true;
       tinyxml2::XMLDocument xml;
       xml.LoadFile(fileName.c_str());
       // Get a link to the root element
@@ -42,6 +43,7 @@ namespace pprzlink {
       {
         // Is it a logfile?
         if(rootElem=="configuration") {
+          this->lowerCaseAttribute = false;
           root = root->FirstChildElement("protocol");
           if(root== nullptr)
           {
@@ -50,6 +52,22 @@ namespace pprzlink {
         } else {
           throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
         }
+      }
+      this->loadXml(root, fileName);
+  }
+
+  MessageDictionary::MessageDictionary(tinyxml2::XMLElement* root)
+  {
+    this->lowerCaseAttribute =  false;
+    this->loadXml(root, "XML");
+  }
+
+  void MessageDictionary::loadXml(tinyxml2::XMLElement* root, std::string const &fileName)
+  {
+      std::string rootElem(root->Value());
+      if(rootElem!="protocol")
+      {
+        throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
       }
       auto msg_class = root->FirstChildElement("msg_class");
       while (msg_class!= nullptr)
