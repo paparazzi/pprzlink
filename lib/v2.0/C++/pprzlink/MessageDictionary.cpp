@@ -73,7 +73,15 @@ namespace pprzlink {
       while (msg_class!= nullptr)
       {
         auto className = msg_class->Attribute("name", nullptr);
+        if (className == nullptr)
+        {
+          className = msg_class->Attribute("NAME", nullptr);
+        }
         int classId = msg_class->IntAttribute("id", -1);
+        if (classId == -1)
+        {
+          classId = msg_class->IntAttribute("ID", -1);
+        }
         if (className == nullptr || classId == -1)
         {
           throw bad_message_file(fileName + " msg_class has no name or id.");
@@ -83,7 +91,15 @@ namespace pprzlink {
         while (message!= nullptr)
         {
           auto messageName = message->Attribute("name", nullptr);
+          if (messageName == nullptr)
+          {
+            messageName = msg_class->Attribute("NAME", nullptr);
+          }
           int messageId = message->IntAttribute("id", -1);
+          if (messageId == -1)
+          {
+            messageId = msg_class->IntAttribute("ID", -1);
+          }
           if (messageName == nullptr || messageId == -1)
           {
             throw bad_message_file(fileName + " in class : " + className + " message has no name or id.");
