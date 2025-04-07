@@ -617,16 +617,16 @@
       <description>
       Information about the trajectory followed by the Guidance Vector Field algorithm.
       </description>
-      <field name="error" type="float">Error (value of the trajectory implicit equation)</field>
-      <field name="traj" type="uint8">Kind of trajectory</field>
-      <field name="s" type="int8" values="1|-1">Direction to be followed</field>
-      <field name="ke" type="float">Gain for the vector field convergence</field>
-      <field name="p" type="float[]">Parameters describing the trajectory</field>
-      <field name="error_n" type="float">Error of alignment</field>
-      <field name="n_norm" type="float">n_norm</field>
-      <field name="t_norm" type="float">t_norm</field>
-      <field name="omega_d" type="float">omega_d</field>
-      <field name="omega" type="float">omega</field>
+      <field name="error" type="float">Deviation from the trajectory's implicit equation</field>
+      <field name="traj" type="uint8">Type of trajectory being followed</field>
+      <field name="s" type="int8" values="1|-1">Direction of travel along the trajectory (1 for forward, -1 for reverse)</field>
+      <field name="ke" type="float">Gain controlling convergence to the trajectory</field>
+      <field name="p" type="float[]">Parameters defining the trajectory shape or behavior (provided to PprzGCS)</field>
+      <field name="error_n" type="float">Lateral alignment error relative to the trajectory</field>
+      <field name="n_norm" type="float">Magnitude of the normal component of the vector field at the level set</field>
+      <field name="t_norm" type="float">Magnitude of the tangential component of the vector field at the level set</field>
+      <field name="omega_d" type="float">Desired angular velocity for correct tracking once aligned</field>
+      <field name="omega" type="float">Current angular velocity command from the 2D GVF controller</field>
     </message>
 
     <message name="SUPERBITRF" id="72">
