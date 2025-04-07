@@ -617,11 +617,16 @@
       <description>
       Information about the trajectory followed by the Guidance Vector Field algorithm.
       </description>
-      <field name="error" type="float">Error index e, i.e. 'distance' to the trajectory</field>
+      <field name="error" type="float">Error (value of the trajectory implicit equation)</field>
       <field name="traj" type="uint8">Kind of trajectory</field>
       <field name="s" type="int8" values="1|-1">Direction to be followed</field>
       <field name="ke" type="float">Gain for the vector field convergence</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
+      <field name="error_n" type="float">Error of alignment</field>
+      <field name="n_norm" type="float">n_norm</field>
+      <field name="t_norm" type="float">t_norm</field>
+      <field name="omega_d" type="float">omega_d</field>
+      <field name="omega" type="float">omega</field>
     </message>
 
     <message name="SUPERBITRF" id="72">
@@ -1721,7 +1726,17 @@
       <field name="max_airspeed"    type="float" unit="m/s">Maximum airspeed bound for NAV</field>
     </message>
 
-    <!-- 182 is free -->
+    <message name="GVF_IK" id="182">
+      <description>
+      Information about the trajectory followed by the Inverse Kinematics Guidance 
+      Vector Field (IK-GVF) algorithm and its control-related variables.
+      </description>
+      <field name="error" type="float"> GVF-IK error (phi - gamma(t)) </field>
+      <field name="gamma" type="float"> Value of gamma(t)</field>
+      <field name="gamma_dot" type="float"> Time variation of gamma(t) </field>
+      <field name="gamma_A" type="float"> Amplitude of gamma(t) </field>
+      <field name="gamma_omega" type="float"> Angular speed of gamma(t) </field>
+    </message>
 
     <message name="DOUBLET" id="183">
       <field name="active"              type="uint8">Doublet is active</field>
