@@ -86,7 +86,7 @@ class PprzMessageField(object):
     
     @property
     def array_type(self) -> bool:
-        return '[]' in self.typestr or 'string' in self.typestr
+        return '[' in self.typestr or 'string' in self.typestr
     
     @property
     def is_enum(self) -> bool:
