@@ -39,6 +39,7 @@ namespace pprzlink {
     UINT16,
     UINT32,
     FLOAT,
+    DOUBLE,
     STRING
   };
 

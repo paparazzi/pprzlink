@@ -35,29 +35,71 @@ namespace pprzlink {
   {
       tinyxml2::XMLDocument xml;
       xml.LoadFile(fileName.c_str());
-      std::string rootElem(xml.RootElement()->Value());
+      // Get a link to the root element
+      tinyxml2::XMLElement *root = xml.RootElement();
+      std::string rootElem(root->Value());
+      if(rootElem!="protocol")
+      {
+        // Is it a logfile?
+        if(rootElem=="configuration") {
+          root = root->FirstChildElement("protocol");
+          if(root== nullptr)
+          {
+            throw bad_message_file("No protocol element in xml messages file.");
+          }
+        } else {
+          throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
+        }
+      }
+      this->loadXml(root, fileName);
+  }
+
+  MessageDictionary::MessageDictionary(tinyxml2::XMLElement* root)
+  {
+    this->loadXml(root, "XML");
+  }
+
+  void MessageDictionary::loadXml(tinyxml2::XMLElement* root, std::string const &fileName)
+  {
+      std::string rootElem(root->Value());
       if(rootElem!="protocol")
       {
         throw bad_message_file("Root element is not protocol in xml messages file (found "+rootElem+").");
       }
-      auto msg_class = xml.RootElement()->FirstChildElement("msg_class");
+      auto msg_class = root->FirstChildElement("msg_class");
       while (msg_class!= nullptr)
       {
-        auto className = msg_class->Attribute("name", nullptr);
-        int classId = msg_class->IntAttribute("id", -1);
+        auto className = msg_class->Attribute("NAME", nullptr);
+        if (className == nullptr)
+        {
+          className = msg_class->Attribute("name", nullptr);
+        }
+        int classId = msg_class->IntAttribute("ID", -1);
+        if (classId == -1)
+        {
+          classId = msg_class->IntAttribute("id", -1);
+        }
         if (className == nullptr || classId == -1)
         {
-          throw bad_message_file(fileName + " msg_class as no name or id.");
+          throw bad_message_file(fileName + " msg_class has no name or id.");
         }
         classMap.left.insert(boost::bimap<int,std::string>::left_value_type(classId,className));
         auto message = msg_class->FirstChildElement("message");
         while (message!= nullptr)
         {
-          auto messageName = message->Attribute("name", nullptr);
-          int messageId = message->IntAttribute("id", -1);
+          auto messageName = message->Attribute("NAME", nullptr);
+          if (messageName == nullptr)
+          {
+            messageName = msg_class->Attribute("name", nullptr);
+          }
+          int messageId = message->IntAttribute("ID", -1);
+          if (messageId == -1)
+          {
+            messageId = msg_class->IntAttribute("id", -1);
+          }
           if (messageName == nullptr || messageId == -1)
           {
-            throw bad_message_file(fileName + " in class : " + className + " message as no name or id.");
+            throw bad_message_file(fileName + " in class : " + className + " message has no name or id.");
           }
           try
           {

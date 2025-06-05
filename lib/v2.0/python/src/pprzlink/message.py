@@ -20,16 +20,20 @@ Paparazzi message representation
 
 """
 
-from __future__ import division, print_function,annotations
-
+from __future__ import division, print_function, annotations
 import sys
-import json
+import json,csv
 import struct
 import re
 import typing
+import sys
 
-from pprzlink import messages_xml_map
-from enum import EnumMeta,Enum
+try:
+    import messages_xml_map 
+except ImportError:
+    from pprzlink import messages_xml_map
+
+from enum import IntEnum,Enum
 from dataclasses import dataclass
 
 
@@ -60,7 +64,7 @@ class PprzMessageField(object):
         C-like format string for readable display
     - `unit`: str
         Field's unit
-    - `values`: EnumMeta
+    - `values`: type[IntEnum]
         Enumeration of the possible values for `val`
     - `alt_unit`: str
         Alternative unit for the value. Mostly used to be human-friendly.
@@ -76,16 +80,23 @@ class PprzMessageField(object):
     val:typing.Any = None
     format:typing.Optional[str] = None
     unit:typing.Optional[str] = None
-    values:typing.Optional[EnumMeta] = None
+    values:typing.Optional[IntEnum.__class__] = None
     alt_unit:typing.Optional[str] = None
     alt_unit_coef:typing.Optional[float] = None
+    
+    @property
+    def array_type(self) -> bool:
+        return '[' in self.typestr or 'string' in self.typestr
     
     @property
     def is_enum(self) -> bool:
         """
         Check if this field's values are enum-based
         """
-        return isinstance(self.values,EnumMeta)
+        if self.values is None:
+            return False
+        else:
+            return issubclass(self.values,IntEnum)
     
     @property
     def val_enum(self) -> str:
@@ -93,15 +104,15 @@ class PprzMessageField(object):
         Access and modify `self.val` through the names in the enum `self.values`
         
         Fails is no enum is set for `self.values`
-        (i.e. it is not an instance of `EnumMeta`)
+        (i.e. it is not an instance of `IntEnum`)
         """
-        assert self.is_enum
-        return self.values(self.val).name
+        assert self.is_enum 
+        return self.values(self.val).name # type: ignore (type checker yells even if the assert statement ensure `self.values` is properly typed)
     
     @val_enum.setter
     def val_enum(self,enum_attr:str) -> None:
         assert self.is_enum
-        self.val = self.values[enum_attr]
+        self.val = self.values[enum_attr] # type: ignore (type checker yells even if the assert statement ensure `self.values` is properly typed)
     
     @property
     def alt_val(self) -> typing.Optional[float]:
@@ -117,57 +128,109 @@ class PprzMessageField(object):
         else:
             raise AttributeError("No conversion coefficient set")
         
+    @property
+    def __basetype(self) -> type:
+        if "float" in self.typestr or "double" in self.typestr:
+            return float
+        else:
+            return int
+    
+    @property
+    def __basetype_str(self) -> str:
+        if "float" in self.typestr or "double" in self.typestr:
+            return "float"
+        else:
+            return "int"
     
     @property
     def python_typestring(self) -> str:
-        if self.type == "float" or self.type == "double":
-            basetype = "float"
-        else:
-            basetype = "int"
+        basetype = self.__basetype_str
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return "str"
             else:
                 return f"typing.List[{basetype}]"
     
     @property
     def python_type(self) -> typing.Type:
-        if self.type == "float" or self.type == "double":
-            basetype = float
-        else:
-            basetype = int
+        basetype = self.__basetype
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return str
             else:
                 return typing.List[{basetype}]
 
     @property        
     def python_simple_type(self) -> type:
-        if self.type == "float" or self.type == "double":
+        if "float" in self.typestr or  "double" in self.typestr:
             basetype = float
         else:
             basetype = int
             
-        if self.array_type is None:
+        if not(self.array_type):
             return basetype
         else:
-            if self.type == "char":
+            if "char" in self.typestr or self.typestr == "string":
                 return str
             else:
                 return list
             
     def parse(self,strval:typing.Any) -> None:
         if self.is_enum:
-            self.val_enum = strval
+            try:
+                intval = int(strval)
+                assert intval in self.values # type: ignore
+                self.val = intval
+            except (AssertionError,ValueError):
+                try:
+                    self.val_enum = strval
+                except KeyError:
+                    print(f"Warning: In field {self.name}, could not find {strval} in the enum:\n{[v for v in self.values]}\nFalling back to setting the value directly...", # type: ignore
+                        file=sys.stderr)
+                    self.val = strval
         else:
-            self.val = self.python_simple_type(strval)
+            try:
+                        
+                if self.python_simple_type == list:
+                    if not(isinstance(strval,list)):
+                        # If not a list, suppose it is a string with elements separated by commas
+                        self.val = strval.split(',')
+                    else:
+                        self.val = strval                    
+                    
+                elif self.python_simple_type == str and (self.format == "csv" or self.format == ";sv"):
+                    # Special treatment of CSV encoded strings: store them as list of strings instead of string
+                    if self.format[0] == ';':
+                        sep = ';'
+                    else:
+                        sep = ','
+                    
+                    if isinstance(strval,list):
+                        self.val = strval
+                    else:
+                        # Remove one trailing separator, if it exists
+                        if strval[-1] == sep:
+                            strval = strval[:-1]
+                            
+                        # Parse using the Python CSV module
+                        self.val = next(csv.reader([strval],delimiter=sep))
+                else:
+                    self.val = self.python_simple_type(strval)
+                
+                if self.array_type and self.python_simple_type != str:
+                    for i,v in enumerate(self.val):
+                        self.val[i] = self.__basetype(v)
+                        
+            except (TypeError,ValueError) as e:
+                print(f"{self.name} : Tried to parse {strval} ({type(strval)}) using type {self.python_typestring}")
+                raise e
+                    
     
 class PprzMessage(object):
     """base Paparazzi message class"""
@@ -218,12 +281,27 @@ class PprzMessage(object):
         self._fields:typing.Dict[str,PprzMessageField] = dict()
         for i,n in enumerate(self._fields_order):
             
-            fieldvalues_enum = None if _fieldvalues_enum[i] is None else Enum(f"{n}_ValuesEnum",_fieldvalues_enum[i],start=0)
+            if _fieldvalues_enum[i] is not None:
+                valcount:dict[str,int] = dict()
+                new_names = []
+                for s in _fieldvalues_enum[i]:
+                    valcount.setdefault(s,0)
+                    valcount[s] += 1
+                    if valcount[s] == 1:
+                        new_names.append(s)
+                    else:
+                        new_names.append(s+f"_{valcount[s]}")
+                    
+                
+                fieldvalues_enum = IntEnum(f"{n}_ValuesEnum",new_names,start=0)
+                
+            else:
+                fieldvalues_enum = None
             
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
                                                format=_fieldformats[i],
                                                unit=_fieldunits[i],
-                                               values=fieldvalues_enum,
+                                               values=fieldvalues_enum, # type: ignore (Functional call to IntEnum indeed creates a new IntEnum class...)
                                                alt_unit=_fieldalt_units[i],
                                                alt_unit_coef=_fieldcoefs[i])
 
@@ -263,13 +341,13 @@ class PprzMessage(object):
         return list(f.typestr for f in self._fields.values())
 
     @property
-    def fieldcoefs(self) -> typing.List[float]:
+    def fieldcoefs(self) -> typing.List[typing.Optional[float]]:
         """Get list of field coefs."""
         return list(f.alt_unit_coef for f in self._fields.values())
     
     
     @property
-    def fieldvalues_enum(self) -> typing.List[typing.Optional[EnumMeta]]:
+    def fieldvalues_enum(self) -> typing.List[typing.Optional[IntEnum.__class__]]:
         """Get list of the values Enum (or None when there are no enum)"""
         return list(f.values for f in self._fields.values())
 
@@ -313,9 +391,6 @@ class PprzMessage(object):
     def get_full_field(self,name:str) -> PprzMessageField:
         """Get the underlying PprzMessageField object"""
         return self._fields[name]
-    
-    def get_all_fields(self) -> typing.List[PprzMessageField]:
-        return list(self._fields.values())
     
     def set_full_field(self,name:str, field:PprzMessageField) -> None:
         """Set the underlying PprzMessageField object"""
@@ -439,13 +514,8 @@ class PprzMessage(object):
         for el in re.split('([|\"][^|\"]*[|\"])', data):
             if '|' not in el and '"' not in el:
                 # split non-array strings further up
-                for e in [d for d in el.split(' ') if d != '']:
-                    if ',' in e:
-                        # array but not a string
-                        values.append([x for x in e.split(',') if x != ''])
-                    else:
-                        # not an array
-                        values.append(e)
+                for e in [d for d in el.split(' ') if d != '']: 
+                    values.append(e)
             else:
                 # add string array (stripped)
                 values.append(str.strip(el))
