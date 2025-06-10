@@ -46,7 +46,7 @@ c_float_of_indexed_bytes(value s, value index)
   buffer.b[2] = x[2];
   buffer.b[3] = x[3];
 
-  CAMLreturn (copy_double((double)buffer.f));
+  CAMLreturn (caml_copy_double((double)buffer.f));
 }
 
 value
@@ -61,7 +61,7 @@ c_double_of_indexed_bytes(value s, value index)
   for (i=0; i < sizeof(double); i++) {
     buffer.b[i] = x[i];
   }
-  CAMLreturn (copy_double(buffer.d));
+  CAMLreturn (caml_copy_double(buffer.d));
 }
 
 #else /* no ARCH_ALIGN_DOUBLE */
@@ -70,7 +70,7 @@ c_float_of_indexed_bytes(value s, value index)
 {
   CAMLparam2 (s, index);
   float *x = (float*)(String_val(s) + Int_val(index));
-  CAMLreturn (copy_double((double)(*x)));
+  CAMLreturn (caml_copy_double((double)(*x)));
 }
 
 value
@@ -78,7 +78,7 @@ c_double_of_indexed_bytes(value s, value index)
 {
   CAMLparam2 (s, index);
   double *x = (double*)(String_val(s) + Int_val(index));
-  CAMLreturn (copy_double(*x));
+  CAMLreturn (caml_copy_double(*x));
 }
 #endif /* ARCH_ALIGN_DOUBLE */
 
@@ -152,7 +152,7 @@ c_int32_of_indexed_bytes(value s, value index)
 {
   CAMLparam2 (s, index);
   int32_t *x = (int32_t*)(String_val(s) + Int_val(index));
-  CAMLreturn (copy_int32(*x));
+  CAMLreturn (caml_copy_int32(*x));
 }
 
 value
@@ -165,7 +165,7 @@ c_uint32_of_indexed_bytes(value s, value index)
    * we represent it as 64bit signed int to make sure it doesn't overflow
    */
   int64_t y = *x;
-  CAMLreturn (copy_int64(y));
+  CAMLreturn (caml_copy_int64(y));
 }
 
 #ifdef ARCH_ALIGN_INT64
@@ -180,7 +180,7 @@ c_int64_of_indexed_bytes(value s, value index)
   for (i=0; i < sizeof(int64_t); i++) {
     buffer.b[i] = x[i];
   }
-  CAMLreturn (copy_int64(buffer.i));
+  CAMLreturn (caml_copy_int64(buffer.i));
 }
 #else
 value
@@ -188,6 +188,6 @@ c_int64_of_indexed_bytes(value s, value index)
 {
   CAMLparam2 (s, index);
   int64_t *x = (int64_t*)(String_val(s) + Int_val(index));
-  CAMLreturn (copy_int64(*x));
+  CAMLreturn (caml_copy_int64(*x));
 }
 #endif
