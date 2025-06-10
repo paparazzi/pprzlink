@@ -665,12 +665,25 @@
     <message name="GVF_PARAMETRIC" id="75">
       <description>
       Information about the parametric trajectory followed by the Guidance Vector Field algorithm.
+      Parameters describing the GVF parametric algorithm:
+      - w      : The virtual parameter
+      - delta_T: Time since last update
+      - s*beta : Rescale for w (s is a direction, +1|-1; beta is a magnitude)
+      - k_roll : Gain for the fixed-wing aircraft control (roll)
+      - k_climb: Gain for the fixed-wing aircraft control (climb)
+      - k_psi  : Gain for the fixed-wing aircraft control (horizontal angle)
+      - L      : Error function gain
+      - w_dot  : Intended virtual step (before multiplication with ground speed)
+      - kx     : Internal field X gain    
+      - ky     : Internal field Y gain
+      - kz     : Internal field Z gain
       </description>
       <field name="traj" type="uint8">Kind of trajectory</field>
-      <field name="s" type="int8" values="1|-1">Direction to be followed</field>
-      <field name="w" type="float">Virtual coordinate of the algorithm</field>
+      <field name="config" type="float[11]"> Parameters describing the GVF parametric algorithm</field>
       <field name="p" type="float[]">Parameters describing the trajectory</field>
       <field name="phi" type="float[]" unit="m">Error signals</field>
+      <field name="rot" type="float[4]">Rotation applied to every trajectory (as an (w,x,y,z) unit quaternion)</field>
+      <field name="translation" type="float[3]">Translation applied to every trajectory ((x,y,z) vector)</field>
     </message>
 
     <message name="BODY_RATES_ACCEL" id="76">
@@ -2050,7 +2063,12 @@
       <field name="commands" type="int32[]">Commands send to actuators</field>
     </message>
 
-    <!-- 212 is free -->
+    <message name="GVF_PARAMETRIC_G_W" id="212">
+      <description>Air-to-air message for the Distributed GVF Parametric coordination algorithm. It transmits the ac's W and W_dot to its neighbor
+      </description>
+      <field name="w" type="float"/>
+      <field name="w_dot" type="float"/>
+    </message>
 
     <message name="TUNE_VERT" id="213">
       <field name="z_sp"      type="int32" alt_unit="m"    alt_unit_coef="0.0039063"/>
@@ -3030,6 +3048,22 @@
       <field name="fd" type="uint8" values="ALL|FLIGHT_RECORDER|PPRZLOG">where the message will be logged</field>
       <field name="msg" type="char[]"/>
     </message>
+    
+    <message name="GVF_PARAMETRIC_REG_TABLE" id="161" link="forwarded">
+      <description>Init the table of an aircraft for the Distributed GVF Parametric algorithm. If the nei_id is equal to zero, then you wipe out (clean) the whole table of the aircraft.</description>
+      <field name="ac_id" type="uint8">ID of the table's aircraft to be updated</field>
+      <field name="nei_id" type="uint8">ID of the neighbor for the table</field>
+      <field name="desired_deltaw" type="float">Desired W to have w.r.t. the neighbor</field>
+    </message>
+    
+    <message name="GVF_PARAMETRIC_W" id="162" link="forwarded">
+      <description>Air-to-air message for the Distributed GVF Parametric coordination algorithm. It transmits the ac's W and W_dot to its neighbor (echoed from ground)/
+      </description>
+      <field name="ac_id" type="uint8"/>
+      <field name="w" type="float"/>
+      <field name="w_dot" type="float"/>
+    </message>
+    
     
   </msg_class>
 

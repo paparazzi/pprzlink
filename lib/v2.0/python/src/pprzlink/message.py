@@ -64,7 +64,7 @@ class PprzMessageField(object):
         C-like format string for readable display
     - `unit`: str
         Field's unit
-    - `values`: IntEnum
+    - `values`: type[IntEnum]
         Enumeration of the possible values for `val`
     - `alt_unit`: str
         Alternative unit for the value. Mostly used to be human-friendly.
@@ -80,7 +80,7 @@ class PprzMessageField(object):
     val:typing.Any = None
     format:typing.Optional[str] = None
     unit:typing.Optional[str] = None
-    values:typing.Optional[IntEnum] = None
+    values:typing.Optional[IntEnum.__class__] = None
     alt_unit:typing.Optional[str] = None
     alt_unit_coef:typing.Optional[float] = None
     
@@ -93,7 +93,10 @@ class PprzMessageField(object):
         """
         Check if this field's values are enum-based
         """
-        return isinstance(self.values,IntEnum)
+        if self.values is None:
+            return False
+        else:
+            return issubclass(self.values,IntEnum)
     
     @property
     def val_enum(self) -> str:
@@ -103,13 +106,13 @@ class PprzMessageField(object):
         Fails is no enum is set for `self.values`
         (i.e. it is not an instance of `IntEnum`)
         """
-        assert self.is_enum
-        return self.values(self.val).name
+        assert self.is_enum 
+        return self.values(self.val).name # type: ignore (type checker yells even if the assert statement ensure `self.values` is properly typed)
     
     @val_enum.setter
     def val_enum(self,enum_attr:str) -> None:
         assert self.is_enum
-        self.val = self.values[enum_attr]
+        self.val = self.values[enum_attr] # type: ignore (type checker yells even if the assert statement ensure `self.values` is properly typed)
     
     @property
     def alt_val(self) -> typing.Optional[float]:
@@ -182,13 +185,13 @@ class PprzMessageField(object):
         if self.is_enum:
             try:
                 intval = int(strval)
-                assert intval in [v.value for v in self.values]
+                assert intval in self.values # type: ignore
                 self.val = intval
             except (AssertionError,ValueError):
                 try:
                     self.val_enum = strval
                 except KeyError:
-                    print(f"Warning: In field {self.name}, could not find {strval} in the enum:\n{[v for v in self.values]}\nFalling back to setting the value directly...",
+                    print(f"Warning: In field {self.name}, could not find {strval} in the enum:\n{[v for v in self.values]}\nFalling back to setting the value directly...", # type: ignore
                         file=sys.stderr)
                     self.val = strval
         else:
@@ -290,7 +293,7 @@ class PprzMessage(object):
                         new_names.append(s+f"_{valcount[s]}")
                     
                 
-                fieldvalues_enum = Enum(f"{n}_ValuesEnum",new_names,start=0)
+                fieldvalues_enum = IntEnum(f"{n}_ValuesEnum",new_names,start=0)
                 
             else:
                 fieldvalues_enum = None
@@ -298,7 +301,7 @@ class PprzMessage(object):
             self._fields[n] = PprzMessageField(n,_fieldtypes[i],val=_fieldvalues[i],
                                                format=_fieldformats[i],
                                                unit=_fieldunits[i],
-                                               values=fieldvalues_enum,
+                                               values=fieldvalues_enum, # type: ignore (Functional call to IntEnum indeed creates a new IntEnum class...)
                                                alt_unit=_fieldalt_units[i],
                                                alt_unit_coef=_fieldcoefs[i])
 
@@ -338,13 +341,13 @@ class PprzMessage(object):
         return list(f.typestr for f in self._fields.values())
 
     @property
-    def fieldcoefs(self) -> typing.List[float]:
+    def fieldcoefs(self) -> typing.List[typing.Optional[float]]:
         """Get list of field coefs."""
         return list(f.alt_unit_coef for f in self._fields.values())
     
     
     @property
-    def fieldvalues_enum(self) -> typing.List[typing.Optional[IntEnum]]:
+    def fieldvalues_enum(self) -> typing.List[typing.Optional[IntEnum.__class__]]:
         """Get list of the values Enum (or None when there are no enum)"""
         return list(f.values for f in self._fields.values())
 
