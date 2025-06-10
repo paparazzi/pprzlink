@@ -39,7 +39,7 @@ MESSAGES_INSTALL ?= $(PREFIX)/var
 MESSAGES_INCLUDE ?= $(MESSAGES_INSTALL)/include/pprzlink
 MESSAGES_LIB ?= $(MESSAGES_INSTALL)/share/pprzlink/src
 LIB_PYTHON ?= $(MESSAGES_INSTALL)/python
-LIB_PYTHON_PPRZ ?= $(LIB_PYTHON)/pprzlink
+LIB_PYTHON_PPRZ ?= $(LIB_PYTHON)/src/pprzlink
 MESSAGES_PYTHON ?= $(LIB_PYTHON_PPRZ)/generated
 ALERT_PYTHON ?= $(MESSAGES_PYTHON)/alert
 GROUND_PYTHON ?= $(MESSAGES_PYTHON)/ground
@@ -77,7 +77,7 @@ libpprzlink-install:
 pre_messages_dir:
 	$(Q)test -d $(MESSAGES_INCLUDE) || mkdir -p $(MESSAGES_INCLUDE)
 	$(Q)test -d $(MESSAGES_LIB) || mkdir -p $(MESSAGES_LIB)
-	$(Q)test -d $(MESSAGE_PYTHON) || mkdir -p $(MESSAGE_PYTHON)
+	$(Q)test -d $(MESSAGES_PYTHON) || mkdir -p $(MESSAGES_PYTHON)
 
 post_messages_install:
 	@echo 'Copy extra lib files'
@@ -96,7 +96,7 @@ pygen_messages: pre_messages_dir
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang C -o $(INTERMCU_H) $(MESSAGES_XML) intermcu
 
 pygen_python_messages: pre_messages_dir
-	@echo 'Generate Python at location $(MESSAGE_PYTHON)'
+	@echo 'Generate Python at location "$(MESSAGES_PYTHON)"'
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) telemetry
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) datalink
 	$(Q) $(PY) ./tools/generator/gen_messages.py $(VALIDATE_FLAG) --protocol $(PPRZLINK_LIB_VERSION) --messages $(PPRZLINK_MSG_VERSION) --lang Python -o $(MESSAGES_PYTHON) $(MESSAGES_XML) intermcu
@@ -114,12 +114,18 @@ else
 	$(Q)Q=$(Q) $(MAKE) -C $(LIB_PYTHON) install
 endif
 
+libpprzlink-pygen-python-uninstall: clean
+ifdef $(DESTDIR)
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/python $(MAKE) -C $(LIB_PYTHON) uninstall
+else
+	$(Q)Q=$(Q) $(MAKE) -C $(LIB_PYTHON) uninstall
+endif
 
-clean :
+clean:
 	$(Q)$(MAKE) -C tools/generator clean
 	$(Q)$(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml clean
 
-uninstall: clean
+uninstall: clean libpprzlink-pygen-python-uninstall
 	$(Q)rm -rf var bin build $(MESSAGES_INCLUDE) $(MESSAGES_LIB)
 
 validate_messages:
@@ -127,4 +133,4 @@ validate_messages:
 	$(Q) $(PY) ./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) datalink
 	$(Q) $(PY) ./tools/generator/gen_messages.py --only-validate $(MESSAGES_XML) intermcu
 
-.PHONY: libpprzlink++-install libpprzlink++ libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages
+.PHONY: libpprzlink++-install libpprzlink++ libpprzlink libpprzlink-install pre_messages_dir post_messages_install pygen_messages pymessages clean uninstall validate_messages libpprzlink-pygen-python-install libpprzlink-pygen-python-uninstall
