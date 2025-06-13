@@ -434,7 +434,10 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <!-- 51 is free -->
+    <message name="DEBUG_VECT_INT" id="51">
+      <field name="name" type="char[]"/>
+      <field name="vector" type="int32[]"/>
+    </message>
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
@@ -1865,7 +1868,7 @@
       <field name="actuators_t4_rolling_msg_out"    type="float">T4 output rolling message content</field>
       <field name="actuators_t4_rolling_msg_out_id" type="uint8">T4 output Rolling message ID</field>
      </message>
-  
+
     <!-- 192 is free -->
 
     <message name="AHRS_LKF" id="193">
@@ -3015,7 +3018,7 @@
       <field name="fd" type="uint8" values="ALL|FLIGHT_RECORDER|PPRZLOG">where the message will be logged</field>
       <field name="msg" type="char[]"/>
     </message>
-    
+
   </msg_class>
 
 
