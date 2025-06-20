@@ -2406,7 +2406,9 @@
       <field name="Crc1087"      type="uint32"  />
     </message>
 
-    <!-- 250 is free -->
+    <message name="AIRSPEED_CONSISTENCY" id="250">
+      <field name="ratio" type="float">Ratio of ground speed to airspeed</field>
+    </message>
 
     <message name="GPS_RELPOS" id="251">
       <field name="reference_id"  type="uint16">Reference station identification</field>
