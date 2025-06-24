@@ -2144,6 +2144,7 @@
       <field name="amsl_baro" type="float" unit="m">barometric altitude above mean sea level</field>
       <field name="airspeed" type="float" unit="m/s">Equivalent Air Speed (or Calibrated Air Speed at low speed/altitude)</field>
       <field name="tas" type="float">True Air Speed (when P, T and P_diff are available)</field>
+      <field name="ratio_circle" type="float">Ratio of ground speed to airspeed while flying circles</field>
     </message>
 
     <message name="AMSL" id="223">
@@ -2406,9 +2407,7 @@
       <field name="Crc1087"      type="uint32"  />
     </message>
 
-    <message name="AIRSPEED_CONSISTENCY" id="250">
-      <field name="ratio" type="float">Ratio of ground speed to airspeed</field>
-    </message>
+    <!-- 250 is free -->
 
     <message name="GPS_RELPOS" id="251">
       <field name="reference_id"  type="uint16">Reference station identification</field>
