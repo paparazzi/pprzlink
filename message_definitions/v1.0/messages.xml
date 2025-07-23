@@ -1902,8 +1902,27 @@
       <field name="mz"    type="float" />
     </message>
 
-    <!-- 194 is free -->
-    <!-- 195 is free -->
+    <message name="GRID_CHANGES" id="194">
+    	<description>
+    		Send just the cell that has changed
+    	</description>
+    	<field name="row"   type="uint8"/>
+      <field name="column" type="uint8"/>
+    	<field name="value" type="int8"/>
+    </message>
+
+    <message name="GRID_INIT" id="195">
+    	<description>
+    		Obstacle grid data
+    	</description>
+    	<field name="cell_width" type="float"/>
+    	<field name="cell_height" type="float"/>
+    	<field name="xmin" type="float"/>
+    	<field name="xmax" type="float"/>
+    	<field name="ymin" type="float"/>
+    	<field name="ymax" type="float"/>
+      <field name="threshold" type="int8"/>
+    </message>
 
     <message name="AIRSPEED_WIND_ESTIMATOR_EKF" id="196">
       <field name="u_est"     type="float" unit="m/s"/>
