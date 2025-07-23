@@ -1881,7 +1881,19 @@
       <field name="actuators_t4_rolling_msg_out_id" type="uint8">T4 output Rolling message ID</field>
      </message>
   
-    <!-- 192 is free -->
+    <message name="OBSTACLE_GRID" id="192">
+    	<description>
+    		Obstacle grid telemetry
+    	</description>
+    	<field name="cell_width" type="float"/>
+    	<field name="cell_height" type="float"/>
+    	<field name="xmin" type="float"/>
+    	<field name="xmax" type="float"/>
+    	<field name="ymin" type="float"/>
+    	<field name="ymax" type="float"/>
+    	<field name="row_number" type="uint16"/>
+    	<field name="columns" type="int8[]"/>
+    </message>
 
     <message name="AHRS_LKF" id="193">
       <field name="phi"   type="float" unit="rad"   alt_unit="deg"   alt_unit_coef="57.29578" />
