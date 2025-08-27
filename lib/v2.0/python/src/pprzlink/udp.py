@@ -24,6 +24,7 @@ import threading
 import socket
 import logging
 import struct
+import time
 
 # load pprzlink messages and transport
 from pprzlink.message import PprzMessage
@@ -50,10 +51,11 @@ class UdpMessagesInterface(threading.Thread):
         self.ac_downlink_status = {}
         self.id = interface_id # set to None to disable id filtering
         self.running = True
+        self.receiving = False
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            self.server.settimeout(2.0)
+            self.server.settimeout(1.0)
             self.server.bind(('0.0.0.0', self.downlink_port))
         except OSError:
             logger.error("Error: unable to open socket on ports '%d' (up) and '%d' (down)" % (self.uplink_port, self.downlink_port))
@@ -63,6 +65,8 @@ class UdpMessagesInterface(threading.Thread):
     def stop(self):
         logger.info("End thread and close UDP link")
         self.running = False
+        while self.receiving:
+            time.sleep(0.1)
         self.server.close()
 
     def shutdown(self):
@@ -90,6 +94,7 @@ class UdpMessagesInterface(threading.Thread):
             while self.running:
                 # Parse incoming data
                 try:
+                    self.receiving = True
                     (msg, address) = self.server.recvfrom(2048)
                     length = len(msg)
                     for c in msg:
@@ -112,6 +117,7 @@ class UdpMessagesInterface(threading.Thread):
 
         except StopIteration:
             pass
+        self.receiving = False
 
 
 def test():
