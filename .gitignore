@@ -20,6 +20,7 @@
 /build
 /var
 /.idea/
+/lib/v2.0/python/src/pprzlink.egg-info/
 
 # Eclipse IDE settings files
 .cproject
