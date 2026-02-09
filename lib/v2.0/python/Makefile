@@ -28,21 +28,20 @@ all:
 
 build:
 ifneq ($(findstring ModuleNotFoundError, $(MY_CYTHON)),ModuleNotFoundError)
-	@echo cython intalled, compiling pprzlink
+	@echo "cython intalled, compiling pprzlink at location $(DESTDIR)/../build"
 	$(Q)python setup.py build_ext --build-lib $(DESTDIR)/../build --build-temp $(DESTDIR)/../build
 else
 	@echo cython not installed, not compiling pprzlink
 endif
 
 
-install:
-	# Install correct version python library to DESTDIR
+install: build
 ifneq ($(findstring ModuleNotFoundError, $(MY_CYTHON)),ModuleNotFoundError)
-	@echo INSTALL (cython lib) at location $(DESTDIR)
+	@echo "INSTALL (cython lib) at location $(DESTDIR)"
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	$(Q)cp -r $(DESTDIR)/../build/pprzlink $(DESTDIR)
 else
-	@echo INSTALL at location $(DESTDIR)
+	@echo "INSTALL at location $(DESTDIR)"
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	$(Q)cp -r src/pprzlink $(DESTDIR)
 endif
