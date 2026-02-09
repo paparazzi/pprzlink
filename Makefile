@@ -63,6 +63,7 @@ libpprzlink++-install: libpprzlink++
 
 libpprzlink:
 	$(Q)Q=$(Q) $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml
+	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/python $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/python build
 
 libpprzlink-install:
 	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/ocaml $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/ocaml install

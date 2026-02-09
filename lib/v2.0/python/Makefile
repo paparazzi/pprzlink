@@ -21,13 +21,31 @@
 
 MAKE = make
 
+MY_PYTHON := $(shell echo `which python3`)
+MY_CYTHON := $(shell $(MY_PYTHON) -c 'import Cython' 2>&1)
+
 all:
+
+build:
+ifneq ($(findstring ModuleNotFoundError, $(MY_CYTHON)),ModuleNotFoundError)
+	@echo cython intalled, compiling pprzlink
+	$(Q)python setup.py build_ext --build-lib $(DESTDIR)/../build --build-temp $(DESTDIR)/../build
+else
+	@echo cython not installed, not compiling pprzlink
+endif
+
 
 install:
 	# Install correct version python library to DESTDIR
+ifneq ($(findstring ModuleNotFoundError, $(MY_CYTHON)),ModuleNotFoundError)
+	@echo INSTALL (cython lib) at location $(DESTDIR)
+	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
+	$(Q)cp -r $(DESTDIR)/../build/pprzlink $(DESTDIR)
+else
 	@echo INSTALL at location $(DESTDIR)
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	$(Q)cp -r src/pprzlink $(DESTDIR)
+endif
 
 .PHONY: all install
 

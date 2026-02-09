@@ -17,7 +17,7 @@
 
 *.depend
 
-/build
+build
 /var
 /.idea/
 *.egg-info/

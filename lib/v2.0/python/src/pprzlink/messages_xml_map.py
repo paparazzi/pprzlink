@@ -17,8 +17,6 @@
 #
 
 
-from __future__ import absolute_import, print_function, annotations
-
 import os
 
 # if PAPARAZZI_HOME is set use $PAPARAZZI_HOME/var/messages.xml
