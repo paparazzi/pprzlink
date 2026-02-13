@@ -27,4 +27,4 @@
 .pydevproject
 .settings/*
 
-*/*/*/*/*.egg-info/
+*.egg-info/
