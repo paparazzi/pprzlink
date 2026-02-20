@@ -1771,7 +1771,9 @@
       <field name="G1_roll"   type="float[]" unit="none"/>
       <field name="G1_pitch"  type="float[]" unit="none"/>
       <field name="G1_yaw"    type="float[]" unit="none"/>
-      <field name="G1_thrust" type="float[]" unit="none"/>
+      <field name="G1_thrust_x" type="float[]" unit="none"/>
+      <field name="G1_thrust_y" type="float[]" unit="none"/>
+      <field name="G1_thrust_z" type="float[]" unit="none"/>
       <field name="G2"        type="float[]" unit="none"/>
     </message>
 
