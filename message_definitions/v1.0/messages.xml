@@ -1771,9 +1771,6 @@
       <field name="G1_roll"   type="float[]" unit="none"/>
       <field name="G1_pitch"  type="float[]" unit="none"/>
       <field name="G1_yaw"    type="float[]" unit="none"/>
-      <field name="G1_thrust_x" type="float[]" unit="none"/>
-      <field name="G1_thrust_y" type="float[]" unit="none"/>
-      <field name="G1_thrust_z" type="float[]" unit="none"/>
       <field name="G2"        type="float[]" unit="none"/>
     </message>
 
@@ -1880,7 +1877,11 @@
       <field name="actuators_t4_rolling_msg_out_id" type="uint8">T4 output Rolling message ID</field>
      </message>
   
-    <!-- 192 is free -->
+    <message name="EFF_MAT_STAB_THRUST" id="192">
+      <field name="G1_x" type="float[]" unit="none"></field>
+      <field name="G1_y" type="float[]" unit="none"></field>
+      <field name="G1_z" type="float[]" unit="none"></field>
+    </message>
 
     <message name="AHRS_LKF" id="193">
       <field name="phi"   type="float" unit="rad"   alt_unit="deg"   alt_unit_coef="57.29578" />
