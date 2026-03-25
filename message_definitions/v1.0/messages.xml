@@ -2415,7 +2415,7 @@
       <field name="spec_thrust_down" type="float" unit="N">Specific thrust down</field>
       <field name="accel_filt_down" type="float" unit="m/s^2">Filtered vertical acceleration</field>
       <field name="agl_dist_filt" type="float" unit="m">Filtered AGL distance</field>
-      <field name="force_sensor" type="float[]">Measurement of a force sensor</field>
+      <field name="force_sensor" type="int32[]">Measurement of a force sensor</field>
       <field name="triggers" type="uint16">Bitmask containing status information on the different ground detect triggers</field>
     </message>
 
