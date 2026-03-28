@@ -86,7 +86,7 @@ def copy_fixed_headers(directory, protocol_version):
             continue
         shutil.copy(src, dest)
 
-def generate_one(directory, xml, m):
+def generate_one(directory, xml:pprz_parse.PPRZXML, m:pprz_parse.PPRZMsg):
     f = open(os.path.join(os.path.join(directory, xml.class_name), m.msg_name + ".h"), mode='w')
     t.write(f, '''
 /** @file
@@ -198,7 +198,7 @@ ${{fields:${read_array_byte}#define DL_${msg_name}_${field_name}(_payload) pprzl
 ''', {'msg_name' : m.msg_name, 'description' : m.description ,'class_id' : xml.class_id, 'class_name' : xml.class_name, 'id' : m.id, 'fields' : m.fields, 'message' : xml.message})
 
 
-def generate(output, xml):
+def generate(output, xml:pprz_parse.PPRZXML):
     '''generate complete MAVLink C implemenation'''
 
     directory, name = os.path.split(output)

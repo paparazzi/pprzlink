@@ -19,7 +19,10 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+PY ?= python3
+
 MAKE = make
+DESTDIR ?=$(shell $(PY) -m site --user-site)
 
 all:
 
@@ -29,5 +32,12 @@ install:
 	$(Q)test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	$(Q)cp -r src/pprzlink $(DESTDIR)
 
-.PHONY: all install
+uninstall:
+	$(Q)rm -rf $(DESTDIR)/pprzlink 
+
+reinstall:
+	$(Q)make uninstall
+	$(Q)make install
+
+.PHONY: all install uninstall reinstall
 

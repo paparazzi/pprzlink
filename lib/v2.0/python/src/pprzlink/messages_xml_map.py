@@ -64,10 +64,12 @@ def parse_messages(messages_file=''):
     if not messages_file:
         messages_file = default_messages_file
     if not os.path.isfile(messages_file):
+        messages_file = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"messages.xml")) 
+    if not os.path.isfile(messages_file):
         raise MessagesNotFound(messages_file)
     #print("Parsing %s" % messages_file)
     from lxml import etree
-    tree = etree.parse(messages_file)
+    tree = etree.parse(messages_file,None)
     for the_class in tree.xpath("//msg_class[@name]"):
         class_name = the_class.attrib['name']
         if 'id' in the_class.attrib:
@@ -129,11 +131,29 @@ def parse_messages(messages_file=''):
                 try:
                     message_dictionary_values_enum[class_name][message_id].append(the_field.attrib['values'].split('|'))
                 except KeyError:
+                    # print("no such key")
+                    message_dictionary_coefs[class_name][message_id].append(1.)
+                    
+                
+                try:
+                    message_dictionary_values_enum[class_name][message_id].append(the_field.attrib['values'].split('|'))
+                except KeyError:
                     message_dictionary_values_enum[class_name][message_id].append(None)
 
-                message_dictionary_units[class_name][message_id].append(the_field.attrib.get('unit',None))
-                message_dictionary_formats[class_name][message_id].append(the_field.attrib.get('format',None))
-                message_dictionary_alt_units[class_name][message_id].append(the_field.attrib.get('alt_unit',None))
+                try:
+                    message_dictionary_units[class_name][message_id].append(the_field.attrib['unit'])
+                except KeyError:
+                    message_dictionary_units[class_name][message_id].append(None)
+
+                try:
+                    message_dictionary_formats[class_name][message_id].append(the_field.attrib['format'])
+                except KeyError:
+                    message_dictionary_formats[class_name][message_id].append(None)
+
+                try:
+                    message_dictionary_alt_units[class_name][message_id].append(the_field.attrib['alt_unit'])
+                except KeyError:
+                    message_dictionary_alt_units[class_name][message_id].append(None)
 
 
 

@@ -25,7 +25,7 @@ DEFAULT_LANGUAGE = 'C'
 DEFAULT_VALIDATE = True
 
 # List the supported languages. This is done globally because it's used by the GUI wrapper too
-supportedLanguages = ["C", "C_standalone"]
+supportedLanguages = ["C", "C_standalone", "Python"]
 
 
 def gen_messages(opts) :
@@ -94,8 +94,19 @@ def gen_messages(opts) :
     elif opts.language == 'c_standalone':
         gen_message_c_standalone = __import__(xml.generator_module + "_c_standalone")
         gen_message_c_standalone.generate(opts.output, xml, opts.opt)
+    elif opts.language == 'python' or opts.language == 'py':
+        gen_message_py = __import__(xml.generator_module + "_py")
+        gen_message_py.generate(opts.output, xml)
     else:
         print("Unsupported language %s" % opts.language)
+        
+    # print(f"Characters seen while parsing values:\n{pprz_parse.values_chars}")
+    # print(f"Suspect characters (aka numbers):\n{pprz_parse.values_chars.intersection(pprz_parse.python_var_sus)}")
+    illegal_characters = pprz_parse.values_chars.difference(pprz_parse.python_var_allowed_chars.union(pprz_parse.python_var_sus))
+    # print(f"Illegal characters:\n{illegal_characters}")
+    not_handled_characters = illegal_characters.difference(pprz_parse.PPRZField.varchar_convert.keys())
+    if len(not_handled_characters) != 0:
+        print(f"NOT HANDLED ILLEGAL CHARACTERS:\n{not_handled_characters}",file=sys.stderr)
 
 
 if __name__ == "__main__":
