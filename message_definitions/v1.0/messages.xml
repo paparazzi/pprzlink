@@ -1126,6 +1126,7 @@
       <field name="array_temp" type="float" unit="deg_celsius" format="%.2f">Imager sensor temperature, NaN if not measured</field>
     </message>
 
+    <!-- Do we need this? -->
     <message name="TIMESTAMP" id="129">
       <field name="timestamp" type="uint32"/>
     </message>
@@ -2050,7 +2051,32 @@
       <field name="commands" type="int32[]">Commands send to actuators</field>
     </message>
 
-    <!-- 212 is free -->
+    <message name="DRAW" id="212">
+      <description>
+        The DRAW message is sent to the ground server to be resent as a SHAPE message.
+
+        Id, shape, status, radois, latarr, lonarr and text are retransmitted as is.
+        Color is reinterpreted as follows: aa lll fff
+        - aa: Two top bits for fill opacity, with 0 = Transparent, 1 = Light, 2 = Medium and 3 = Opaque
+        - lll, fff: An index to the colormap, with the following mapping:
+          - 0 : "black"
+          - 1 : "red"
+          - 2 : "green"
+          - 3 : "yellow"
+          - 4 : "blue"
+          - 5 : "magenta"
+          - 6 : "cyan"
+          - 7 : "white"
+      </description>
+      <field name="id" type="uint8"/>
+      <field name="color"  type="uint8">2 bits for opacity, 3 bits for line color, 3 bits for fill color</field>
+      <field name="shape"  type="uint8" values="Circle|Polygon|Line"/>
+      <field name="status" type="uint8"  values="create|delete"/>
+      <field name="radius" type="float" unit="m"/>
+      <field name="latarr" type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="lonarr" type="int32[]"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
+      <field name="text"   type="char[]"/>
+    </message>
 
     <message name="TUNE_VERT" id="213">
       <field name="z_sp"      type="int32" alt_unit="m"    alt_unit_coef="0.0039063"/>
@@ -2162,6 +2188,7 @@
       <field name="front_divergence" type="float"> divergence from front cam </field>
     </message>
 
+    <!-- Do we need this? -->
     <message name="VIDEO_SYNC" id="225">
       <field name="id" type="uint8"/>
     </message>
