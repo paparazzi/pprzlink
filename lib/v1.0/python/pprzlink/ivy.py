@@ -175,7 +175,7 @@ class IvyMessagesInterface(object):
         # request: "sender_name request_id msg_name_REQ msg_payload..."
         # answer:  "request_id sender_name msg_name msg_payload..."
 
-        data = re.search("(\S+) +(\S+) +(.*)", ivy_msg)
+        data = re.search(r"(\S+) +(\S+) +(.*)", ivy_msg)
         # check for request_id in first or second string (-> advanced format with msg_name in third string)
         if data is None:
             return
@@ -187,7 +187,7 @@ class IvyMessagesInterface(object):
                 sender_name = data.group(1)
                 request_id = data.group(2)
             # this is an advanced type, split again
-            data = re.search("(\S+)+( .*|$)", data.group(3))
+            data = re.search(r"(\S+)+( .*|$)", data.group(3))
             msg_name = data.group(1)
             payload = data.group(2)
         else:
