@@ -794,12 +794,14 @@
       - bit 0: horizontal wind is valid (east and north fields)
       - bit 1: vertical wind is valid (up field)
       - bit 2: airspeed is valid
+      - bit 3: temperature is valid
     </description>
       <field name="flags" type="uint8">bit 0: horizontal wind, bit 1: vertical wind: bit 2: airspeed</field>
       <field name="east" type="float" unit="m/s">east component of the wind</field>
       <field name="north" type="float" unit="m/s">north component of the wind</field>
       <field name="up" type="float" unit="m/s">vertical component of the wind</field>
       <field name="airspeed" type="float" unit="m/s">local airspeed norm</field>
+      <field name="temp" type="float" unit="deg_celsius">local temperature</field>
     </message>
 
     <message name="SCP_STATUS" id="88">
@@ -2511,6 +2513,8 @@
       <field name="north" type="float" unit="m/s">north component of the wind</field>
       <field name="up" type="float" unit="m/s">vertical component of the wind</field>
       <field name="airspeed" type="float" unit="m/s">local airspeed norm</field>
+      <field name="temp" type="float" unit="deg_celsius">local temperature</field>
+
     </message>
 
     <message name="SETTING" id="4" link="forwarded">
