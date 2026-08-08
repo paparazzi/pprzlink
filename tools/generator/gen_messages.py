@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="This tool generate implementations from PPRZLink message definitions")
     parser.add_argument("-o", "--output", default="stdout", help="output file or stream [default: %(default)s]")
     parser.add_argument("--lang", dest="language", choices=supportedLanguages, default=DEFAULT_LANGUAGE, help="language of generated code [default: %(default)s]")
-    parser.add_argument("--protocol", choices=[pprz_parse.PROTOCOL_1_0,pprz_parse.PROTOCOL_2_0], default=DEFAULT_PROTOCOL, help="PPRZLink protocol version. [default: %(default)s]")
+    parser.add_argument("--protocol", choices=[pprz_parse.PROTOCOL_1_0,pprz_parse.PROTOCOL_2_0, pprz_parse.PROTOCOL_OPENDDS], default=DEFAULT_PROTOCOL, help="PPRZLink protocol version. [default: %(default)s]")
     parser.add_argument("--messages", choices=[pprz_parse.MESSAGES_1_0], default=DEFAULT_MESSAGES, help="PPRZLink message definitino version. [default: %(default)s]")
     parser.add_argument("--no-validate", action="store_false", dest="validate", default=DEFAULT_VALIDATE, help="Do not perform XML validation. Can speed up code generation if XML files are known to be correct.")
     parser.add_argument("--only-validate", action="store_true", dest="only_validate", help="Only validate messages without generation.")

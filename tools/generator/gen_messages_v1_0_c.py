@@ -24,8 +24,8 @@ def generate_messages_h(directory, name, xml):
         f = open(os.path.join(directory, name), mode='w')
     t.write(f,'''
 /** @file
- *	@brief PPRZLink messages header built from ${filename}
- *	@see http://paparazziuav.org
+ *    @brief PPRZLink messages header built from ${filename}
+ *    @see http://paparazziuav.org
  */
 #ifndef _VAR_MESSAGES_${class_name}_H_
 #define _VAR_MESSAGES_${class_name}_H_
