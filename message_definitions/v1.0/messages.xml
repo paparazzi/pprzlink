@@ -1903,7 +1903,20 @@
       <field name="mz"    type="float" />
     </message>
 
-    <!-- 194 is free -->
+    <message name="NB_CTRL" id="194">
+      <description>One loop nB controller: thrust direction reference (inertial and body frame) and its derivatives</description>
+      <field name="nI_des"  type="float[]">Desired thrust direction in inertial frame (from sticks or guidance)</field>
+      <field name="nI"      type="float[]">Thrust direction reference in inertial frame after the reference model</field>
+      <field name="nI_d"    type="float[]">1st derivative of the inertial reference</field>
+      <field name="nI_2d"   type="float[]">2nd derivative of the inertial reference</field>
+      <field name="nI_3d"   type="float[]">3rd derivative of the inertial reference</field>
+      <field name="nB"      type="float[]">Thrust direction reference in body frame</field>
+      <field name="nB_d"    type="float[]">1st derivative of the body reference</field>
+      <field name="nB_2d"   type="float[]">2nd derivative of the body reference</field>
+      <field name="nB_3d"   type="float[]">3rd derivative of the body reference</field>
+      <field name="mu_B"    type="float[]">Principal thrust axis in body frame</field>
+    </message>
+
     <!-- 195 is free -->
 
     <message name="AIRSPEED_WIND_ESTIMATOR_EKF" id="196">
