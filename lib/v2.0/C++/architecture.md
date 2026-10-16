@@ -587,13 +587,14 @@ Les exemples exécutables à relire pour évaluer l'API sont :
 
 - [`IvyReceiver.cpp`](pprzlink/examples/clients/IvyReceiver.cpp) pour l'abonnement
   et les lectures de champs ;
+- [`WorkshopIvy.cpp`](pprzlink/examples/clients/WorkshopIvy.cpp) pour choisir
+  l'émission ou la réception Ivy avec le même programme ;
 - [`SerialAircraft.cpp`](pprzlink/examples/clients/SerialAircraft.cpp) pour
-  simuler un avion et répondre à PING ;
-- [`UdpRecorder.cpp`](pprzlink/examples/clients/UdpRecorder.cpp) pour enregistrer
-  les messages avec leur origine réseau ;
-- [`UdpSettingSender.cpp`](pprzlink/examples/clients/UdpSettingSender.cpp) pour
-  renseigner tous les champs d'une commande dans un seul `setField()` et envoyer
-  son datagramme à un pair de test local.
+  choisir le client sol ou le serveur avion et échanger PING/altitude/PONG ;
+- [`PtyPeer.cpp`](pprzlink/examples/clients/PtyPeer.cpp) pour choisir le client
+  demandeur ou le serveur répondeur sur une liaison série ;
+- [`UdpMessages.cpp`](pprzlink/examples/clients/UdpMessages.cpp) pour choisir
+  l'émission d'une commande complète ou la réception avec son origine réseau.
 
 Les instructions de compilation et d'utilisation se trouvent dans
 [`README.md`](README.md) et [`API_USAGE.md`](API_USAGE.md). Les contraintes de

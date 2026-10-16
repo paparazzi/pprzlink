@@ -10,17 +10,19 @@ copié dans un autre projet et compilé avec le SDK installé.
 | --- | --- |
 | [SIUnits.cpp](pprzlink/examples/clients/SIUnits.cpp) | Consulter les unités XML/SI, arrondir une altitude vers l'entier XML, convertir les températures/tableaux et conserver l'encodage natif, sans I/O. |
 | [IvyReceiver.cpp](pprzlink/examples/clients/IvyReceiver.cpp) | S'abonner, lire une altitude en mètres par `getFieldSI()`, arrêter la boucle. L'abonnement est possédé par une variable locale ; le délai utilise encore l'API native Ivy. |
-| [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) | Ouvrir un port, publier une altitude en mètres par `setFieldSI()`, répondre à PING. L'application fournit et fait tourner son contexte Asio. |
+| [WorkshopIvy.cpp](pprzlink/examples/clients/WorkshopIvy.cpp) | Choisir `e` ou `r` pour publier ou recevoir une altitude avec le même exécutable. Attendre l'annonce de l'abonnement avant de publier, avec le XML du guide. |
+| [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) | Choisir le client sol (`c`) ou le serveur avion (`s`) ; échanger PING, une altitude en mètres SI et PONG sur deux ports série reliés. L'application fournit et fait tourner son contexte Asio. |
+| [UdpMessages.cpp](pprzlink/examples/clients/UdpMessages.cpp) | Choisir l'émetteur (`e`) ou le récepteur (`r`) d'une commande UDP avec le même exécutable, puis afficher l'origine réseau et les champs reçus. |
 | [UdpRecorder.cpp](pprzlink/examples/clients/UdpRecorder.cpp) | Recevoir trois messages avec leur adresse source et leur taille. Aucun bus Ivy n'est démarré ni lié au programme. |
 | [UdpSettingSender.cpp](pprzlink/examples/clients/UdpSettingSender.cpp) | Remplir les deux champs d'une commande dans un seul `setField()`, puis envoyer son datagramme à un pair de test local. |
-| [PtyRequester.cpp](pprzlink/examples/clients/PtyRequester.cpp) et [PtyResponder.cpp](pprzlink/examples/clients/PtyResponder.cpp) | Échanger une requête et une altitude entre deux processus sur des ports virtuels, avec le XML du guide. |
+| [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) | Choisir le client demandeur (`c`) ou le serveur répondeur (`s`) et échanger une altitude sur une liaison série, avec le XML du guide. |
 | [PtyAgent.cpp](pprzlink/examples/clients/PtyAgent.cpp) | Lancer le même agent aux deux extrémités : chaque processus publie et reçoit une altitude, sans rôle lié au port. |
 
 Ces exemples sont de petits clients exécutables de référence, pas des services
 complets de production. Les clients série/UDP/Ivy initiaux sont bornés à dix secondes.
 Utiliser le XML fourni avec un pair de test qui charge les mêmes définitions.
 
-Les deux exemples PTY utilisent `guide_messages.xml` et attendent jusqu'à
+Les deux rôles de `pty_peer` utilisent `guide_messages.xml` et attendent jusqu'à
 60 secondes, pour permettre leur lancement manuel dans deux terminaux.
 `pty_agent` utilise le même XML et continue jusqu'à Ctrl+C. Lancez deux
 instances avec des identifiants différents, sur **Port A** et **Port B**
@@ -468,25 +470,89 @@ Depuis `lib/v2.0/C++`, après préparation des dépendances décrites dans le RE
 ```sh
 cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
   -DCMAKE_BUILD_TYPE=Debug
-cmake --build build-gcc13 -j4
+cmake --build build-gcc13
 ctest --test-dir build-gcc13 --output-on-failure
 
 ./build-gcc13/ivy_receiver pprzlink/examples/clients/client_messages.xml 127.255.255.255:2010
-./build-gcc13/serial_aircraft pprzlink/examples/clients/client_messages.xml /dev/ttyUSB0
-./build-gcc13/udp_recorder pprzlink/examples/clients/client_messages.xml 4242
-./build-gcc13/udp_setting_sender pprzlink/examples/clients/client_messages.xml 4242
 ```
 
-`udp_setting_sender` envoie une seule commande `CLIENT_SETTING` pour l'avion
-42, avec `value=12.5`, vers `127.0.0.1` au port indiqué. Un pair de test doit
-écouter ce port pour la recevoir. Ce message appartient au XML d'exemple.
+Pour l'atelier Ivy du chapitre 8, le même exécutable utilise `guide_messages.xml`
+et un rôle `r` ou `e`. Dans deux terminaux :
+
+```sh
+# Premier terminal : attend une altitude pendant dix secondes.
+./build-gcc13/workshop_ivy pprzlink/examples/clients/guide_messages.xml r
+```
+
+```sh
+# Second terminal : attend l'abonnement du récepteur, puis publie une altitude de 123,5 m.
+./build-gcc13/workshop_ivy pprzlink/examples/clients/guide_messages.xml e
+```
+
+Le bus par défaut est `127.255.255.255:2010`. Un domaine facultatif peut suivre
+le rôle ; utilisez la même valeur dans les deux instances. L'émetteur attend
+le récepteur jusqu'à cinq secondes, ce qui permet aussi de le lancer en premier.
+Le `messages.xml` créé dans le guide peut remplacer `guide_messages.xml`.
+
+Pour l'exemple série, le troisième argument choisit le rôle. Dans un premier
+terminal, lancez le serveur avion :
+
+```sh
+# Le serveur 42 attend un PING, puis répond avec CLIENT_ALTITUDE et PONG.
+./build-gcc13/serial_aircraft pprzlink/examples/clients/client_messages.xml /dev/ttyUSB0 s
+```
+
+Dans un second terminal, lancez le client sol :
+
+```sh
+# Le client 0 envoie PING à l'avion 42 et affiche son altitude et son PONG.
+./build-gcc13/serial_aircraft pprzlink/examples/clients/client_messages.xml /dev/ttyUSB1 c
+```
+
+Les deux ports doivent être **distincts et reliés**, physiquement ou par des
+pseudo-terminaux. Le programme configure 57600 bauds, 8N1, sans contrôle de
+flux. Le client répète le PING toutes les 500 ms jusqu'à recevoir les deux
+réponses ; les deux rôles limitent leur attente à dix secondes et terminent
+après un échange réussi. Le client peut aussi démarrer avant le serveur.
+L'altitude est envoyée en réponse au PING, une fois le client prêt à la recevoir.
+
+Pour demander et fournir une altitude, le même programme `pty_peer` utilise
+`guide_messages.xml`. Dans deux terminaux, avec des ports distincts et reliés :
+
+```sh
+# Serveur avion 42 ; un port physique ou un pseudo-terminal peut être utilisé.
+./build-gcc13/pty_peer pprzlink/examples/clients/guide_messages.xml /dev/ttyUSB0 s
+```
+
+```sh
+# Client sol 0 ; répète la demande jusqu'à recevoir l'altitude, pendant au plus 60 secondes.
+./build-gcc13/pty_peer pprzlink/examples/clients/guide_messages.xml /dev/ttyUSB1 c
+```
+
+Pour émettre et enregistrer une commande UDP, utilisez `udp_messages` avec un
+rôle `r` ou `e` et le catalogue `client_messages.xml` :
+
+```sh
+# Premier terminal : reçoit un message et affiche sa source réseau et ses champs.
+./build-gcc13/udp_messages pprzlink/examples/clients/client_messages.xml 4242 r
+```
+
+```sh
+# Second terminal : envoie une commande CLIENT_SETTING à 127.0.0.1:4242.
+./build-gcc13/udp_messages pprzlink/examples/clients/client_messages.xml 4242 e
+```
+
+Le rôle `e` prépare l'avion 42 et `value=12.5` ; le rôle `r` termine après le
+premier message, ou après dix secondes sans réception. En réception, le port
+0 laisse le système choisir un port libre, affiché par le programme ; en
+émission, utilisez ce port effectivement attribué.
 
 Construction sans Ivy, incluant les exemples série/UDP et leurs tests :
 
 ```sh
 cmake -S . -B build-no-ivy -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
   -DPPRZLINK_WITH_IVY=OFF -DPPRZLINK_BUILD_LINK=OFF
-cmake --build build-no-ivy -j4
+cmake --build build-no-ivy
 ctest --test-dir build-no-ivy --output-on-failure
 ```
 
@@ -500,7 +566,7 @@ cmake --install build-gcc13 --prefix "$PWD/sdk"
 cp -R pprzlink/examples/clients /tmp/pprzlink-client-examples
 cmake -S /tmp/pprzlink-client-examples -B /tmp/pprzlink-client-build \
   -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 -DCMAKE_PREFIX_PATH="$PWD/sdk"
-cmake --build /tmp/pprzlink-client-build -j4
+cmake --build /tmp/pprzlink-client-build
 ```
 
 `-DCLIENTS_WITH_IVY=OFF` construit les trois clients série/UDP sans rechercher

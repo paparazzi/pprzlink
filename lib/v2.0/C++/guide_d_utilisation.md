@@ -41,6 +41,7 @@ GCC 13. Sous Ubuntu 24.04, les dépendances du début de ce guide s'installent
 avec :
 
 ```sh
+# Installe le compilateur C++23, les outils de construction et les dépendances de base.
 sudo apt install git g++-13 cmake libtinyxml2-dev libboost-dev
 ```
 
@@ -48,19 +49,24 @@ Ivy sera ajouté à l'étape 8. Commencez avec les commandes suivantes **à la
 racine du dépôt pprzlink** :
 
 ```sh
+# Repère les sources C++ et choisit le répertoire de travail de l'atelier.
 export PPRZLINK_CPP="$PWD/lib/v2.0/C++"
 export PPRZLINK_ATELIER=/tmp/pprzlink-guide
 
+# Configure une bibliothèque de débogage, sans Ivy, agent link++ ni tests.
 cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-lib" \
   -DCMAKE_CXX_COMPILER=g++-13 \
   -DCMAKE_BUILD_TYPE=Debug \
   -DPPRZLINK_WITH_IVY=OFF \
   -DPPRZLINK_BUILD_LINK=OFF \
   -DBUILD_TESTING=OFF
-cmake --build "$PPRZLINK_ATELIER/build-lib" -j4
+# Compile la bibliothèque et les exemples activés avec le parallélisme de l'environnement.
+cmake --build "$PPRZLINK_ATELIER/build-lib"
+# Installe les en-têtes, bibliothèques et cibles CMake dans le SDK de l'atelier.
 cmake --install "$PPRZLINK_ATELIER/build-lib" \
   --prefix "$PPRZLINK_ATELIER/sdk"
 
+# Crée le projet utilisateur, puis s'y place pour les étapes suivantes.
 mkdir -p "$PPRZLINK_ATELIER/projet"
 cd "$PPRZLINK_ATELIER/projet"
 ```
@@ -81,20 +87,25 @@ Créez `messages.xml` dans `projet` :
 ```xml
 <?xml version="1.0"?>
 <protocol>
+  <!-- Les messages de l'atelier partagent la classe guide, d'identifiant binaire 1. -->
   <msg_class name="guide" id="1">
+    <!-- Une altitude exprimée en mètres et stockée dans un float. -->
     <message name="GUIDE_ALTITUDE" id="1">
       <field name="altitude" type="float" unit="m"/>
     </message>
+    <!-- Une commande : avion visé dans ac_id et valeur du réglage dans value. -->
     <message name="GUIDE_SETTING" id="2">
       <field name="ac_id" type="uint8"/>
       <field name="value" type="float"/>
     </message>
+    <!-- Tableaux fixe et variable, étiquette de quatre caractères et texte libre. -->
     <message name="GUIDE_SAMPLES" id="3">
       <field name="axes" type="float[3]"/>
       <field name="samples" type="uint16[]"/>
       <field name="label" type="char[4]"/>
       <field name="text" type="string"/>
     </message>
+    <!-- Requête sans champs ; Ivy l'associera à la réponse GUIDE_ALTITUDE. -->
     <message name="GUIDE_ALTITUDE_REQ" id="4"/>
   </msg_class>
 </protocol>
@@ -120,8 +131,10 @@ Créez `CMakeLists.txt` à côté du XML :
 cmake_minimum_required(VERSION 3.20)
 project(atelier_pprzlink LANGUAGES CXX)
 
+# Cherche le SDK installé et ses fonctions de manipulation et d'encodage des messages.
 find_package(pprzlink++ CONFIG REQUIRED COMPONENTS core)
 
+# Crée le programme ; la cible core transmet ses dépendances et le standard C++23.
 add_executable(atelier main.cpp)
 target_link_libraries(atelier PRIVATE pprzlink::core)
 ```
@@ -148,11 +161,15 @@ int main(int argc, char **argv)
     }
 
     try {
+        // Charge les schémas XML ; les transports créés ensuite emprunteront ce dictionnaire.
         const pprzlink::MessageDictionary dictionary(argv[1]);
+        // Une définition décrit les champs ; elle ne contient aucune valeur de mesure.
         const auto &definition = dictionary.getDefinition("GUIDE_ALTITUDE");
+        // Crée un message dont les champs restent sans valeur jusqu'à leur écriture.
         pprzlink::Message altitude(definition);
 
         altitude.setField("altitude", 123.5f);
+        // Demande le type exact du XML : ici float, sans conversion d'unité.
         const float metres = altitude.getField<float>("altitude");
 
         std::cout << "Altitude : " << metres << " m\n";
@@ -168,9 +185,11 @@ int main(int argc, char **argv)
 Compilez et lancez :
 
 ```sh
+# Configure le projet avec GCC 13 et indique où trouver le SDK installé.
 cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-13 \
   -DCMAKE_PREFIX_PATH="$PPRZLINK_ATELIER/sdk"
-cmake --build build -j4
+# Compile le programme, puis lui fournit le catalogue XML chargé à l'exécution.
+cmake --build build
 ./build/atelier messages.xml
 ```
 
@@ -214,6 +233,7 @@ Nous voulons maintenant préparer un réglage pour l'avion 42. Ajoutez :
 
 ```cpp
 pprzlink::Message command(dictionary.getDefinition("GUIDE_SETTING"));
+// Ces trois identifiants appartiennent à l'en-tête, pas aux champs du XML.
 command.setSenderId(0);
 command.setReceiverId(42);
 command.setComponentId(0);
@@ -236,6 +256,7 @@ avec des valeurs différentes.
 Vous pouvez remplacer les deux écritures de champs par un seul appel :
 
 ```cpp
+// Les arguments vont par couples nom/valeur, traités dans cet ordre.
 command.setField("ac_id", 42, "value", 12.5);
 ```
 
@@ -259,10 +280,13 @@ même si le littéral C++ `42` est un `int`. De même, `12.5` est converti en
 Ajoutez l'en-tête `<cstdint>`, puis essayez :
 
 ```cpp
+// Lecture native : le type demandé doit correspondre exactement au XML.
 const auto aircraft = command.getField<std::uint8_t>("ac_id");
 const float exactValue = command.getField<float>("value");
+// Conversion numérique contrôlée de float vers double, sans changer l'unité.
 const double convertedValue = command.getFieldAs<double>("value");
 
+// uint8_t peut être un caractère pour cout ; le cast impose un affichage numérique.
 std::cout << "Avion " << static_cast<unsigned>(aircraft)
           << " : " << exactValue << " / " << convertedValue << '\n';
 ```
@@ -296,7 +320,9 @@ comme `"12.5"` en nombre.
 ou récupérer une grandeur SI, appelez les nouvelles méthodes :
 
 ```cpp
-altitude.setFieldSI("altitude", 123.5); // Mètres SI -> float XML, ici déjà en mètres.
+// Fournit des mètres ; le setter convertit vers l'unité et le type du champ XML.
+altitude.setFieldSI("altitude", 123.5);
+// Restitue en double la valeur SI correspondant à la valeur réellement stockée.
 double altitude_si_m = altitude.getFieldSI("altitude");
 std::cout << altitude_si_m << " m\n";
 ```
@@ -310,8 +336,10 @@ Le setter choisit le type de stockage déclaré par le champ XML.
 Les métadonnées sont consultables avant même de remplir un message :
 
 ```cpp
+// Emprunte les métadonnées du champ ; cette référence dépend de la durée de vie du message.
 const auto& info = altitude.getFieldDefinition("altitude");
 std::cout << "XML : " << info.getUnit() << "; alternative : " << info.getAltUnit() << '\n';
+// Le coefficient est facultatif : l'optional n'est lu que s'il contient une valeur.
 if (auto coefficient = info.getAltUnitCoef()) {
     std::cout << "Coefficient XML explicite : " << *coefficient << '\n';
 }
@@ -326,8 +354,10 @@ Pour essayer une conversion sans modifier de message, ajoutez `<cstdint>` et :
 
 ```cpp
 const pprzlink::MessageField distance("distance", "int32", {}, "mm");
-int32_t millimetres = distance.fromSI<int32_t>(1.23456); // 1235 mm.
-double distance_si_m = distance.toSI(millimetres);      // 1.235 m.
+// Convertit les mètres en int32 millimètres, avec arrondi au plus proche : 1235 mm.
+int32_t millimetres = distance.fromSI<int32_t>(1.23456);
+// Reconversion de l'entier stocké : l'arrondi précédent donne maintenant 1.235 m.
+double distance_si_m = distance.toSI(millimetres);
 std::cout << millimetres << " mm = " << distance_si_m << " m\n";
 ```
 
@@ -350,9 +380,11 @@ et `getFieldArraySI()` renvoie directement un `std::vector<double>` :
 ```cpp
 // Avec un champ XML : <field name="position" type="int16[3]" unit="cm"/>
 std::array<double, 3> position_m{1.0, -2.0, 3.0};
-message.setFieldSI("position", position_m); // Stocke 100, -200, 300 en int16.
+// L'array fournit un span pour l'appel ; le message possède les int16 convertis en cm.
+// Les valeurs stockées sont 100, -200, 300, sans conserver de vue sur position_m.
+message.setFieldSI("position", position_m);
+// Crée un vector<double> indépendant contenant 1.0, -2.0, 3.0 m.
 const auto position_si = message.getFieldArraySI("position");
-// Restitue 1.0, -2.0, 3.0 m, dans un vector<double> de trois éléments.
 ```
 
 Ajoutez `<array>` pour cet extrait. Le vecteur retourné prend la taille du
@@ -364,6 +396,7 @@ Les surcharges avec paramètre de sortie restent disponibles :
 
 ```cpp
 std::vector<double> output;
+// Remplace le vecteur de sortie par les valeurs SI ; sa taille suit celle du champ.
 message.getFieldSI("position", output);
 ```
 
@@ -377,6 +410,7 @@ ce XML et vérifie aussi l'encodage puis le décodage natif. Il se lance sans
 matériel ni réseau :
 
 ```sh
+# Lance l'exemple autonome de conversions SI, sans réseau ni matériel.
 "$PPRZLINK_ATELIER/build-lib/si_units"
 ```
 
@@ -388,8 +422,10 @@ La table de conversion est dans [UnitAliases.cpp](pprzlink/UnitAliases.cpp).
 Une règle décrit directement la pente et le décalage vers l'unité SI :
 
 ```cpp
+// Chaque règle donne le nom XML, le symbole SI, la pente et éventuellement l'offset.
 {"1e7deg", "rad", std::numbers::pi / (180.0 * 1e7)},
 {"deg_celsius", "K", 1.0, 273.15},
+// Les deux derniers paramètres limitent cette interprétation de C au champ ESC.temperature.
 {"C", "K", 1.0, 273.15, "ESC", "temperature"},
 {"adc", ""}, // Libellé reconnu ; conversion SI interdite sans calibration.
 ```
@@ -447,6 +483,7 @@ Ajoutez l'en-tête `<pprzlink/exceptions/pprzlink_exception.h>`, puis :
 
 ```cpp
 try {
+    // 300 déborde du uint8 XML : la validation échoue avant de remplacer le champ.
     command.setField("ac_id", 300);
 } catch (const pprzlink::field_conversion_error &error) {
     std::cout << "Valeur refusée : " << error.what() << '\n';
@@ -462,9 +499,11 @@ Pour préparer une modification qui doit réussir entièrement avant de remplace
 le message initial, travaillez sur une copie :
 
 ```cpp
+// La copie possède ses valeurs : une erreur ne modifiera que cette candidate.
 auto candidate = command;
 candidate.setField("ac_id", 43, "value", 15.0);
-command = candidate; // Exécuté seulement si les deux écritures ont réussi.
+// Cette affectation n'est atteinte que si toutes les écritures ont réussi.
+command = candidate;
 ```
 
 **À essayer :** demandez `getFieldAs<int>("value")` lorsque `value` vaut `12.5`.
@@ -477,14 +516,18 @@ Ajoutez les en-têtes `<array>`, `<span>`, `<vector>`, `<string>` et `<string_vi
 
 ```cpp
 pprzlink::Message samples(dictionary.getDefinition("GUIDE_SAMPLES"));
+// Les conteneurs sont copiés dans le message et les longueurs fixes sont vérifiées.
 samples.setField(
     "axes", std::array<float, 3>{1.0f, 2.0f, 3.0f},
     "samples", std::vector<std::uint16_t>{100, 200, 300},
     "label", std::string("TEST"),
     "text", std::string("Mesure de départ"));
 
+// Ces spans empruntent les tableaux natifs : aucun élément n'est copié ni converti.
+// Le remplacement du champ ou la destruction du message invalide la vue correspondante.
 const auto axes = samples.getField<std::span<const float>>("axes");
 const auto values = samples.getField<std::span<const std::uint16_t>>("samples");
+// Les string_view empruntent les caractères, en conservant leur longueur exacte.
 const auto label = samples.getField<std::string_view>("label");
 const auto description = samples.getField<std::string_view>("text");
 
@@ -505,6 +548,41 @@ champ, à la réaffectation ou à la destruction du message. Les lectures par in
 et avec paramètre de sortie acceptent également les spans. Les éléments sont
 constants : `std::span<T>` permettrait de les modifier, même si la vue est
 déclarée `const auto`, et n'est donc pas accepté par ces getters.
+
+Pour lire un tableau en unités SI, ses éléments doivent avoir une unité connue.
+Dans `messages.xml`, remplacez la définition du champ `axes` par :
+
+```xml
+<!-- Les trois valeurs natives sont en centimètres ; la lecture SI fournira des mètres. -->
+<field name="axes" type="float[3]" unit="cm"/>
+```
+
+Ajoutez ensuite cet extrait après la lecture des axes :
+
+```cpp
+// Convertit chaque float en cm vers un double en mètres, dans un vecteur possédé.
+// Ce résultat reste valide indépendamment des vues natives et de la durée de vie du message.
+const auto axes_si = samples.getFieldArraySI("axes");
+std::cout << "Axes en mètres :";
+for (const double metres : axes_si) {
+    std::cout << ' ' << metres;
+}
+std::cout << '\n';
+```
+
+Recompilez et relancez le programme pour recharger ce XML. Avec les valeurs
+natives `1.0f`, `2.0f`, `3.0f` écrites plus haut, vous obtenez :
+
+```text
+Axes en mètres : 0.01 0.02 0.03
+```
+
+`getFieldArraySI()` renvoie un `std::vector<double>` contenant les valeurs
+converties en SI. Vous n'avez à préciser ni le type XML ni la longueur : ce
+getter fonctionne pour les tableaux fixes et variables. Le vecteur possède
+ses éléments et reste valide si le champ est remplacé ou le message détruit.
+La lecture SI conserve les valeurs natives du message ; la vue `axes` contient
+toujours `1.0f`, `2.0f`, `3.0f`, exprimées ici en centimètres.
 
 `char[4]` représente quatre caractères, stockés comme un tableau. L'écriture
 depuis `std::string` est pratique. Pour obtenir une copie du tableau, utilisez
@@ -549,18 +627,27 @@ de l'étape 2, avant `return 0` :
 altitude.setSenderId(42);
 altitude.setReceiverId(0);
 
+// Le contexte exécutera les callbacks ; il doit survivre au périphérique et au transport.
 boost::asio::io_context context;
+// make_unique crée le périphérique, puis le transport en prend la propriété exclusive.
 pprzlink::PprzTransport loopback(
     std::make_unique<pprzlink::MemoryDevice>(context), dictionary);
+// Enregistre le callback ; [&] lui permet d'appeler loopback.stop() par référence.
+// Le Message reçu est emprunté seulement pendant cet appel.
 loopback.bind("GUIDE_ALTITUDE", [&](const pprzlink::Message &message) {
     std::cout << "Altitude décodée : "
               << message.getFieldSI("altitude") << " m\n";
+    // Désactive la réception ; les notifications déjà postées seront traitées sans nouveau message.
     loopback.stop();
 });
 
+// Active la réception avant l'envoi ; bind() seul ne commence pas à lire.
 loopback.start();
+// L'envoi écrit dans MemoryDevice ; le callback attend le traitement des événements.
 const auto frameSize = loopback.sendMessage(altitude);
 std::cout << "Trame complète : " << frameSize << " octets\n";
+// Exécute les callbacks sur ce thread. Après stop() et le traitement des notifications
+// restantes, aucune opération ne maintient la boucle active : run() rend la main.
 context.run();
 ```
 
@@ -584,9 +671,11 @@ interroger la réception. Le composant `core` suffit pour cet exemple.
 Pour préparer l'étape Ivy, ajoutez `<pprzlink/IvyMessageCodec.h>` :
 
 ```cpp
+// Produit le texte du protocole, avec les valeurs natives et les guillemets requis par Ivy.
 const auto line = pprzlink::ivy_codec::serializeMessage(altitude);
 std::cout << line << '\n';
 
+// Le parseur reçoit séparément la définition, l'expéditeur et le corps du message.
 auto fromText = pprzlink::ivy_codec::parseMessageBody(
     dictionary.getDefinition("GUIDE_ALTITUDE"),
     "42", "GUIDE_ALTITUDE 123.5");
@@ -620,7 +709,9 @@ Dans `CMakeLists.txt`, remplacez les lignes qui sélectionnent et lient `core`
 par :
 
 ```cmake
+# Le composant io ajoute UDP et la liaison série aux fonctions de core.
 find_package(pprzlink++ CONFIG REQUIRED COMPONENTS io)
+# Transmet au programme les bibliothèques et dépendances nécessaires aux entrées/sorties.
 target_link_libraries(atelier PRIVATE pprzlink::io)
 ```
 
@@ -648,8 +739,10 @@ int main(int argc, char **argv)
     try {
         using namespace std::chrono_literals;
         const pprzlink::MessageDictionary dictionary(argv[1]);
+        // Déclaré avant les transports, le contexte leur survivra à la destruction.
         boost::asio::io_context context;
 
+        // Le port 0 demande un port libre au système, distinct pour chaque socket.
         pprzlink::UdpTransport receiver(context, dictionary,
             {.local = {"127.0.0.1", 0}});
         pprzlink::UdpTransport sender(context, dictionary,
@@ -661,24 +754,40 @@ int main(int argc, char **argv)
         altitude.setFieldSI("altitude", 123.5);
 
         bool received = false;
+        // Fixe l'échéance à deux secondes ; la construction ne bloque pas le programme.
         boost::asio::steady_timer timeout(context, 2s);
+        // Programme un callback exécuté par run(), à l'échéance ou lors d'une annulation.
+        // [&] capture les variables locales par référence ; elles vivent jusqu'au retour de run().
         timeout.async_wait([&](const boost::system::error_code &error) {
+            // À l'échéance, error est vide : stop() annule la lecture UDP et ne la relance pas.
+            // Si le timer a été annulé après une réception, error vaut operation_aborted : on l'ignore.
             if (!error) receiver.stop();
         });
+        // Enregistre l'abonnement sans lire immédiatement ; les arguments seront empruntés au callback.
         receiver.bind("GUIDE_ALTITUDE",
             [&](const pprzlink::Message &message, const pprzlink::ReceiveInfo &info) {
+                // Une réception UDP fournit l'IP et le port source réels du datagramme.
                 const auto &peer = info.udpPeer.value();
                 std::cout << "Reçu de " << peer.address << ':' << peer.port
                           << " : " << message.toString() << '\n';
                 received = true;
+                // Désactive la réception pour empêcher la lecture suivante, sans arrêter le contexte partagé.
                 receiver.stop();
+                // Annule l'attente des deux secondes, sinon elle maintiendrait run() actif.
+                // Le callback d'une attente annulée reçoit operation_aborted.
                 timeout.cancel();
             });
+        // Arme la lecture avant l'envoi ; l'arrivée du message sera traitée dans run().
         receiver.start();
+        // Récupère le port choisi par le système, au lieu du 0 demandé au constructeur.
         const auto destination = receiver.localEndpoint();
+        // Écrit le datagramme ; cela ne déclenche pas le callback de réception sur-le-champ.
         const auto sent = sender.sendMessage(altitude, destination);
         std::cout << "Envoyé : " << sent << " octets vers le port "
                   << destination.port << '\n';
+        // Attend et traite les événements sur ce thread. Message reçu : lecture non relancée, timer annulé.
+        // Délai expiré : timer terminé et lecture annulée. Dans les deux cas, run() traite
+        // les dernières annulations puis rend la main, car il ne reste plus d'opération en attente.
         context.run();
         if (!received) throw std::runtime_error("Aucun message UDP reçu dans le délai prévu");
         return 0;
@@ -692,8 +801,10 @@ int main(int argc, char **argv)
 Reconfigurez, compilez et lancez :
 
 ```sh
+# Actualise la configuration après le passage de core à io.
 cmake -S . -B build
-cmake --build build -j4
+# Compile, puis lance l'échange entre les deux sockets UDP du programme.
+cmake --build build
 ./build/atelier messages.xml
 ```
 
@@ -715,11 +826,12 @@ Le timer empêche d'attendre indéfiniment. Asio attend les données ou l'éché
 aucune boucle avec `sleep_for()` n'est nécessaire. `stop()` annule les lectures
 de ce récepteur ; l'annulation du timer permet à `context.run()` de terminer.
 
-### Passer à deux programmes
+### Passer à deux processus
 
-Gardez le récepteur dans un programme et l'émetteur dans un autre. Faites
-écouter le récepteur sur `{"127.0.0.1", 4242}`, puis utilisez cette même
-destination à l'envoi. Pour écouter sur les interfaces réseau de la machine,
+Utilisez deux instances du même exécutable, avec les modes `receiver` et
+`emitter` de l'exemple présenté ci-dessous. Le récepteur écoute sur
+`{"127.0.0.1", 4242}` et l'émetteur utilise cette destination. Pour écouter sur
+les interfaces réseau de la machine,
 utilisez l'adresse locale `"0.0.0.0"` ; l'émetteur devra viser l'adresse IP
 réelle du récepteur.
 
@@ -744,13 +856,26 @@ L'exemple [WorkshopUdp.cpp](pprzlink/examples/clients/WorkshopUdp.cpp) propose
 `both`, `emitter` et `receiver`. Pour l'utiliser comme `main.cpp` :
 
 ```sh
+# Utilise l'exemple complet comme programme de l'atelier, puis le recompile.
 cp "$PPRZLINK_CPP/pprzlink/examples/clients/WorkshopUdp.cpp" main.cpp
-cmake --build build -j4
+cmake --build build
+# Le mode both réunit l'émetteur et le récepteur dans un même processus.
 ./build/atelier messages.xml both
 ```
 
-Dans deux terminaux, lancez le mode `receiver`, puis `emitter`. Le récepteur
-écoute sur 127.0.0.1:4242 pendant 30 secondes, ou jusqu'à Ctrl+C.
+Dans un premier terminal, lancez le mode `receiver` :
+
+```sh
+# Le même exécutable écoute sur 127.0.0.1:4242 pendant 30 secondes, ou jusqu'à Ctrl+C.
+./build/atelier messages.xml receiver
+```
+
+Dans le second terminal, lancez le mode `emitter` :
+
+```sh
+# Le rôle choisi par l'argument envoie les trois altitudes au récepteur.
+./build/atelier messages.xml emitter
+```
 
 ### Choisir les messages et leurs émetteurs
 
@@ -759,6 +884,7 @@ utilisez `receiver.bind(pprzlink::ALL, lambda)`. Le récepteur conserve le bindi
 il n'est pas nécessaire de garder l'identifiant retourné.
 
 ```cpp
+// Combine le nom du message et le senderId de l'en-tête PPRZLINK, distinct de l'adresse UDP.
 receiver.bind("GUIDE_ALTITUDE", {.senderId = 42},
     [](const pprzlink::Message &message) {
         std::cout << message.getFieldSI("altitude") << " m\n";
@@ -777,88 +903,192 @@ Sur une liaison série, deux objets coopèrent : le **Device** lit et écrit
 des octets ; le **Transport** transforme ces octets en messages PPRZLINK.
 Ici, nous utiliserons `BoostSerialPortDevice` et `PprzTransport`.
 
-Le projet reste lié à `pprzlink::io`. Cet exemple demande un port série
-accessible et un correspondant utilisant le même XML, le protocole PPRZ v2
-et les mêmes paramètres série. Remplacez tout `main.cpp` par :
+Le projet reste lié à `pprzlink::io`. Cet exemple utilise deux adaptateurs
+USB–série accessibles, le même fichier `messages.xml` et le protocole PPRZ v2.
+Les deux ports sont configurés par le programme en **57600 bauds, 8N1,
+sans contrôle de flux**.
+
+Reliez les deux adaptateurs avec des niveaux électriques compatibles :
+
+```text
+Adaptateur A       Adaptateur B
+TX ────────────── RX
+RX ────────────── TX
+GND ───────────── GND
+```
+
+Le même programme tourne dans deux terminaux. Son dernier argument choisit
+le rôle : `e` pour **émettre**, `r` pour **recevoir**.
+Remplacez tout `main.cpp` par :
 
 ```cpp
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Atelier série : émettre (e) ou recevoir (r) avec deux adaptateurs reliés.
 #include <pprzlink/BoostSerialPortDevice.h>
 #include <pprzlink/PprzTransport.h>
-#include <boost/asio/steady_timer.hpp>
-#include <chrono>
+#include <boost/asio/signal_set.hpp>
+#include <csignal>
 #include <exception>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
+#include <string_view>
 #include <utility>
+
+pprzlink::Message altitude(const pprzlink::MessageDictionary &dictionary, double metres)
+{
+  // Crée un message selon le schéma XML, avec un champ altitude encore sans valeur.
+  pprzlink::Message message(dictionary.getDefinition("GUIDE_ALTITUDE"));
+  // Ces identifiants appartiennent à l'en-tête PPRZLINK : avion 42 vers station sol 0.
+  message.setSenderId(42);
+  message.setReceiverId(0);
+  // Fournit des mètres ; la bibliothèque convertit vers l'unité et le type du XML.
+  message.setFieldSI("altitude", metres);
+  return message;
+}
+
+
+int receive(boost::asio::io_context &context, pprzlink::PprzTransport &transport,
+            const char *port)
+{
+  // Observe Ctrl+C (SIGINT) et SIGTERM pendant toute l'exécution de context.run().
+  boost::asio::signal_set signals(context, SIGINT, SIGTERM);
+  // Compte les messages décodés, pas les octets ni les fragments de trame.
+  unsigned int count = 0;
+  // [&] permet d'accéder au transport ; run() exécutera le callback sur ce thread.
+  signals.async_wait([&](const boost::system::error_code &error, int) {
+    // Un signal reçu sans erreur arrête la réception et annule la lecture série en cours.
+    // stop() n'arrête pas le contexte partagé avec d'autres canaux.
+    if (!error) transport.stop();
+  });
+  // ALL sélectionne tous les types du catalogue ; bind() enregistre le callback sans lire.
+  transport.bind(pprzlink::ALL, [&](const pprzlink::Message &message) {
+    // Le message est emprunté pendant cet appel ; copiez-le si vous devez le conserver.
+    std::cout << "Reçu : " << message.toString() << std::endl;
+    ++count;
+  });
+  // Commence les lectures asynchrones après avoir installé les callbacks.
+  transport.start();
+  std::cout << "Récepteur prêt sur " << port
+            << " (57600 bauds, 8N1 ; Ctrl+C pour arrêter)" << std::endl;
+  // Attend et traite les lectures et les signaux sur ce thread, sans interrogation périodique.
+  // Après un signal, son attente est terminée et la lecture est annulée ;
+  // run() traite les dernières notifications puis rend la main.
+  context.run();
+  std::cout << "Reçu " << count << " message(s)\n";
+  return 0;
+}
+
+
+int emit(pprzlink::PprzTransport &transport, const pprzlink::MessageDictionary &dictionary)
+{
+  // Chaque altitude produit un message distinct, entièrement rempli avant son envoi.
+  for (const double metres : {100.0, 110.0, 123.5}) {
+    const auto message = altitude(dictionary, metres);
+    // Encode une trame PPRZ v2 et l'écrit de façon synchrone sur le port série.
+    // Le résultat compte les octets écrits, sans confirmer la réception distante.
+    const auto sent = transport.sendMessage(message);
+    std::cout << "Envoyé : " << message.toString()
+              << " (" << sent << " octets)" << std::endl;
+  }
+  // Les écritures sont synchrones : ce mode termine sans start() ni context.run().
+  return 0;
+}
+
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        std::cerr << "Usage: atelier messages.xml port-serie\n";
-        return 2;
-    }
-    try {
-        using namespace std::chrono_literals;
-        const pprzlink::MessageDictionary dictionary(argv[1]);
-        boost::asio::io_context context;
+  // Attend le catalogue XML, le chemin du port et un rôle valide ; argc protège l'accès à argv[3].
+  if (argc != 4 || (std::string_view(argv[3]) != "e" && std::string_view(argv[3]) != "r")) {
+    std::cerr << "Usage: " << argv[0] << " messages.xml port-serie e|r\n"
+              << "  e : émettre trois altitudes\n"
+              << "  r : recevoir jusqu'à Ctrl+C\n";
+    return 2;
+  }
+  try {
+    // Charge les définitions à l'exécution ; le dictionnaire doit survivre au transport.
+    const pprzlink::MessageDictionary dictionary(argv[1]);
+    // Le contexte doit aussi survivre au port et au transport qui l'utilisent.
+    boost::asio::io_context context;
 
-        using Serial = pprzlink::BoostSerialPortDevice;
-        auto device = std::make_unique<Serial>(context, argv[2]);
-        device->setBaudrate(Serial::Baudrate(57600));
-        device->setDataBits(Serial::DataBits(8));
-        device->setParity(Serial::Parity(Serial::Parity::none));
-        device->setStopBits(Serial::StopBits(Serial::StopBits::one));
-        device->setFlowcontrol(Serial::Flowcontrol(Serial::Flowcontrol::none));
+    using Serial = pprzlink::BoostSerialPortDevice;
+    // Ouvre le port indiqué ; make_unique prépare sa propriété exclusive.
+    auto device = std::make_unique<Serial>(context, argv[2]);
+    // Configure le port avant de transférer sa propriété au transport ; les deux côtés doivent correspondre.
+    device->setBaudrate(Serial::Baudrate(57600)); // Débit de la liaison : 57600 bauds.
+    device->setDataBits(Serial::DataBits(8)); // 8 bits de données.
+    device->setParity(Serial::Parity(Serial::Parity::none)); // N : aucune parité.
+    device->setStopBits(Serial::StopBits(Serial::StopBits::one)); // 1 : un bit d'arrêt.
+    device->setFlowcontrol(Serial::Flowcontrol(Serial::Flowcontrol::none)); // Aucun contrôle de flux.
 
-        pprzlink::PprzTransport transport(std::move(device), dictionary);
-
-        pprzlink::Message altitude(dictionary.getDefinition("GUIDE_ALTITUDE"));
-        altitude.setSenderId(42);
-        altitude.setReceiverId(0);
-        altitude.setFieldSI("altitude", 123.5);
-        transport.sendMessage(altitude);
-
-        bool received = false;
-        boost::asio::steady_timer timeout(context, 10s);
-        timeout.async_wait([&](const boost::system::error_code &error) {
-            if (!error) transport.stop();
-        });
-        transport.bind(pprzlink::ALL, [&](const pprzlink::Message &message) {
-            std::cout << message.toString() << '\n';
-            received = true;
-            transport.stop();
-            timeout.cancel();
-        });
-        transport.start();
-        context.run();
-        if (!received) throw std::runtime_error("Aucun message série reçu en 10 secondes");
-        return 0;
-    } catch (const std::exception &error) {
-        std::cerr << error.what() << '\n';
-        return 1;
-    }
+    // Le transport encadre/décode les messages et devient propriétaire du port.
+    // std::move vide device ; le transport fermera le port à sa destruction.
+    pprzlink::PprzTransport transport(std::move(device), dictionary);
+    // L'émetteur écrit puis termine ; le récepteur attend jusqu'à Ctrl+C.
+    if (std::string_view(argv[3]) == "e") return emit(transport, dictionary);
+    return receive(context, transport, argv[2]);
+  } catch (const std::exception &error) {
+    // Affiche les erreurs de chargement du XML, de configuration du port ou d'I/O.
+    // À la sortie du bloc try, le transport est détruit avant le contexte et le dictionnaire.
+    std::cerr << "Erreur : " << error.what() << '\n';
+    return 1;
+  }
 }
 ```
 
-Compilez comme précédemment, puis adaptez le nom du périphérique :
+Compilez depuis le répertoire `projet` :
 
 ```sh
-./build/atelier messages.xml /dev/ttyUSB0
+# Recompile l'atelier après avoir remplacé le programme UDP par le programme série.
+cmake --build build
 ```
 
-Le programme envoie une altitude, puis attend un message du correspondant.
-Il ne reçoit pas automatiquement une copie de son propre envoi.
+Dans un premier terminal, lancez le **récepteur** sur l'adaptateur A :
+
+```sh
+# Le rôle r écoute sur le premier adaptateur jusqu'à Ctrl+C.
+./build/atelier messages.xml /dev/ttyUSB0 r
+```
+
+Attendez l'affichage de « Récepteur prêt ». Dans un second terminal, depuis
+le même répertoire `projet`, lancez l'**émetteur** sur l'adaptateur B :
+
+```sh
+# Le rôle e envoie les trois altitudes sur le second adaptateur, puis termine.
+./build/atelier messages.xml /dev/ttyUSB1 e
+```
+
+Adaptez `/dev/ttyUSB0` et `/dev/ttyUSB1` aux noms réels de vos périphériques.
+Chaque processus ouvre son propre adaptateur ; les deux utilisent le même XML.
+
+Le mode `e` envoie trois messages `GUIDE_ALTITUDE` : **100, 110 et 123,5 m**,
+puis termine. `sendMessage()` écrit chaque trame sur le port ; son retour
+ne confirme pas sa réception par le correspondant.
+
+Le mode `r` affiche les messages reçus et continue à écouter. Arrêtez-le
+avec **Ctrl+C** ; il affiche alors le nombre de messages reçus. Il n'émet
+aucun message et n'a pas de délai d'expiration.
+
+Avec cette liaison, le récepteur doit afficher :
+
+```text
+Reçu : GUIDE_ALTITUDE [altitude=100.000000]
+Reçu : GUIDE_ALTITUDE [altitude=110.000000]
+Reçu : GUIDE_ALTITUDE [altitude=123.500000]
+```
 
 `std::move(device)` transfère au transport la propriété du périphérique :
 le transport le détruira à sa propre destruction. La variable `device` est
 alors vide ; configurez donc le port avant ce transfert.
 
-Comme UDP, la réception série utilise Boost.Asio. `context.run()` traite les
-lectures et les abonnements ; les callbacks applicatifs sont appelés après la
-libération du mutex d'I/O du périphérique. Une lambda peut envoyer une réponse,
-se désabonner ou arrêter son récepteur. `stop()` conserve les bindings pour un
-éventuel `start()` ultérieur, sans arrêter un contexte partagé avec d'autres canaux.
+Comme UDP, la réception série utilise Boost.Asio. `transport.start()` commence
+les lectures asynchrones, puis `context.run()` traite les lectures et les
+abonnements. Le `signal_set` reçoit Ctrl+C et appelle `transport.stop()` pour
+annuler la lecture en cours ; le contexte rend alors la main.
+
+Les callbacks applicatifs sont appelés après la libération du mutex d'I/O du
+périphérique. Une lambda peut envoyer une réponse, se désabonner ou arrêter
+son récepteur. `stop()` conserve les bindings pour un éventuel `start()`
+ultérieur, sans arrêter un contexte partagé avec d'autres canaux.
 
 L'ordre des déclarations est intentionnel : le transport est détruit avant
 le contexte et le dictionnaire qu'il utilise. Nous reviendrons à ces durées
@@ -870,8 +1100,10 @@ Un transport peut recevoir plusieurs types de messages. Dans une application
 qui poursuit sa réception, remplacez l'abonnement `ALL` de l'exemple par :
 
 ```cpp
+// Le filtre vérifie le destinataire de l'en-tête, pas le champ applicatif ac_id.
 transport.bind("GUIDE_SETTING", {.receiverId = 42},
     [](const pprzlink::Message &message) {
+        // uint8 -> int est une conversion numérique contrôlée ; value reste lu comme float XML.
         const auto aircraft = message.getFieldAs<int>("ac_id");
         const auto value = message.getField<float>("value");
         std::cout << "Réglage pour " << aircraft << " : " << value << '\n';
@@ -882,14 +1114,35 @@ La bibliothèque ne décide pas à votre place si un message reçu doit être
 appliqué à votre avion. Vérifiez le type de message et les informations
 d'adressage attendues par votre application.
 
-Pour un exemple série complet qui émet une altitude puis répond à un PING,
-consultez [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp),
-avec son propre fichier `client_messages.xml`.
+Pour tester les deux côtés avec le même programme, utilisez
+[SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) et son
+catalogue `client_messages.xml`. Son troisième argument choisit `s` pour le
+**serveur avion 42**, ou `c` pour le **client sol 0**. Dans un premier terminal :
+
+```sh
+# Le serveur répond au premier PING par une altitude de 123,5 m, puis par PONG.
+"$PPRZLINK_ATELIER/build-lib/serial_aircraft" \
+  "$PPRZLINK_CPP/pprzlink/examples/clients/client_messages.xml" /dev/ttyUSB0 s
+```
+
+Dans le second terminal :
+
+```sh
+# Le client envoie le PING et attend l'altitude et le PONG sur l'autre port relié.
+"$PPRZLINK_ATELIER/build-lib/serial_aircraft" \
+  "$PPRZLINK_CPP/pprzlink/examples/clients/client_messages.xml" /dev/ttyUSB1 c
+```
+
+Les ports doivent être distincts et reliés, comme dans l'exemple précédent.
+Les deux rôles attendent au plus dix secondes. Le client réessaie toutes les
+500 ms, ce qui permet aussi de le lancer avant le serveur. L'altitude part
+après le PING, lorsque le client est prêt à la recevoir ; les deux processus
+terminent une fois l'échange achevé.
 
 ### Essayer deux processus sur des pseudo-terminaux
 
 Sur Linux, `link++ -socat start` crée deux ports virtuels reliés et rend la main.
-Il sert ici à gérer la liaison : les deux programmes de l'atelier utilisent
+Il sert ici à gérer la liaison : les deux instances de l'atelier utilisent
 directement la bibliothèque, sans lancer l'agent de télémétrie ni le bus Ivy.
 Le programme `socat` doit être installé et accessible sur PATH.
 
@@ -908,11 +1161,14 @@ Depuis la **racine du dépôt Paparazzi**, compilez les exemples une fois dans
 un répertoire distinct de celui du `make` habituel :
 
 ```sh
+# Configure une construction distincte avec les exemples et l'outil link++.
 cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-pty \
   -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=Debug \
   -DPPRZLINK_BUILD_EXAMPLES=ON -DPPRZLINK_BUILD_LINK=ON -DBUILD_TESTING=OFF
+# Compile uniquement l'outil de gestion de la liaison et l'agent de démonstration.
 cmake --build var/build/pprzlink-pty \
-  --target link++ pty_agent -j4
+  --target link++ pty_agent
+# Crée les deux pseudo-terminaux reliés ; relève les noms Port A et Port B affichés.
 ./var/build/pprzlink-pty/apps/link/link++ -socat start
 ```
 
@@ -921,6 +1177,7 @@ Le démarrage affiche **Port A** et **Port B**, par exemple `/dev/pts/12` et
 l'identifiant 1 :
 
 ```sh
+# Lance l'agent 1 sur Port A ; remplace /dev/pts/12 par le chemin affiché par start.
 ./var/build/pprzlink-pty/pty_agent \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
   /dev/pts/12 1
@@ -929,6 +1186,7 @@ l'identifiant 1 :
 Dans un second terminal, ouvrez l'autre port avec l'identifiant 2 :
 
 ```sh
+# Lance l'agent 2 sur Port B ; remplace /dev/pts/13 par l'autre chemin affiché.
 ./var/build/pprzlink-pty/pty_agent \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
   /dev/pts/13 2
@@ -951,6 +1209,7 @@ temporaires : utilisez les valeurs réellement affichées par `start`.
 À la fin, arrêtez les deux agents avec Ctrl+C, puis la liaison :
 
 ```sh
+# Arrête socat et supprime la liaison virtuelle après l'arrêt des deux agents.
 ./var/build/pprzlink-pty/apps/link/link++ -socat stop
 ```
 
@@ -960,13 +1219,36 @@ l'étape 1 : les définitions sont identiques. Cet exemple se compile
 décrit dans [API_USAGE.md](API_USAGE.md). Il se lie uniquement à
 `pprzlink::io`, sans Ivy.
 
-Pour travailler spécifiquement la requête et la réponse, les exemples
-[PtyRequester.cpp](pprzlink/examples/clients/PtyRequester.cpp) et
-[PtyResponder.cpp](pprzlink/examples/clients/PtyResponder.cpp) restent
-disponibles. Compilez les cibles `pty_requester` et `pty_responder`, puis
-lancez chaque programme avec `messages.xml` et l'un des ports ; ils échangent
-`GUIDE_ALTITUDE_REQ` et `GUIDE_ALTITUDE` et terminent après la réponse.
-Leurs rôles applicatifs n'imposent pas non plus le choix de Port A ou Port B.
+Pour travailler spécifiquement la requête et la réponse, utilisez le même
+programme [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) aux deux
+extrémités. Son troisième argument choisit `c` pour le client demandeur ou
+`s` pour le serveur répondeur. Depuis la racine du dépôt Paparazzi :
+
+```sh
+# Compile l'unique exécutable qui contient les deux rôles série.
+cmake --build var/build/pprzlink-pty --target pty_peer
+```
+
+Dans le premier terminal :
+
+```sh
+# Le serveur avion 42 répond sur Port A ; utilise le chemin réellement affiché par socat.
+./var/build/pprzlink-pty/pty_peer \
+  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/12 s
+```
+
+Dans le second terminal :
+
+```sh
+# Le client sol 0 demande une altitude sur Port B et affiche la réponse reçue.
+./var/build/pprzlink-pty/pty_peer \
+  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/13 c
+```
+
+Les deux rôles échangent `GUIDE_ALTITUDE_REQ` et `GUIDE_ALTITUDE`, puis
+terminent après la réponse. Ils attendent au plus 60 secondes ; le client
+réessaie toutes les 500 ms. Vous pouvez permuter les ports et l'ordre de
+lancement. Le `messages.xml` du guide peut remplacer `guide_messages.xml`.
 
 ## 8. Recevoir et publier sur Ivy
 
@@ -984,11 +1266,14 @@ Une fois ces dépendances installées, vérifiez leur découverte et reconstruis
 le SDK :
 
 ```sh
+# Vérifie que pkg-config trouve les interfaces C++ et C d'Ivy dans leur version installée.
 pkg-config --modversion ivy-cpp ivy-c
 
+# Réactive Ivy dans la construction existante, puis reconstruit la bibliothèque.
 cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-lib" \
   -DPPRZLINK_WITH_IVY=ON
-cmake --build "$PPRZLINK_ATELIER/build-lib" -j4
+cmake --build "$PPRZLINK_ATELIER/build-lib"
+# Met à jour le SDK pour rendre le composant Ivy disponible au projet utilisateur.
 cmake --install "$PPRZLINK_ATELIER/build-lib" \
   --prefix "$PPRZLINK_ATELIER/sdk"
 ```
@@ -997,150 +1282,176 @@ Dans le `CMakeLists.txt` du projet, remplacez le composant `io` par `ivy` et
 la cible `pprzlink::io` par `pprzlink::ivy`, puis reconfigurez avec
 `cmake -S . -B build`.
 
-### Recevoir une altitude par abonnement
+### Un programme, deux rôles
 
-Remplacez `main.cpp` par ce programme complet :
+Le même `main.cpp` reçoit ou publie selon son deuxième argument : `r` pour
+**recevoir**, `e` pour **émettre**. Le premier argument reste `messages.xml`.
+Le domaine Ivy est facultatif ; sa valeur par défaut est
+`127.255.255.255:2010`.
 
-```cpp
-#include <pprzlink/IvyLink.h>
-#include <chrono>
-#include <exception>
-#include <iostream>
-#include <system_error>
-
-int main(int argc, char **argv)
-{
-    if (argc != 2) {
-        std::cerr << "Usage: atelier messages.xml\n";
-        return 2;
-    }
-    try {
-        const pprzlink::MessageDictionary dictionary(argv[1]);
-        bool received = false;
-        pprzlink::IvyLink link(dictionary, "guide-recepteur",
-                               "127.255.255.255:2010");
-
-auto subscription = link.subscribeMessage("GUIDE_ALTITUDE",
-            [&](std::string sender, pprzlink::Message message) {
-                std::cout << "Altitude de " << sender << " : "
-                          << message.getFieldSI("altitude") << " m\n";
-                received = true;
-                link.stop();
-            });
-
-        auto timeout = link.getBus().bind_event(
-            [&](std::chrono::milliseconds) { link.stop(); },
-            ivy::after(std::chrono::seconds(10)));
-        if (!timeout) {
-            throw std::system_error(timeout.error(), "Temporisation Ivy");
-        }
-
-        std::cout << "Attente sur Ivy pendant 10 secondes..." << std::endl;
-        link.run();
-        if (!received) {
-            std::cerr << "Aucune altitude reçue\n";
-        }
-        return received ? 0 : 1;
-    } catch (const std::exception &error) {
-        std::cerr << error.what() << '\n';
-        return 1;
-    }
-}
-```
-
-Le callback reçoit **un message complet**, avec les champs déjà décodés.
-Son argument `sender` est le nom textuel de l'expéditeur sur Ivy.
-
-Conservez `subscription` pendant toute la durée souhaitée de l'abonnement.
-Cet objet se désabonne à sa destruction. Si vous ignorez le résultat de
-`subscribeMessage()`, l'abonnement temporaire disparaît immédiatement.
-
-Dans ce programme, `link.run()` exécute la boucle Ivy sur le thread appelant.
-Le callback appelle `stop()`, puis `run()` rend la main. La temporisation
-arrête également la boucle si aucun message n'arrive. Les deux chemins
-permettent aux objets locaux d'être détruits proprement.
-
-### Publier depuis un second programme
-
-Créez `emetteur_ivy.cpp` à côté de `main.cpp` :
+Remplacez tout `main.cpp` par le programme suivant. Il est également disponible
+dans [WorkshopIvy.cpp](pprzlink/examples/clients/WorkshopIvy.cpp) :
 
 ```cpp
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Atelier Ivy : le même programme publie (e) ou reçoit (r) une altitude.
 #include <pprzlink/IvyLink.h>
 #include <chrono>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <thread>
 
-int main(int argc, char **argv)
-{
-    if (argc != 2) {
-        std::cerr << "Usage: emetteur_ivy messages.xml\n";
-        return 2;
+namespace {
+    void waitForReceiver(pprzlink::IvyLink &link)
+    {
+        // Ivy découvre les applications et leurs abonnements de façon asynchrone.
+        // L'horloge monotone borne cette découverte à cinq secondes.
+        const auto deadline = std::chrono::steady_clock::now()
+                            + std::chrono::seconds(5);
+        while (std::chrono::steady_clock::now() < deadline) {
+            // Un résultat valide peut encore contenir un optional vide : aucun pair trouvé.
+            const auto peer = link.getBus().find_application("guide-recepteur");
+            if (!peer) throw std::system_error(peer.error(), "Recherche du récepteur Ivy");
+            if (*peer) {
+                // **peer fournit l'application ; ses regex décrivent les abonnements annoncés.
+                const auto bindings = link.getBus().application_regexps(**peer);
+                if (!bindings) throw std::system_error(bindings.error(), "Abonnements Ivy");
+                if (!bindings->empty()) return;
+            }
+            // Le thread principal attend ; le thread Ivy continue à découvrir les pairs.
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        throw std::runtime_error("Abonnement du récepteur introuvable après 5 secondes");
     }
-    try {
-        const pprzlink::MessageDictionary dictionary(argv[1]);
+
+    int receive(const pprzlink::MessageDictionary &dictionary, const std::string &domain)
+    {
+        bool received = false;
+        // Sans argument true, la boucle Ivy sera exécutée par link.run() sur ce thread.
+        pprzlink::IvyLink link(dictionary, "guide-recepteur", domain);
+        // Conserve le jeton : sa destruction désabonne le callback.
+        // [&] permet de modifier received et d'arrêter link pendant toute l'attente.
+        auto subscription = link.subscribeMessage("GUIDE_ALTITUDE",
+            [&](std::string sender, pprzlink::Message message) {
+                // Le callback reçoit un message complet ; son expéditeur Ivy est textuel.
+                std::cout << "Altitude de " << sender << " : "
+                          << message.getFieldSI("altitude") << " m" << std::endl;
+                received = true;
+                link.stop();
+            });
+        // Le résultat possède le jeton du timer ; sa durée de vie conserve l'attente active.
+        auto timeout = link.getBus().bind_event(
+            [&](std::chrono::milliseconds) { link.stop(); },
+            ivy::after(std::chrono::seconds(10)));
+        if (!timeout) throw std::system_error(timeout.error(), "Temporisation Ivy");
+        std::cout << "Récepteur prêt sur Ivy (" << domain
+                  << ", attente de 10 secondes)" << std::endl;
+        // Traite messages et timer sur ce thread, jusqu'à link.stop().
+        // subscription et timeout restent vivants pendant tout run().
+        link.run();
+        if (!received) std::cerr << "Aucune altitude reçue\n";
+        return received ? 0 : 1;
+    }
+
+    int emit(const pprzlink::MessageDictionary &dictionary, const std::string &domain)
+    {
+        // Remplit une altitude en mètres SI ; le XML choisit l'unité et le type transmis.
         pprzlink::Message altitude(dictionary.getDefinition("GUIDE_ALTITUDE"));
         altitude.setSenderId(42);
         altitude.setFieldSI("altitude", 123.5);
-
-        pprzlink::IvyLink link(dictionary, "guide-emetteur",
-                               "127.255.255.255:2010", true);
-        std::cout << "Démarrez le récepteur, puis appuyez sur Entrée.\n";
-        std::cin.get();
-
-        // Attendre que l'abonnement du récepteur soit visible sur le bus.
-        bool ready = false;
-        const auto deadline = std::chrono::steady_clock::now()
-                            + std::chrono::seconds(5);
-        while (!ready && std::chrono::steady_clock::now() < deadline) {
-            const auto peer = link.getBus().find_application("guide-recepteur");
-            if (peer && *peer) {
-                const auto bindings = link.getBus().application_regexps(**peer);
-                ready = bindings && !bindings->empty();
-            }
-            if (!ready) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-        }
-        if (!ready) {
-            throw std::runtime_error("Abonnement du récepteur introuvable");
-        }
+        // true démarre un thread Ivy pendant que le thread principal attend la découverte.
+        // Le destructeur du lien arrêtera et rejoindra ce thread.
+        pprzlink::IvyLink link(dictionary, "guide-emetteur", domain, true);
+        std::cout << "Émetteur prêt sur Ivy (" << domain << ')' << std::endl;
+        waitForReceiver(link);
+        // Publie après l'annonce de l'abonnement : Ivy ne conserve pas les messages pour plus tard.
         link.sendMessage(altitude);
-
+        std::cout << "Altitude publiée sur Ivy." << std::endl;
+        // Remonte sur ce thread les erreurs éventuelles des callbacks du thread Ivy.
         const auto status = link.getBus().take_callback_error();
         if (!status) throw std::system_error(status.error(), "Callback Ivy");
         return 0;
+    }
+}
+
+int main(int argc, char **argv)
+{
+    // Le rôle suit le XML ; un domaine facultatif permet de choisir un autre bus Ivy.
+    if (argc < 3 || argc > 4 ||
+        (std::string_view(argv[2]) != "e" && std::string_view(argv[2]) != "r")) {
+        std::cerr << "Usage: " << argv[0] << " messages.xml e|r [domaine-Ivy]\n"
+                  << "  e : publier une altitude\n"
+                  << "  r : recevoir une altitude\n";
+        return 2;
+    }
+    try {
+        // Le catalogue reste vivant jusqu'au retour du rôle choisi et à la destruction de son lien.
+        const pprzlink::MessageDictionary dictionary(argv[1]);
+        const std::string domain = argc == 4 ? argv[3] : "127.255.255.255:2010";
+        if (std::string_view(argv[2]) == "e") return emit(dictionary, domain);
+        return receive(dictionary, domain);
     } catch (const std::exception &error) {
+        // Les erreurs XML, de découverte ou de callbacks donnent un code de sortie non nul.
         std::cerr << error.what() << '\n';
         return 1;
     }
 }
 ```
 
-Ajoutez ces deux lignes à `CMakeLists.txt`, puis recompilez :
+La fonction `receive()` utilise `subscribeMessage()`. Son callback reçoit
+**un message complet**, avec les champs déjà décodés, et le nom textuel de
+l'expéditeur dans `sender`. Conservez `subscription` pendant toute la durée
+souhaitée de l'abonnement : sa destruction désabonne le callback.
 
-```cmake
-add_executable(emetteur_ivy emetteur_ivy.cpp)
-target_link_libraries(emetteur_ivy PRIVATE pprzlink::ivy)
+`link.run()` traite les événements sur le thread appelant. Le callback arrête
+cette boucle après la première altitude ; le timer l'arrête aussi si aucun
+message n'arrive pendant dix secondes. Son jeton reste vivant dans `timeout`
+pendant toute l'attente.
+
+La fonction `emit()` construit le message et fournit l'altitude en mètres SI.
+Le paramètre `true` du constructeur démarre une boucle Ivy sur un thread
+appartenant au lien. Ce thread poursuit la découverte pendant que le thread
+principal attend dans `waitForReceiver()`. Dans ce rôle, la boucle est déjà
+active ; le destructeur du lien l'arrête et rejoint son thread.
+
+Ivy publie auprès des abonnés présents au moment de l'envoi. La découverte
+vérifie donc l'application `guide-recepteur` **et ses abonnements annoncés**
+avant de publier. Elle attend au plus cinq secondes ; aucune saisie au clavier
+n'est nécessaire.
+
+### Lancer les deux instances
+
+Reconfigurez et compilez l'unique exécutable `atelier` :
+
+```sh
+# Actualise le lien vers le composant Ivy, puis compile le programme avec ses deux rôles.
+cmake -S . -B build
+cmake --build build
 ```
 
-Lancez d'abord `./build/emetteur_ivy messages.xml`. Dans un second terminal
-placé dans `projet`, lancez `./build/atelier messages.xml`, puis appuyez sur
-Entrée dans le premier terminal avant la fin des dix secondes d'attente.
-Le récepteur doit afficher `Altitude de 42 : 123.5 m`.
+Dans un premier terminal, depuis `projet`, lancez le récepteur :
 
-Le paramètre `true` du constructeur de l'émetteur démarre la boucle Ivy sur
-un thread appartenant au lien. Cela lui permet de découvrir le récepteur
-pendant que le thread principal attend au clavier. Dans ce mode, n'appelez
-pas `run()` : la boucle fonctionne déjà. Le destructeur arrête et rejoint
-ce thread.
+```sh
+# Le rôle r attend une altitude sur le bus Ivy pendant dix secondes au maximum.
+./build/atelier messages.xml r
+```
 
-Ivy diffuse les publications aux abonnés présents ; l'envoi ne conserve pas
-un message pour un récepteur qui s'abonnerait plus tard. C'est pourquoi cet
-exemple attend de voir l'abonnement avant de publier. Pour un échange
-automatique sans clavier, voyez [IvyRoundTrip.cpp](pprzlink/examples/IvyRoundTrip.cpp).
+Dans un second terminal, depuis le même répertoire, lancez l'émetteur :
+
+```sh
+# Le rôle e attend l'abonnement du récepteur, publie 123,5 m et termine.
+./build/atelier messages.xml e
+```
+
+Le récepteur doit afficher `Altitude de 42 : 123.5 m`, puis terminer.
+L'émetteur peut aussi démarrer en premier si le récepteur le rejoint avant
+l'expiration des cinq secondes de découverte. Pour choisir un autre bus,
+ajoutez son domaine après le rôle, identique pour les deux instances, par
+exemple `./build/atelier messages.xml r 127.255.255.255:2020`.
 
 Le nom d'application `guide-emetteur` identifie le participant Ivy.
 `setSenderId(42)` identifie l'expéditeur dans le message PPRZLINK : ce sont
@@ -1152,7 +1463,9 @@ numérique.
 Enfin, le format texte Ivy n'encode pas les destinataire et composant de
 l'en-tête binaire. `setReceiverId()` ne sélectionne donc pas un destinataire
 sur le bus Ivy. Le contenu XML et les règles de l'application déterminent
-comment traiter une commande.
+comment traiter une commande. L'exemple
+[IvyRoundTrip.cpp](pprzlink/examples/IvyRoundTrip.cpp) réunit aussi deux liens
+Ivy dans un même processus pour un échange autonome.
 
 ## 9. Faire une requête et attendre sa réponse
 
@@ -1167,19 +1480,21 @@ sur série demande sa propre logique applicative.
 
 ### Transformer le récepteur en répondeur
 
-Reprenez le `main.cpp` Ivy. Remplacez uniquement l'abonnement à
-`GUIDE_ALTITUDE` par :
+Reprenez le programme unique de l'étape 8. Dans sa fonction `receive()`,
+remplacez uniquement l'abonnement à `GUIDE_ALTITUDE` par :
 
 ```cpp
+// Conserve l'abonnement jusqu'à sa destruction ; le lien associe chaque demande à sa réponse.
 auto subscription = link.subscribeRequestAnswerer(
     dictionary.getDefinition("GUIDE_ALTITUDE_REQ"),
     [&](std::string sender, pprzlink::Message request) {
         (void)request; // Cette requête n'a aucun champ.
-        std::cout << "Demande reçue de " << sender << '\n';
+        std::cout << "Demande reçue de " << sender << std::endl;
         pprzlink::Message answer(dictionary.getDefinition("GUIDE_ALTITUDE"));
         answer.setSenderId(42);
         answer.setFieldSI("altitude", 123.5);
         received = true;
+        // Retourne la réponse au lien, qui l'enverra avec la corrélation de cette requête.
         return answer;
     });
 ```
@@ -1191,38 +1506,51 @@ programme, et peut traiter plusieurs demandes pendant cet intervalle.
 
 ### Transformer l'émetteur en demandeur
 
-Dans `emetteur_ivy.cpp`, ajoutez `<future>` et `<memory>`. Remplacez la
-construction du message `altitude`, avant celle du lien, par :
+Dans le même `main.cpp`, ajoutez `<future>` et `<memory>` aux en-têtes.
+Dans la fonction `emit()`, remplacez la construction et le remplissage du
+message `altitude`, avant la construction du lien, par :
 
 ```cpp
+// La promesse transmet le résultat du thread Ivy au thread principal.
+// shared_ptr la maintient vivante si un callback est encore en cours après désabonnement.
 auto result = std::make_shared<std::promise<double>>();
+// Le future permet d'attendre ce résultat, puis de récupérer sa valeur ou son exception.
 auto future = result->get_future();
 pprzlink::Message request(dictionary.getDefinition("GUIDE_ALTITUDE_REQ"));
 request.setSenderId(std::string("station-sol"));
 ```
 
-Gardez le lien Ivy, l'attente au clavier et la découverte de l'abonnement.
-À la place de `link.sendMessage(altitude)`, écrivez :
+Conservez la construction du lien et l'appel à `waitForReceiver(link)`.
+Remplacez les deux lignes d'envoi `link.sendMessage(altitude)` et d'affichage
+`Altitude publiée sur Ivy.` par :
 
 ```cpp
+// Installe l'abonnement à la réponse avant l'envoi et renvoie son identifiant d'annulation.
 const long pending = link.sendRequest(request,
+    // Capture le shared_ptr par valeur : le callback possède une référence à la promesse.
     [result](std::string, pprzlink::Message answer) {
         try {
+            // Rend le future prêt en lui fournissant l'altitude SI depuis le thread Ivy.
             result->set_value(answer.getFieldSI("altitude"));
         } catch (...) {
+            // Rend aussi le future prêt en cas d'erreur ; future.get() relancera cette exception.
             result->set_exception(std::current_exception());
         }
     });
 
+// Attend au plus trois secondes sur le thread principal ; la boucle Ivy tourne sur son propre thread.
 if (future.wait_for(std::chrono::seconds(3)) != std::future_status::ready) {
+    // Supprime l'attente de réponse, sans interrompre un callback qui aurait déjà commencé.
     link.UnbindMessage(pending);
     throw std::runtime_error("La requête est restée sans réponse");
 }
+// Consomme le résultat une seule fois ; une exception transmise par la promesse est relancée ici.
 std::cout << "Altitude demandée : " << future.get() << " m\n";
 ```
 
-Recompilez les deux programmes et utilisez le même ordre de lancement qu'à
-l'étape précédente. Le demandeur doit afficher `Altitude demandée : 123.5 m`.
+Recompilez l'unique programme. Dans un terminal, `./build/atelier messages.xml r`
+joue maintenant le répondeur ; dans l'autre, `./build/atelier messages.xml e`
+joue le demandeur et doit afficher `Altitude demandée : 123.5 m`.
 
 `sendRequest()` installe l'attente puis envoie la demande. À la première
 réponse valide, cette attente est automatiquement supprimée. La bibliothèque
@@ -1242,27 +1570,113 @@ comme à l'étape 8 : il est découvert, mais ne répond pas aux requêtes.
 
 ## 10. Utiliser une radio XBee
 
-Revenez au projet série de l'étape 7 et à la cible `pprzlink::io`.
+Revenez au programme série de l'étape 7. Dans `CMakeLists.txt`, ajoutez `io`
+aux composants demandés par `find_package()` et liez la cible **`atelier`**
+à `pprzlink::io`. Pour un projet limité à cet exemple, le fichier complet est :
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(atelier_pprzlink LANGUAGES CXX)
+
+# io fournit BoostSerialPortDevice et inclut les fonctions de core, dont XbeeTransport.
+find_package(pprzlink++ CONFIG REQUIRED COMPONENTS io)
+
+add_executable(atelier main.cpp)
+target_link_libraries(atelier PRIVATE pprzlink::io)
+```
+
+Si vous conservez d'autres exécutables utilisant Ivy, demandez
+`COMPONENTS io ivy` et gardez leurs liens à `pprzlink::ivy`.
+Lier une autre cible, par exemple `atelier_udp`, à `pprzlink::io` ne suffit
+pas : chaque exécutable doit déclarer ses propres dépendances.
+
+`BoostSerialPortDevice.h` déclare le port série ; son implémentation est
+compilée dans `io`. Une cible liée uniquement à `core` ou `ivy` peut donc
+compiler les appels, puis échouer à l'édition des liens avec des
+« références indéfinies » vers le constructeur et les méthodes `setBaudrate()`,
+`setDataBits()`, `setParity()`, `setStopBits()` et `setFlowcontrol()`.
+
 Le `Device` reste un port série ; c'est le transport qui change pour produire
 les trames de l'API XBee. L'API prise en charge utilise **AP=1**, sans
 échappement.
 
-L'exemple suivant concerne une radio 802.15.4. Ajoutez
-`<pprzlink/XbeeTransport.h>` et `<optional>`, puis remplacez la construction
-du `PprzTransport` par :
+Le même exécutable conserve les rôles `e` et `r` du chapitre 7, dans deux
+processus reliés chacun à sa radio. L'exemple suivant concerne des radios
+802.15.4. Ajoutez `<pprzlink/XbeeTransport.h>`, `<boost/asio/steady_timer.hpp>`,
+`<chrono>` et `<optional>` aux en-têtes, puis remplacez la construction du
+`PprzTransport` dans `main()` par :
 
 ```cpp
+// Confie le port série au transport radio ; device devient vide après ce transfert de propriété.
 pprzlink::XbeeTransport transport(std::move(device), dictionary);
 
 pprzlink::XbeeConfiguration configuration;
-configuration.localAddress = 0x100;
+// Les deux radios ont des adresses distinctes, choisies selon le rôle du processus.
+configuration.localAddress = std::string_view(argv[3]) == "e" ? 0x0200 : 0x0100;
+// Désactive la détection/changement de débit : le port doit déjà parler à la vitesse du modem.
 configuration.targetBaudrate = std::nullopt;
+// Prépare le dialogue AT ; start() et les événements de context.run() le feront progresser.
 transport.startInitialization(configuration);
-
-// Remplacez aussi l’envoi direct de l’étape 7 par :
-// transport.onReady([&] { transport.sendMessage(altitude); });
-// Conservez les bind(), start() et context.run() de cette étape.
 ```
+
+Dans la signature de la fonction `receive()`, remplacez uniquement le type
+`pprzlink::PprzTransport &` par `pprzlink::Transport &`. Cette interface de base
+fournit les mêmes `bind()`, `start()` et `stop()` ; le corps de la fonction
+reste utilisable avec la radio.
+
+Remplacez la fonction `emit()` par :
+
+```cpp
+// Le contexte fait progresser l'initialisation et reçoit les éventuels statuts radio.
+int emit(boost::asio::io_context &context, pprzlink::XbeeTransport &transport,
+         const pprzlink::MessageDictionary &dictionary)
+{
+  boost::asio::steady_timer timeout(context);
+  // Ce callback sera appelé par run() une fois le dialogue AT terminé avec succès.
+  transport.onReady([&] {
+    for (const double metres : {100.0, 110.0, 123.5}) {
+      const auto message = altitude(dictionary, metres);
+      // L'adresse radio 0x0100 est distincte du destinataire logique 0 de l'en-tête.
+      const auto sent = transport.sendMessageTo16(message, 0x0100);
+      std::cout << "Envoyé : " << message.toString()
+                << " (" << sent << " octets série)" << std::endl;
+    }
+    // Laisse deux secondes de réception pour observer les statuts de transmission.
+    // Ce délai n'est pas une confirmation de livraison ; le callback de statut fournit ce résultat.
+    timeout.expires_after(std::chrono::seconds(2));
+    timeout.async_wait([&](const boost::system::error_code &error) {
+      if (!error) transport.stop();
+    });
+  });
+  // Arme la lecture et le dialogue AT avant d'attendre les événements sur ce thread.
+  transport.start();
+  context.run();
+  return 0;
+}
+```
+
+Dans `main()`, l'appel du rôle émetteur devient :
+
+```cpp
+// Le rôle r conserve l'appel à receive(context, transport, argv[2]).
+if (std::string_view(argv[3]) == "e") return emit(context, transport, dictionary);
+```
+
+Depuis le répertoire `projet`, reconfigurez et compilez après les modifications
+du CMake et du programme :
+
+```sh
+# Recharge les composants du SDK et la liaison de la cible atelier.
+cmake -S . -B build -DCMAKE_PREFIX_PATH="$PPRZLINK_ATELIER/sdk"
+cmake --build build
+```
+
+Lancez `./build/atelier messages.xml /dev/ttyUSB0 r`
+et `./build/atelier messages.xml /dev/ttyUSB1 e` dans deux terminaux. Le rôle
+`r` configure la radio à l'adresse `0x0100` et reçoit jusqu'à Ctrl+C ; le rôle
+`e` configure sa radio à `0x0200`, envoie les trois altitudes vers `0x0100`,
+puis termine après les deux secondes d'observation. Les deux radios doivent
+utiliser le même canal.
 
 Dans cette configuration, le modem doit déjà communiquer à la vitesse
 configurée sur le port série, 57600 bauds dans notre programme.
@@ -1271,9 +1685,9 @@ configure l'adresse locale et le mode API ; le canal reste inchangé lorsque
 `configuration.channel` n'est pas renseigné.
 
 `start()` active le dialogue AT ; l'arrivée des octets et les échéances Asio
-vérifient les réponses et font avancer l'initialisation. Placez l'envoi dans
-`transport.onReady([&] { transport.sendMessage(altitude); });`, après la création
-du message `altitude`. Les délais et temps de garde ne demandent aucune interrogation
+vérifient les réponses et font avancer l'initialisation. Le rôle `e` effectue
+ses envois dans `onReady()`, après cette préparation. Les délais et temps de
+garde ne demandent aucune interrogation
 périodique. Une erreur est signalée par `onError()` ou remontée dans la boucle. Attendez la fin de cette phase avant d'envoyer
 des messages, et laissez le transport seul utiliser le périphérique pendant
 l'initialisation.
@@ -1288,11 +1702,15 @@ dans ce cas `isReady()` suppose cette préparation, sans interroger le modem.
 ### Choisir la destination radio
 
 L'envoi habituel utilise le destinataire PPRZLINK comme adresse radio.
-Vous pouvez aussi indiquer une adresse radio distincte :
+Dans la boucle d'envoi de `emit()`, les deux informations peuvent être
+renseignées séparément. Remplacez la construction de `message` et son envoi par :
 
 ```cpp
-altitude.setReceiverId(0);
-transport.sendMessageTo16(altitude, 0x0100);
+// Destinataire logique de l'en-tête, indépendant de l'adresse radio passée à l'envoi.
+auto message = altitude(dictionary, metres);
+message.setReceiverId(0);
+// À appeler lorsque le modem est prêt ; 0x0100 identifie la radio distante.
+const auto sent = transport.sendMessageTo16(message, 0x0100);
 ```
 
 Ici, 0 est le destinataire logique dans l'en-tête du message et `0x0100`
@@ -1309,18 +1727,26 @@ dans le [rapport de validation](LINK_CPP_VALIDATION.md).
 
 La valeur renvoyée par `sendMessage()` est un nombre d'octets écrits vers
 le modem. Pour connaître le résultat radio, installez un callback **avant**
-l'envoi. Ajoutez `<variant>` :
+l'envoi. Ajoutez `<variant>` et installez ce callback dans `main()`, après
+la construction du transport et avant l'appel à `emit()` ou `receive()` :
 
 ```cpp
+// Installe l'observateur avant l'envoi ; le traitement de la réception lui remettra les statuts radio.
 transport.setStatusCallback([](const pprzlink::XbeeTransport::RadioStatus &event) {
+    // Le variant peut contenir plusieurs types de statut ; get_if renvoie nullptr pour les autres.
     if (const auto *status =
             std::get_if<pprzlink::XbeeTransport::TransmitStatus>(&event)) {
+        // Les casts affichent les octets comme des nombres, plutôt que comme des caractères.
         std::cout << "Trame radio " << static_cast<unsigned>(status->frameId)
                   << ", statut " << static_cast<unsigned>(status->status) << '\n';
     }
 });
+```
 
-transport.sendMessage(altitude);
+Dans la boucle de `emit()`, après `sendMessageTo16(message, 0x0100)`, ajoutez :
+
+```cpp
+// Associe cet envoi au futur TransmitStatus portant le même frameId.
 const auto frameId = transport.getLastFrameId();
 std::cout << "Identifiant radio envoyé : " << static_cast<unsigned>(frameId) << '\n';
 ```
@@ -1342,12 +1768,15 @@ relèvent du programme utilisateur.
 Les messages radio reçus portent aussi des métadonnées :
 
 ```cpp
+// La seconde référence apporte les métadonnées de cette réception ; elle est empruntée pour l'appel.
 transport.bind(pprzlink::ALL,
     [](const pprzlink::Message &message, const pprzlink::ReceiveInfo &info) {
         std::cout << message.toString() << '\n';
+        // L'optional doit contenir des informations radio avant d'être déréférencé.
         if (info.xbee) {
             const auto &radio = *info.xbee;
             std::cout << "Adresse radio source : " << radio.sourceAddress << '\n';
+            // Certaines variantes n'ont pas de RSSI ; le cast signé précède le changement de signe.
             if (radio.hasRssi) std::cout << "RSSI : " << -static_cast<int>(radio.rssi) << " dBm\n";
         }
     });
@@ -1367,10 +1796,12 @@ au lieu de coder le nom de chaque champ. Revenez au programme sans I/O de
 l'étape 2, ajoutez `<pprzlink/TextCodec.h>`, puis :
 
 ```cpp
+// Emprunte le schéma du message ; il fournit les types et l'ordre XML, pas les valeurs.
 const auto &schema = altitude.getDefinition();
 for (std::size_t i = 0; i < schema.getNbFields(); ++i) {
     const auto &field = schema.getField(i);
     std::cout << field.getName() << " (" << field.getType().toString() << ") = ";
+    // Le formateur traite le variant natif sans imposer de type C++ ni de conversion SI.
     pprzlink::writeDebugField(std::cout, altitude.getRawValue(i));
     std::cout << '\n';
 }
@@ -1383,6 +1814,8 @@ champs ont une valeur.
 Pour découvrir les messages d'une classe, vous pouvez aussi écrire :
 
 ```cpp
+// getMsgsForClass crée un vecteur de définitions ; la boucle emprunte ses éléments.
+// Ce vecteur temporaire reste vivant jusqu'à la fin de la boucle.
 for (const auto &schema : dictionary.getMsgsForClass("guide")) {
     std::cout << schema.getName() << " : " << schema.getNbFields() << " champs\n";
 }
@@ -1397,8 +1830,8 @@ destruction ou le remplacement du champ.
 Les métadonnées chargées comprennent les noms, types, identifiants, le
 format d'affichage, le mode de routage `link`, les unités et leurs coefficients
 explicites. `field.getUnit()` fournit l'unité XML et `field.getSIUnit()` celle
-de l'accès SI. Les descriptions textuelles ne sont pas exposées. Seuls
-`getFieldSI()` et `setFieldSI()` demandent une conversion d'unité ; les appels
+de l'accès SI. Les descriptions textuelles ne sont pas exposées. Les accès
+`getFieldSI()`, `getFieldArraySI()` et `setFieldSI()` demandent une conversion d'unité ; les appels
 natifs et les codecs continuent à utiliser les valeurs XML.
 
 ### Brancher un autre flux d'octets
@@ -1471,16 +1904,16 @@ en mémoire :
 ```cpp
 void traiterAltitude(const pprzlink::Message &message)
 {
+    // Vérifie le schéma avant de demander un champ qui pourrait être absent d'un autre message.
     if (message.getDefinition().getName() != "GUIDE_ALTITUDE") return;
     const double metres = message.getFieldSI("altitude");
     std::cout << "Altitude traitée : " << metres << " m\n";
 }
 ```
 
-Appelez-la avec `received->message` dans une boucle UDP/série ou avec
-`message` dans un callback Ivy. Le calcul métier n'a ainsi pas besoin de
-connaître le transport. Placez cette fonction avant `main()` si vous
-l'ajoutez à l'un des programmes du guide.
+Appelez-la avec `message` dans un callback UDP, série ou Ivy. Le calcul métier
+n'a ainsi pas besoin de connaître le transport. Placez cette fonction avant
+`main()` si vous l'ajoutez à l'un des programmes du guide.
 
 ### Comprendre ce que signale une erreur
 
@@ -1519,6 +1952,7 @@ Pour observer ce qui se passe, utilisez les statistiques du décodeur ou du
 transport. Cet extrait suppose un objet `transport` binaire existant :
 
 ```cpp
+// Emprunte les compteurs cumulés : leur valeur évolue avec les prochaines réceptions.
 const auto &stats = transport.getStatistics();
 std::cout << "Messages reçus : " << stats.receivedMessages
           << ", erreurs de checksum : " << stats.checksumErrors
@@ -1548,12 +1982,42 @@ Pour poursuivre avec des exemples déjà intégrés au dépôt :
 
 - [IvyRoundTrip.cpp](pprzlink/examples/IvyRoundTrip.cpp) échange une altitude
   entre deux liens Ivy et attend la découverte de l'abonnement.
-- [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) émet une
-  altitude et répond à un PING sur une liaison série.
-- [UdpRecorder.cpp](pprzlink/examples/clients/UdpRecorder.cpp) conserve l'origine
-  réseau de chaque message reçu.
-- [UdpSettingSender.cpp](pprzlink/examples/clients/UdpSettingSender.cpp) prépare
-  plusieurs champs puis envoie une commande en UDP.
+- [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) choisit le
+  rôle client ou serveur pour échanger PING, une altitude et PONG sur série.
+- [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) choisit le client demandeur
+  ou le serveur répondeur sur une liaison série physique ou virtuelle.
+- [UdpMessages.cpp](pprzlink/examples/clients/UdpMessages.cpp) choisit l'émission
+  d'une commande UDP ou la réception avec affichage de l'origine réseau.
+
+Pour ce dernier exemple, utilisez le catalogue `client_messages.xml` et le
+même exécutable dans les deux terminaux :
+
+```sh
+# Depuis la racine du dépôt Paparazzi, compile le programme UDP avec ses rôles e/r.
+cmake --build var/build/pprzlink-pty --target udp_messages
+```
+
+Dans le premier terminal :
+
+```sh
+# Le rôle r attend un message sur le port UDP local 4242 pendant dix secondes au maximum.
+./var/build/pprzlink-pty/udp_messages \
+  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 r
+```
+
+Dans le second terminal :
+
+```sh
+# Le rôle e remplit tous les champs de CLIENT_SETTING, puis envoie une commande au port 4242.
+./var/build/pprzlink-pty/udp_messages \
+  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 e
+```
+
+Le récepteur affiche l'adresse et le port source, la taille de la trame et
+les champs du message, puis termine. L'émetteur envoie une commande pour
+l'avion 42 avec `value=12.5` et termine après l'écriture du datagramme.
+Le `messages.xml` de l'atelier utilise des noms `GUIDE_*` ; ce programme UDP
+attend les définitions `CLIENT_*` de son catalogue d'exemple.
 
 Ces exemples utilisent leurs propres XML. Leurs commandes de compilation et
 d'exécution sont détaillées dans [API_USAGE.md](API_USAGE.md).
