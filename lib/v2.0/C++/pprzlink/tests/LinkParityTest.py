@@ -72,6 +72,7 @@ class Process:
         self.lines = []
         self.errors = []
         self.changed = threading.Condition()
+        self.streams_finished = 0
         self.threads = []
         for stream, output in [(self.process.stdout, self.lines), (self.process.stderr, self.errors)]:
             thread = threading.Thread(target=self._read, args=(stream, output), daemon=True)
@@ -79,9 +80,14 @@ class Process:
             self.threads.append(thread)
 
     def _read(self, stream, output):
-        for line in stream:
+        try:
+            for line in stream:
+                with self.changed:
+                    output.append(line.rstrip('\n'))
+                    self.changed.notify_all()
+        finally:
             with self.changed:
-                output.append(line.rstrip('\n'))
+                self.streams_finished += 1
                 self.changed.notify_all()
 
     def send(self, line):
@@ -96,8 +102,12 @@ class Process:
                     if predicate(line):
                         return line
                 remaining = deadline - time.monotonic()
-                if remaining <= 0 or self.process.poll() is not None:
-                    raise AssertionError(f'Message not received; stdout={self.lines!r}; stderr={self.errors!r}')
+                # A fast child may exit before the reader threads capture its
+                # final lines. Only report exit once both streams reached EOF.
+                exited = self.process.poll() is not None and self.streams_finished == len(self.threads)
+                if remaining <= 0 or exited:
+                    raise AssertionError(f'Message not received; exit={self.process.returncode}; '
+                                         f'stdout={self.lines!r}; stderr={self.errors!r}')
                 self.changed.wait(min(remaining, .05))
 
     def close(self):
