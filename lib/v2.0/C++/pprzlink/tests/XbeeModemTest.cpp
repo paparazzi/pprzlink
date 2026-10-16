@@ -188,6 +188,58 @@ namespace {
       expectException<std::invalid_argument>([&] { XbeeModem modem(options); });
     }
   }
+
+  void testStatusReinitialization()
+  {
+    tinyxml2::XMLDocument xml;
+    xml.Parse(R"(<protocol><msg_class name="test" id="1"><message name="EMPTY" id="1"/></msg_class></protocol>)");
+    const MessageDictionary dictionary(xml.RootElement());
+    const BytesBuffer statusFrame{0x7e, 0, 2, 0x8a, 0, 0x75};
+    const BytesBuffer messageFrame{0x7e, 0, 9, 0x81, 0, 42, 50, 0, 42, 0, 1, 1, 0xf6};
+    for (const bool buffered : {false, true}) {
+      for (const bool failure : {false, true}) {
+        auto deviceOwner = std::make_unique<ModemDevice>();
+        auto &device = *deviceOwner;
+        XbeeTransport transport(std::move(deviceOwner), dictionary);
+        int received = 0, ready = 0, statuses = 0, errors = 0;
+        transport.bind("EMPTY", [&](const Message &) { ++received; });
+        transport.onReady([&] { ++ready; });
+        transport.onError([&](const ReceiveError &) { ++errors; });
+        transport.setStatusCallback([&](const auto &status) {
+          ++statuses;
+          transport.startInitialization(quickConfiguration());
+          require(std::get<XbeeTransport::ModemStatus>(status).status == 0,
+                  "Status remains valid after initialization clears the receive buffer");
+          if (failure) throw std::runtime_error("restart callback failure");
+        });
+        transport.start();
+        device.context.poll();
+        require(ready == 1, "An already configured modem is initially ready");
+        device.autoReplies = true;
+        device.incoming = statusFrame;
+        if (buffered) {
+          // Junk and an ignored API frame exercise a nonzero decoder cursor.
+          device.incoming.insert(device.incoming.begin(), {0x55, 0x7e, 0, 1, 0x82, 0x7d});
+          device.incoming.insert(device.incoming.end(), messageFrame.begin(), messageFrame.end());
+          device.incoming.insert(device.incoming.end(), statusFrame.begin(), statusFrame.end());
+        }
+        if (failure) {
+          const auto error = expectException<std::runtime_error>([&] { device.notify(); });
+          require(error == "restart callback failure" && !transport.isRunning(),
+                  "A reinitializing status callback can still propagate its failure and stop reception");
+          transport.start();
+        } else device.notify();
+        require(!transport.isReady() && received == 0 && statuses == 1 && errors == 0,
+                "Status-side initialization discards buffered frames without dispatch or decode errors");
+        device.context.restart();
+        device.context.run_for(100ms);
+        require(transport.isReady() && transport.isRunning() && ready == 2 && received == 1 && statuses == 1 && errors == 0,
+                "Status-side initialization completes and reception resumes without replaying stale frames");
+        require(transport.getStatistics().decodingErrors == 0 && transport.getStatistics().receivedMessages == 1,
+                "Only the fresh post-initialization message is counted");
+      }
+    }
+  }
 }
 
 int main()
@@ -197,6 +249,7 @@ int main()
     testFailures();
     testTransportGating();
     testValidation();
+    testStatusReinitialization();
     std::cout << "AT guards, acknowledgements, deadlines, failures and transport gating passed\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

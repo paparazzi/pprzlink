@@ -261,20 +261,13 @@ namespace pprzlink {
     return true;
   }
 
-  void XbeeTransport::decodeFrame(std::span<const uint8_t> data)
+  std::optional<XbeeTransport::RadioStatus> XbeeTransport::decodeFrame(std::span<const uint8_t> data)
   {
     const auto requireSize = [&](size_t size, bool exact = false) {
       if (data.size() < size || (exact && data.size() != size)) {
         throw wrong_message_format("Invalid XBee API frame size for type " + std::to_string(data[0]));
       }
     };
-    const auto notify = [&](const RadioStatus &status) {
-      if (statusCallback) {
-        try { statusCallback(status); }
-        catch (...) { statusFailure = std::current_exception(); throw; }
-      }
-    };
-
     switch (data[0]) {
       case tx16:
       case rx16:
@@ -305,24 +298,21 @@ namespace pprzlink {
       case 0x8b:
         if (api != Api::Series868) break;
         requireSize(7, true);
-        notify(TransmitStatus{data[1], data[5], data[4]});
-        break;
+        return TransmitStatus{data[1], data[5], data[4]};
       case txStatus:
         requireSize(3, true);
-        notify(TransmitStatus{data[1], data[2]});
-        break;
+        return TransmitStatus{data[1], data[2]};
       case modemStatus:
         requireSize(2, true);
-        notify(ModemStatus{data[1]});
-        break;
+        return ModemStatus{data[1]};
       case atResponse:
         requireSize(5);
-        notify(AtCommandResponse{data[1], {static_cast<char>(data[2]), static_cast<char>(data[3])},
-                                 data[4], BytesBuffer(data.begin() + 5, data.end())});
-        break;
+        return AtCommandResponse{data[1], {static_cast<char>(data[2]), static_cast<char>(data[3])},
+                                 data[4], BytesBuffer(data.begin() + 5, data.end())};
       default:
         break; // Other API indications (e.g. I/O samples) are not PPRZLINK messages.
     }
+    return std::nullopt;
   }
 
   /// @details Consume status frames without exposing them as messages, retain
@@ -358,15 +348,25 @@ namespace pprzlink {
       }
       const size_t dataSize = frameDataSize(remaining);
       cursor += dataSize + envelopeSize;
+      std::optional<RadioStatus> status;
       try {
-        decodeFrame(remaining.subspan(3, dataSize));
+        status = decodeFrame(remaining.subspan(3, dataSize));
       } catch (...) {
-        if (!statusFailure) {
-          ++statistics.decodingErrors;
-          statistics.discardedBytes += dataSize + envelopeSize;
-        }
+        ++statistics.decodingErrors;
+        statistics.discardedBytes += dataSize + envelopeSize;
         discardThrough(cursor);
         throw;
+      }
+      if (status) {
+        // A status callback may restart initialization and clear the buffer.
+        // Consume the frame and reset the cursor before calling application code.
+        discardThrough(cursor);
+        cursor = 0;
+        if (statusCallback) {
+          try { statusCallback(*status); }
+          catch (...) { statusFailure = std::current_exception(); throw; }
+        }
+        continue;
       }
       if (currentMessage) {
         lastReceivedFrameSize = dataSize + envelopeSize;

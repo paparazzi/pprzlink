@@ -146,6 +146,7 @@ namespace pprzlink {
     const std::optional<ReceiveInfo>& getLastReceiveInfo() const noexcept { return receiveInfo; }
 
     /// Called on the receive executor as radio status frames arrive.
+    /// The frame is consumed before the callback, which may stop reception or restart initialization.
     /// The argument is borrowed for the call. Do not reenter reception or replace
     /// this callback from inside it. Exceptions propagate after consuming the frame.
     /// @param[in] callback Observer moved into the transport; an empty function disables notifications.
@@ -157,7 +158,7 @@ namespace pprzlink {
     bool progressInitialization(XbeeModem::TimePoint now);
     void scheduleInitialization();
     bool decodeMessage();
-    void decodeFrame(std::span<const uint8_t> data);
+    std::optional<RadioStatus> decodeFrame(std::span<const uint8_t> data);
     size_t sendTo(const Message &message, uint64_t destination, bool addressIs64Bit,
                   std::optional<uint8_t> frameId = std::nullopt);
 
