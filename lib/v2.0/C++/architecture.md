@@ -114,6 +114,7 @@ présentes partout. `WIND_INFO`, par exemple, documente les bits de son champ
 | Nom et identifiant de classe et de message | Chargés dans le dictionnaire et les définitions. |
 | Nom, type et ordre des champs | Chargés ; servent aux lectures, écritures et codecs. |
 | `link="forwarded"` ou `"broadcasted"` | Exposé par `MessageDefinition::getLinkMode()` ; la politique reste dans `link++`. |
+| `radio_retry="true"` ou `"false"` | Conservé par `MessageDefinition::getRadioRetries()` ; appliqué par `XbeeTransport` en mode `FromDefinition`, avec priorité au choix explicite de l'appel. Absent : réessais activés. |
 | `format`, par exemple `"%.1f"` | Exposé par `MessageField::getFormat()` ; utilisé notamment par le formatage de compatibilité OCaml. |
 | `<description>` et texte explicatif d'un champ | Présents dans le fichier lorsqu'ils sont renseignés, mais non conservés dans les objets C++ actuels. |
 | `unit`, `alt_unit`, `alt_unit_coef` | Conservés dans `MessageField` et exposés par leurs getters. Les appels SI explicites convertissent les grandeurs par conversion affine. |
@@ -243,6 +244,9 @@ classDiagram
     class SerialDevice {
         <<abstract>>
         resetBaudrate(baudrate)
+        getHardwareFlowControl()
+        setHardwareFlowControl(enabled)
+        getCTS()
     }
     class Transport {
         <<abstract>>
@@ -269,8 +273,15 @@ octets disponibles ; `writeBuffer()` doit écrire tout le buffer ou signaler
 une erreur. Une erreur d'I/O peut survenir après l'écriture d'une partie des
 octets : il ne s'agit pas d'une transaction annulable.
 
-`SerialDevice` ajoute la possibilité de changer le débit UART, utile pour
-l'initialisation d'un modem. `BoostSerialPortDevice` fournit l'implémentation
+`SerialDevice` ajoute la possibilité de changer le débit UART et de régler
+RTS/CTS. Dès la prise en charge par `XbeeModem`, le contrôle de flux hôte est
+réservé à `XbeeConfiguration::hardwareFlowControl` : les setters indépendants
+du port refusent toute modification. L'initialisation vérifie `D6` et `D7`,
+puis le réglage hôte après `ATCN`, avant de publier l'état prêt. Une erreur
+partielle interdit les envois, sans prétendre annuler les commandes physiques.
+`getCTS()` interroge séparément l'état instantané du signal local, sans changer
+ces réglages ; un adaptateur sans cette capacité signale une erreur explicite.
+`BoostSerialPortDevice` fournit l'implémentation
 avec Boost.Asio. `PosixFileDevice` fournit l'adaptation pour un descripteur de
 fichier ou de FIFO.
 

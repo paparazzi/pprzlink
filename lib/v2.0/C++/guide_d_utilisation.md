@@ -28,6 +28,10 @@ Le parcours est le suivant :
 8. [Recevoir et publier sur Ivy](#8-recevoir-et-publier-sur-ivy).
 9. [Faire une requête et attendre sa réponse](#9-faire-une-requête-et-attendre-sa-réponse).
 10. [Utiliser une radio XBee](#10-utiliser-une-radio-xbee).
+    L'exemple utilise un timer d'émission et présente [RTS/CTS](#activer-rtscts-sur-le-port-et-la-radio-ensemble),
+    [la lecture de CTS](#lire-létat-cts-local), les [réessais par envoi](#choisir-les-réessais-radio-pour-chaque-envoi)
+    et les [adresses radio typées](#choisir-la-destination-radio).
+    Vous pourrez ensuite [configurer link++ avec le XML et RTS/CTS](#utiliser-link-avec-une-radio-xbee).
 11. [Construire un outil générique ou un adaptateur](#11-construire-un-outil-générique-ou-un-adaptateur).
 12. [Organiser une application durable et diagnostiquer les erreurs](#12-organiser-une-application-durable-et-diagnostiquer-les-erreurs).
 
@@ -142,6 +146,39 @@ target_link_libraries(atelier PRIVATE pprzlink::core)
 Le composant `core` suffit pour manipuler des messages et leurs encodages.
 La cible CMake transmet au programme les chemins d'en-têtes, les dépendances
 et le standard C++23.
+
+### Actualiser le SDK après une évolution de l'API
+
+Le projet utilise les fichiers **installés dans le SDK**, qui peuvent être
+plus anciens que les sources. Après une modification de la bibliothèque,
+recompilez-la et réinstallez ensemble ses en-têtes et ses bibliothèques :
+
+```sh
+cmake --build "$PPRZLINK_ATELIER/build-lib"
+cmake --install "$PPRZLINK_ATELIER/build-lib" \
+  --prefix "$PPRZLINK_ATELIER/sdk"
+
+# Indique explicitement le paquet si un ancien SDK est encore dans le cache CMake.
+cmake -S . -B build \
+  -DCMAKE_PREFIX_PATH="$PPRZLINK_ATELIER/sdk" \
+  -Dpprzlink++_DIR="$PPRZLINK_ATELIER/sdk/share/pprzlink++/cmake"
+cmake --build build
+```
+
+Une erreur telle que « `XbeeConfiguration` has no member named
+`hardwareFlowControl` » signifie que le compilateur ne voit pas l'en-tête
+attendu. Vérifiez d'abord que les sources contiennent cette API, puis le SDK
+effectivement retenu :
+
+```sh
+cmake -LA -N build
+```
+
+La variable `pprzlink++_DIR` doit désigner le répertoire `share/pprzlink++/cmake`
+du SDK voulu. Changer seulement `CMAKE_PREFIX_PATH` ne remplace pas toujours
+un paquet déjà mémorisé. De même, des en-têtes récents liés à des archives
+anciennes peuvent provoquer des références indéfinies : les deux doivent
+provenir de la même construction de la bibliothèque.
 
 ## 2. Créer et lire un premier message
 
@@ -1603,7 +1640,7 @@ les trames de l'API XBee. L'API prise en charge utilise **AP=1**, sans
 Le même exécutable conserve les rôles `e` et `r` du chapitre 7, dans deux
 processus reliés chacun à sa radio. L'exemple suivant concerne des radios
 802.15.4. Ajoutez `<pprzlink/XbeeTransport.h>`, `<boost/asio/steady_timer.hpp>`,
-`<chrono>` et `<optional>` aux en-têtes, puis remplacez la construction du
+`<chrono>`, `<functional>`, `<optional>` et `<variant>` aux en-têtes, puis remplacez la construction du
 `PprzTransport` dans `main()` par :
 
 ```cpp
@@ -1615,6 +1652,8 @@ pprzlink::XbeeConfiguration configuration;
 configuration.localAddress = std::string_view(argv[3]) == "e" ? 0x0200 : 0x0100;
 // Désactive la détection/changement de débit : le port doit déjà parler à la vitesse du modem.
 configuration.targetBaudrate = std::nullopt;
+// Suppose RTS et CTS câblés entre le convertisseur et le XBee ; false impose les deux côtés sans contrôle de flux.
+configuration.hardwareFlowControl = true;
 // Prépare le dialogue AT ; start() et les événements de context.run() le feront progresser.
 transport.startInitialization(configuration);
 ```
@@ -1624,31 +1663,65 @@ Dans la signature de la fonction `receive()`, remplacez uniquement le type
 fournit les mêmes `bind()`, `start()` et `stop()` ; le corps de la fonction
 reste utilisable avec la radio.
 
-Remplacez la fonction `emit()` par :
+Remplacez la fonction `emit()` par cette émission périodique. L'exemple
+suppose que RTS et CTS sont câblés ; sinon, choisissez
+`configuration.hardwareFlowControl = false`. Le réglage série `none` hérité
+de l'étape 7 sert seulement de préparation : l'initialisation XBee applique
+ensuite le choix commun à la radio et au port.
+
+### Envoyer trois messages dans la callback d'un timer
 
 ```cpp
-// Le contexte fait progresser l'initialisation et reçoit les éventuels statuts radio.
+// Un seul contexte traite le timer, les messages reçus et les statuts radio.
 int emit(boost::asio::io_context &context, pprzlink::XbeeTransport &transport,
          const pprzlink::MessageDictionary &dictionary)
 {
-  boost::asio::steady_timer timeout(context);
-  // Ce callback sera appelé par run() une fois le dialogue AT terminé avec succès.
-  transport.onReady([&] {
+  using RadioRetries = pprzlink::XbeeTransport::RadioRetries;
+  const auto receiver = pprzlink::XbeeAddress::network(0x0100);
+  boost::asio::steady_timer timer(context);
+  boost::asio::signal_set signals(context, SIGINT, SIGTERM);
+  double offset = 0;
+
+  std::function<void(const boost::system::error_code &)> sendMessages;
+  sendMessages = [&](const boost::system::error_code &error) {
+    if (error || !transport.isRunning()) return;
     for (const double metres : {100.0, 110.0, 123.5}) {
-      const auto message = altitude(dictionary, metres);
-      // L'adresse radio 0x0100 est distincte du destinataire logique 0 de l'en-tête.
-      const auto sent = transport.sendMessageTo16(message, 0x0100);
+      const auto message = altitude(dictionary, metres + offset);
+      const auto sent = transport.sendMessageTo(message, receiver,
+                                               RadioRetries::Enabled);
+      const auto frameId = transport.getLastFrameId();
       std::cout << "Envoyé : " << message.toString()
-                << " (" << sent << " octets série)" << std::endl;
+                << " (" << sent << " octets série, trame "
+                << static_cast<unsigned>(frameId) << ')' << std::endl;
     }
-    // Laisse deux secondes de réception pour observer les statuts de transmission.
-    // Ce délai n'est pas une confirmation de livraison ; le callback de statut fournit ce résultat.
-    timeout.expires_after(std::chrono::seconds(2));
-    timeout.async_wait([&](const boost::system::error_code &error) {
-      if (!error) transport.stop();
-    });
+    ++offset;
+    // Rend la main à Asio entre les lots pour traiter les retours.
+    timer.expires_after(std::chrono::milliseconds(1));
+    timer.async_wait(sendMessages);
+  };
+
+  signals.async_wait([&](const boost::system::error_code &error, int) {
+    if (!error) {
+      timer.cancel();
+      transport.stop();
+    }
   });
-  // Arme la lecture et le dialogue AT avant d'attendre les événements sur ce thread.
+  transport.bind(pprzlink::ALL, [](const pprzlink::Message &message) {
+    std::cout << "Reçu : " << message.toString() << std::endl;
+  });
+  transport.setStatusCallback([](const pprzlink::XbeeTransport::RadioStatus &event) {
+    if (const auto *tx = std::get_if<pprzlink::XbeeTransport::TransmitStatus>(&event)) {
+      std::cout << "Statut TX : trame " << static_cast<unsigned>(tx->frameId)
+                << ", code " << static_cast<unsigned>(tx->status)
+                << " (0 = succès du modem)" << std::endl;
+    }
+  });
+  // Attend la fin du dialogue AT avant d'armer le premier envoi.
+  transport.onReady([&] {
+    timer.expires_after(std::chrono::milliseconds(1));
+    timer.async_wait(sendMessages);
+    std::cout << "Émetteur prêt ; Ctrl+C pour arrêter" << std::endl;
+  });
   transport.start();
   context.run();
   return 0;
@@ -1662,6 +1735,9 @@ Dans `main()`, l'appel du rôle émetteur devient :
 if (std::string_view(argv[3]) == "e") return emit(context, transport, dictionary);
 ```
 
+Actualisez aussi l'aide du rôle `e` : il émet désormais des lots jusqu'à
+Ctrl+C, avec un délai demandé de 1 ms entre deux lots.
+
 Depuis le répertoire `projet`, reconfigurez et compilez après les modifications
 du CMake et du programme :
 
@@ -1674,21 +1750,36 @@ cmake --build build
 Lancez `./build/atelier messages.xml /dev/ttyUSB0 r`
 et `./build/atelier messages.xml /dev/ttyUSB1 e` dans deux terminaux. Le rôle
 `r` configure la radio à l'adresse `0x0100` et reçoit jusqu'à Ctrl+C ; le rôle
-`e` configure sa radio à `0x0200`, envoie les trois altitudes vers `0x0100`,
-puis termine après les deux secondes d'observation. Les deux radios doivent
-utiliser le même canal.
+`e` configure sa radio à `0x0200`, puis répète les lots de trois altitudes
+vers `0x0100` jusqu'à Ctrl+C. L'altitude de chaque lot est décalée d'un mètre.
+Les deux radios doivent utiliser le même canal.
+
+Il faut que la callback rende la main : un `while (true)` dans `onReady()`
+empêcherait Asio de traiter les lectures série, les statuts TX et les timers.
+Les variables utilisées par les callbacks restent ici vivantes pendant tout
+`context.run()`. À l'arrêt, annulez **le timer et la réception** ; arrêter
+seulement le transport laisserait le timer actif.
+
+Le délai de **1 ms commence après chaque lot** : il ne garantit pas une
+période exacte de 1 ms. Les écritures série restent synchrones et peuvent
+attendre si les tampons sont pleins ou si CTS suspend l'émission. À 57600
+bauds en 8N1, la liaison transporte au maximum 5760 octets par seconde ;
+les trois trames TX16 de cet exemple représentent 51 octets, soit environ
+8,9 ms sur le fil. Les tampons permettent seulement d'absorber une rafale.
 
 Dans cette configuration, le modem doit déjà communiquer à la vitesse
 configurée sur le port série, 57600 bauds dans notre programme.
 `targetBaudrate = std::nullopt` conserve cette vitesse. L'initialisation
 configure l'adresse locale et le mode API ; le canal reste inchangé lorsque
-`configuration.channel` n'est pas renseigné.
+`configuration.channel` n'est pas renseigné. Le choix commun RTS/CTS est
+appliqué même lorsque l'autobaud est désactivé.
 
 `start()` active le dialogue AT ; l'arrivée des octets et les échéances Asio
 vérifient les réponses et font avancer l'initialisation. Le rôle `e` effectue
-ses envois dans `onReady()`, après cette préparation. Les délais et temps de
-garde ne demandent aucune interrogation
-périodique. Une erreur est signalée par `onError()` ou remontée dans la boucle. Attendez la fin de cette phase avant d'envoyer
+ses envois dans le timer armé par `onReady()`, après cette préparation. Le
+dialogue AT avance sur les données et ses échéances, sans boucle de polling.
+Une erreur est signalée par `onError()` ou remontée dans la boucle.
+Attendez la fin de cette phase avant d'envoyer
 des messages, et laissez le transport seul utiliser le périphérique pendant
 l'initialisation.
 
@@ -1698,6 +1789,205 @@ bauds et peut enregistrer les réglages courants avec `ATWR` lors d'un
 changement de vitesse. Choisissez ce comportement intentionnellement.
 Si le modem est déjà configuré, vous pouvez aussi omettre l'initialisation ;
 dans ce cas `isReady()` suppose cette préparation, sans interroger le modem.
+
+### Activer RTS/CTS sur le port et la radio ensemble
+
+Si RTS et CTS sont câblés entre le convertisseur USB-série et le XBee, ajoutez
+ce réglage avant `transport.startInitialization(configuration)` :
+
+```cpp
+configuration.hardwareFlowControl = true;
+```
+
+Cette option unique configure le contrôle de flux matériel des deux côtés :
+le premier chiffre désigne le TTY hôte, le second la radio.
+
+| `hardwareFlowControl` | TTY Linux | XBee | Paire finale |
+| --- | --- | --- | --- |
+| `false`, par défaut | Sans contrôle de flux | `D6=0`, `D7=0` | **00** |
+| `true` | RTS/CTS matériel (`CRTSCTS`) | `D6=1`, `D7=1` | **11** |
+
+L'API de configuration XBee ne propose pas deux réglages indépendants qui
+permettraient de demander **10** ou **01**.
+Les commandes `ATD6` et `ATD7` relisent les réglages de la radio ; après le
+dernier `OK` de `ATCN`, la bibliothèque applique et vérifie le réglage du TTY
+(`CRTSCTS` sous Linux). `onReady()` n'est appelé qu'après ces vérifications.
+
+Ne réglez pas séparément `device->setFlowcontrol(...)` pour activer le XBee.
+Dès que l'initialisation prend en charge le port, les modifications isolées
+du contrôle de flux hôte sont refusées avec `std::logic_error`. Pour modifier
+le choix, relancez `startInitialization()` avec la nouvelle valeur commune.
+L'exemple `serial_messages -transport xbee -hfc` utilise cette même option ;
+`-hfc` et `-xbee-no-init` sont incompatibles.
+
+La phase AT désactive temporairement le contrôle de flux hôte pour éviter
+qu'un CTS encore mal configuré bloque les commandes. Les deux périphériques
+physiques ne changent pas simultanément : une erreur peut laisser des réglages
+partiellement appliqués, mais bloque l'état prêt et tous les envois de messages.
+Corrigez la cause, puis relancez l'initialisation. Aucun `ATWR` supplémentaire
+n'est émis pour sauvegarder ces réglages `D6`/`D7`.
+Si vous omettez complètement l'initialisation avec un modem déjà configuré,
+la bibliothèque ne peut pas vérifier cette cohérence.
+
+Avec RTS/CTS activé, le pilote du convertisseur respecte CTS pour suspendre
+les octets envoyés au XBee local ; RTS permet de réguler le sens inverse.
+Ce mécanisme protège la liaison UART locale. Il ne constitue pas un
+acquittement du correspondant radio distant.
+
+### Lire l'état CTS local
+
+Après le transfert du port au transport, vous pouvez toujours lire son état
+via l'interface série empruntée au transport :
+
+```cpp
+const auto &serial = dynamic_cast<const pprzlink::SerialDevice &>(transport.getDevice());
+const bool clearToSend = serial.getCTS();
+```
+
+`true` signifie que CTS est affirmé, `false` qu'il est désaffirmé. Le nom
+`getCTS()` est aussi utilisé dans la bibliothèque C++
+[`wjwwood/serial`](https://github.com/wjwwood/serial/blob/main/include/serial/serial.h).
+Cette lecture interroge le pilote avec `TIOCMGET` sous Linux ; elle ne modifie
+ni les commandes AT ni le réglage RTS/CTS. Elle reste disponible lorsque
+l'initialisation XBee a réservé les modifications de contrôle de flux.
+
+Un pilote qui ne fournit pas cet état provoque une exception
+`boost::system::system_error`, avec le code natif (`ENOTTY` sur les
+pseudo-terminaux Linux). Une fonctionnalité absente ne renvoie pas un faux
+état « occupé ». `getHardwareFlowControl()` indique séparément si le contrôle
+de flux est activé, et `transport.isReady()` si l'initialisation a abouti.
+`getCTS()` n'attend pas que CTS change, mais partage le verrou des I/O série.
+Son résultat est un instantané : il ne réserve pas de place pour l'écriture
+suivante et ne garantit pas que celle-ci sera non bloquante.
+
+Ces informations correspondent à des questions différentes :
+
+| Appel ou événement | Information fournie |
+| --- | --- |
+| `transport.isReady()` / `onReady()` | Initialisation locale terminée ; le mode sans initialisation suppose une configuration préalable. |
+| `serial.getHardwareFlowControl()` | Contrôle RTS/CTS activé dans la configuration hôte. |
+| `serial.getCTS()` | CTS local affirmé ou désaffirmé, selon le pilote. |
+| `TransmitStatus` | Résultat d'une tentative de transmission radio identifiée par `frameId`. |
+
+`getCTS()` appartient à `SerialDevice`, implémenté ici par
+`BoostSerialPortDevice`, et non à `XbeeTransport`. La référence obtenue par
+`transport.getDevice()` reste valide pendant la vie du transport. Le
+`unique_ptr device` d'origine est vide après `std::move(device)` ; utilisez
+donc cette référence empruntée pour les lectures ultérieures.
+
+Pour afficher le premier état puis ses changements dans le timer, déclarez
+avant la lambda `sendMessages`, dans `emit()` :
+
+```cpp
+const auto &serial = dynamic_cast<const pprzlink::SerialDevice &>(transport.getDevice());
+std::optional<bool> previousCts;
+```
+
+Puis, après le contrôle d'erreur au début de `sendMessages` :
+
+```cpp
+const bool cts = serial.getCTS();
+if (!previousCts || *previousCts != cts) {
+  previousCts = cts;
+  std::cout << (cts ? "CTS" : "BUSY") << std::endl;
+}
+```
+
+Les parenthèses font porter l'affichage sur le résultat du ternaire. Le
+dernier état reste hors de la callback et survit à ses invocations. Une
+exception de lecture remonte ici vers le `catch` de `main()` ; elle ne doit
+pas être convertie en `false`. Pour un essai sur pseudo-terminal, gardez le
+timer sans ce bloc de surveillance : les drapeaux de configuration du TTY
+peuvent être testés même si le terminal ne fournit aucun signal CTS physique.
+
+### Choisir les réessais radio pour chaque envoi
+
+Le dernier argument des méthodes XBee peut recevoir l'enum fortement typé
+`XbeeTransport::RadioRetries` :
+
+```cpp
+using RadioRetries = pprzlink::XbeeTransport::RadioRetries;
+const auto receiver = pprzlink::XbeeAddress::network(0x0100);
+
+pprzlink::Message setting(dictionary.getDefinition("GUIDE_SETTING"));
+setting.setSenderId(0);
+setting.setReceiverId(42);
+setting.setField("ac_id", 42, "value", 12.5);
+// Demande les mécanismes normaux du modem pour une commande importante.
+transport.sendMessageTo(setting, receiver, RadioRetries::Enabled);
+
+const auto telemetry = altitude(dictionary, 123.5);
+// Une altitude ou position périssable peut être envoyée sans ACK/réessais MAC.
+transport.sendMessageTo(telemetry, receiver, RadioRetries::Disabled);
+```
+
+Ces appels ont lieu après l'initialisation, par exemple dans une callback.
+Omettre le dernier argument équivaut à `RadioRetries::FromDefinition` : l'appel
+`transport.sendMessageTo(setting, receiver)` consulte alors la définition du
+message. Si le XML ne précise rien, les réessais restent activés.
+
+| Valeur de l'enum | Options de la trame | Effet en 802.15.4 legacy |
+| --- | --- | --- |
+| `RadioRetries::FromDefinition`, par défaut | Selon le XML | Applique `radio_retry` ; absent, utilise `Enabled`. |
+| `RadioRetries::Enabled` | `0x00` | Autorise les ACK et réessais MAC selon la configuration du modem. |
+| `RadioRetries::Disabled` | `0x01`, bit « Disable MAC ACK » | Désactive l'ACK MAC pour cet envoi et les réessais associés. |
+
+Il s'agit d'un `enum class`, pas d'un booléen. Ce choix est propre à la trame,
+sans modifier la configuration globale du modem. En 802.15.4, il agit sur
+les ACK et réessais MAC ; il ne reconfigure pas les autres couches de réessais
+(`MM`/`RR`). Les trames 868 `0x10` utilisent également le bit « Disable ACK ».
+En particulier, `Enabled` conserve le comportement antérieur, sans forcer
+des mécanismes que la configuration globale du modem aurait désactivés.
+Voir le [format TX16 de Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x01.htm).
+
+Le même argument final est accepté par `sendMessageWithId()` et les anciennes
+méthodes d'adressage conservées pour compatibilité. Pour l'adressage déduit
+du destinataire PPRZLINK, utilisez
+`sendMessage(message, RadioRetries::Disabled)` ; l'appel historique
+`sendMessage(message)` utilise `FromDefinition`, y compris via `Transport&`.
+
+Pour fixer le choix par type de message, ajoutez l'attribut sur l'élément
+`<message>` du catalogue chargé à l'exécution :
+
+```xml
+<message name="GUIDE_ALTITUDE" id="1" radio_retry="false">
+  <field name="altitude" type="float" unit="m"/>
+</message>
+```
+
+Après rechargement du dictionnaire, ces appels suivent ce choix :
+
+```cpp
+transport.sendMessageTo(telemetry, receiver); // Utilise radio_retry="false".
+transport.sendMessageTo(telemetry, receiver, RadioRetries::FromDefinition);
+transport.sendMessageTo(telemetry, receiver, RadioRetries::Enabled); // Force les réessais pour cet envoi.
+```
+
+La priorité est **argument explicite `Enabled`/`Disabled`, puis attribut XML,
+puis `Enabled` si l'attribut est absent**. `radio_retry="true"` autorise les
+mécanismes normaux du modem. Les valeurs booléennes XML `1` et `0` sont aussi
+acceptées ; toute autre valeur lève `bad_message_file` au chargement, avec le
+nom du message concerné. Les anciens XML gardent donc le comportement legacy.
+
+`MessageDefinition` lit et conserve ce réglage ;
+`message.getDefinition().getRadioRetries()` renvoie `Enabled` ou `Disabled`.
+`XbeeTransport` l'applique à l'envoi en mode `FromDefinition`. Le type commun
+est déclaré dans `<pprzlink/RadioRetries.h>`, avec l'alias historique
+`XbeeTransport::RadioRetries`. Cet attribut est une métadonnée : il ne rajoute
+aucun champ au message PPRZLINK et n'affecte ni la série PPRZ, ni UDP, ni Ivy.
+
+La bibliothèque n'ajoute aucune réémission côté PC. Le retour de statut radio
+reste disponible tant que le `frameId` est non nul, mais un statut « OK » sans
+ACK ne prouve pas que le destinataire a reçu le message. Le choix `Disabled`
+sur un envoi ne change pas le comportement par défaut des envois suivants.
+
+Le paramètre ne crée ni file de réémission côté PC, ni durée de validité des
+données, ni remplacement automatique par une mesure plus récente. Si une
+position vieillit avant son envoi, c'est à l'application de la remplacer ou
+de l'abandonner. Après épuisement des essais internes du modem, une commande
+importante peut elle aussi échouer : le statut final doit être traité.
+Mettre `frameId` à zéro supprime seulement le retour de statut, indépendamment
+du choix `RadioRetries`.
 
 ### Choisir la destination radio
 
@@ -1710,25 +2000,43 @@ renseignées séparément. Remplacez la construction de `message` et son envoi p
 auto message = altitude(dictionary, metres);
 message.setReceiverId(0);
 // À appeler lorsque le modem est prêt ; 0x0100 identifie la radio distante.
-const auto sent = transport.sendMessageTo16(message, 0x0100);
+const auto receiver = pprzlink::XbeeAddress::network(0x0100);
+const auto sent = transport.sendMessageTo(message, receiver);
 ```
 
 Ici, 0 est le destinataire logique dans l'en-tête du message et `0x0100`
 l'adresse de la radio distante. Adaptez celle-ci à votre installation.
-`sendMessageTo64()` permet un adressage radio sur 64 bits.
+`XbeeAddress::network()` désigne une adresse courte `MY`, et
+`XbeeAddress::ieee()` une adresse matérielle `SH/SL` :
+
+```cpp
+const auto receiver = pprzlink::XbeeAddress::ieee(0x0013a200405291ab);
+transport.sendMessageTo(message, receiver);
+```
+
+Le type d'adresse dépend de la fabrique choisie : même `ieee(0x0100)` utilise
+le format IEEE. Les littéraux n'exigent ni cast ni suffixe particulier.
+Les valeurs négatives et les adresses `network()` dépassant `0xffff` sont
+refusées à la construction avec `std::out_of_range`, avant toute troncature.
+Les valeurs flottantes et booléennes ne sont pas acceptées. Les anciennes
+méthodes `sendMessageTo16()` et `sendMessageTo64()` restent disponibles.
+Le type est inclus par `XbeeTransport.h` et peut aussi être utilisé seul avec
+`<pprzlink/XbeeAddress.h>`. `kind()` et `value()` permettent d'inspecter son
+format et sa valeur. Une valeur IEEE doit tenir sur 64 bits.
 
 La variante `XbeeTransport::Api::Series868`, passée en troisième argument au
-constructeur, sélectionne les trames étendues. Elle ne configure pas à elle
-seule un modem 868 MHz. Les essais logiciels de cette branche couvrent ces
+constructeur, sélectionne les trames étendues et requiert une adresse `ieee()`.
+Elle ne configure pas à elle seule un modem 868 MHz. Les essais logiciels
+de cette branche couvrent ces
 trames ; la validation sur matériel 868 reste à effectuer, comme indiqué
 dans le [rapport de validation](LINK_CPP_VALIDATION.md).
 
 ### Distinguer écriture série et livraison radio
 
 La valeur renvoyée par `sendMessage()` est un nombre d'octets écrits vers
-le modem. Pour connaître le résultat radio, installez un callback **avant**
-l'envoi. Ajoutez `<variant>` et installez ce callback dans `main()`, après
-la construction du transport et avant l'appel à `emit()` ou `receive()` :
+le modem. `emit()` installe déjà un callback avec `setStatusCallback()` pour
+recevoir le résultat radio. Pour le personnaliser, remplacez son callback
+par celui-ci ; dans un autre programme, installez-le avant les envois :
 
 ```cpp
 // Installe l'observateur avant l'envoi ; le traitement de la réception lui remettra les statuts radio.
@@ -1743,7 +2051,8 @@ transport.setStatusCallback([](const pprzlink::XbeeTransport::RadioStatus &event
 });
 ```
 
-Dans la boucle de `emit()`, après `sendMessageTo16(message, 0x0100)`, ajoutez :
+Dans la boucle de `emit()`, l'identifiant est relevé immédiatement après
+l'envoi, avant de présenter une autre trame au transport :
 
 ```cpp
 // Associe cet envoi au futur TransmitStatus portant le même frameId.
@@ -1753,9 +2062,21 @@ std::cout << "Identifiant radio envoyé : " << static_cast<unsigned>(frameId) <<
 
 Activez la réception avec `start()` et faites tourner Asio avec `context.run()`.
 Le traitement de la réception déclenche aussi les callbacks de statut, même
-si aucun message applicatif n'est rendu. Un statut de transmission égal à
-zéro indique le succès radio ; il ne confirme pas que l'application distante
-a exécuté une commande.
+si aucun message applicatif n'est rendu. Pour le format 802.15.4 legacy,
+les principaux codes de `TransmitStatus::status` sont :
+
+| Code | Sens |
+| --- | --- |
+| `0x00` | Succès rapporté par le modem. |
+| `0x01` | Aucun ACK reçu. |
+| `0x02` | Échec de l'accès au canal radio (CCA). |
+
+En unicast avec les ACK effectivement activés, un succès confirme la réception
+d'un ACK du XBee destinataire. Avec `RadioRetries::Disabled`, ou en broadcast,
+un statut « OK » ne prouve pas la réception distante. Dans tous les cas,
+il ne confirme pas que le programme derrière cette radio a lu le message
+PPRZLINK ou exécuté une commande : cela demande une réponse applicative.
+Voir les [statuts TX documentés par Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x89.htm).
 
 Pour suivre plusieurs envois, associez chaque statut à son `frameId`.
 Les identifiants automatiques parcourent 1 à 255. Une application avancée
@@ -1765,7 +2086,22 @@ valeur 0 désactive la réponse de statut. Le transport ne gère pas les
 réessais applicatifs ; définir un délai et décider d'une retransmission
 relèvent du programme utilisateur.
 
-Les messages radio reçus portent aussi des métadonnées :
+`sendMessageWithId()` déduit actuellement la destination radio du destinataire
+PPRZLINK ; cette méthode ne prend pas d'`XbeeAddress` séparée.
+`sendMessageTo()` accepte une adresse radio indépendante et attribue son ID
+automatiquement. Ces deux capacités ne sont pas réunies dans une même surcharge.
+
+L'identifiant radio n'est ni l'identifiant XML du message ni un compteur
+illimité. Le compteur automatique peut boucler ; il ne réserve pas les
+identifiants pour votre table d'envois en attente. Pour une corrélation durable,
+gérez leur allocation sans réutiliser un identifiant encore attendu. Une
+absence d'ACK ne prouve pas à elle seule que la trame n'a pas été reçue :
+l'ACK peut avoir été perdu. Enfin, `TransmitStatus::retries` est renseigné
+pour les statuts étendus `0x8b` ; le format legacy `0x89` ne fournit pas ce
+compteur et la valeur zéro du champ C++ ne compte donc pas ses réessais réels.
+
+Les messages radio reçus portent aussi des métadonnées. Pour les afficher,
+remplacez le binding `ALL` de `emit()` par :
 
 ```cpp
 // La seconde référence apporte les métadonnées de cette réception ; elle est empruntée pour l'appel.
@@ -1786,6 +2122,90 @@ L'adresse radio source et l'identifiant d'expéditeur PPRZLINK décrivent deux
 niveaux d'adressage. Le RSSI n'est pas présent dans toutes les variantes,
 d'où le contrôle de `hasRssi`. La charge utile RF acceptée par ce transport
 est limitée à 100 octets, en-tête PPRZLINK compris.
+
+### Utiliser link++ avec une radio XBee
+
+L'agent [link++](apps/link) relie le bus Ivy aux avions, applique les règles
+`link="forwarded"` et `link="broadcasted"`, et suit leur présence. Il utilise
+les mêmes `MessageDefinition` et `XbeeTransport` que votre application.
+Il attend le catalogue Paparazzi complet, avec ses classes `telemetry`,
+`datalink` et `ground`, et les définitions utilisées par le routage et les
+rapports. Utilisez le catalogue de votre configuration ; le petit XML
+`GUIDE_*` de cet atelier ne remplit pas ce rôle.
+
+Après l'installation d'Ivy décrite à l'étape 8, construisez l'agent depuis
+les sources actuelles de pprzlink :
+
+```sh
+cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-link" \
+  -DCMAKE_CXX_COMPILER=g++-13 \
+  -DPPRZLINK_WITH_IVY=ON \
+  -DPPRZLINK_BUILD_LINK=ON \
+  -DPPRZLINK_BUILD_EXAMPLES=OFF \
+  -DBUILD_TESTING=OFF
+cmake --build "$PPRZLINK_ATELIER/build-link" --target link++ -j4
+"$PPRZLINK_ATELIER/build-link/apps/link/link++" --help
+```
+
+Dans une arborescence Paparazzi, vous pouvez aussi reconstruire le binaire
+utilisé par les outils sol, depuis la racine de Paparazzi :
+
+```sh
+make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD"
+```
+
+Cette commande reconstruit la bibliothèque et l'agent ensemble à partir du
+sous-module présent, puis copie l'exécutable dans
+`sw/ground_segment/tmtc/link++`.
+
+Pour lancer ce binaire depuis la racine de Paparazzi, avec RTS/CTS activé :
+
+```sh
+export PAPARAZZI_HOME="$PWD"
+./sw/ground_segment/tmtc/link++ \
+  -transport xbee -d /dev/ttyUSB0 -s 57600 -hfc
+```
+
+`-hfc` est un commutateur sans argument. En mode XBee, il active ensemble le
+RTS/CTS du TTY Linux et les fonctions `D6=1`, `D7=1` du modem. Sans `-hfc`,
+les deux côtés sont désactivés (`D6=0`, `D7=0`, sans `CRTSCTS`). Les deux fils
+RTS/CTS doivent être câblés pour les activer. En mode `-transport pprz`,
+`-hfc` configure seulement le port série.
+
+La préparation AT vérifie le modem et le TTY avant d'annoncer
+`XBee ready: RTS/CTS enabled on host and modem`. L'agent conserve le débit
+fixe demandé par `-s` : il ne lance ni changement de débit ni `ATWR`.
+Dans Paparazzi Center, ajoutez `-hfc` aux arguments de lancement de `link++`
+pour obtenir le même réglage.
+
+Les messages sont chargés depuis `$PPRZLINK_DIR/messages.xml` si cette variable
+est définie, sinon depuis `$PAPARAZZI_HOME/var/messages.xml`, sinon depuis
+`/usr/share/pprzlink/messages.xml`. L'attribut `radio_retry` doit se trouver
+dans le fichier effectivement chargé. Après modification, relancez l'agent.
+Un `PPRZLINK_DIR` conservé d'un autre essai prend donc priorité sur
+`PAPARAZZI_HOME`.
+
+Les envois et réémissions de `link++` utilisent explicitement
+`RadioRetries::FromDefinition`. Le choix XML s'applique aussi à sa politique
+de réémission côté PC :
+
+| Attribut sur `<message>` | Comportement radio | Réémission par link++ |
+| --- | --- | --- |
+| Absent | Mode normal du modem (`0x00`). | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
+| `radio_retry="true"` | Mode normal du modem (`0x00`). | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
+| `radio_retry="false"` | ACK/réessais MAC désactivés (`0x01`). | Aucun nouvel envoi après un échec radio. |
+
+`-xbee_retries 3` autorise au maximum trois tentatives côté PC, premier envoi
+compris, pour les messages dont les réessais sont activés. La valeur par
+défaut est 10 ; `-xbee_retries 1` supprime les réémissions côté PC tout en
+laissant le choix radio au XML. Cette option ne réactive jamais les réessais
+d'un message portant `radio_retry="false"`.
+
+Les statuts TX restent demandés et leurs identifiants sont suivis même pour
+un message sans réessais. Un statut absent expire après cinq secondes sans
+réémission automatique ; un statut « OK » sans ACK ne prouve pas la réception
+distante. La bibliothèque seule ne crée aucune réémission côté PC : cette
+politique supplémentaire appartient à l'agent `link++`.
 
 ## 11. Construire un outil générique ou un adaptateur
 
@@ -1856,7 +2276,12 @@ sans avoir à écrire cette mécanique.
 Pour les fichiers ou FIFO sous Unix, la bibliothèque fournit déjà
 `PosixFileDevice`, dans le composant `io`. Pour changer la vitesse UART pendant
 une initialisation XBee, un adaptateur doit implémenter l'interface plus
-spécifique `SerialDevice` et sa méthode `resetBaudrate()`.
+spécifique `SerialDevice` et sa méthode `resetBaudrate()`. L'initialisation XBee
+utilise aussi `applyHardwareFlowControl()` et `readHardwareFlowControl()` pour
+configurer et vérifier le contrôle RTS/CTS du port hôte.
+La lecture `getCTS()` est une capacité optionnelle : son implémentation par
+défaut signale `operation_not_supported`. Un adaptateur qui la propose doit
+renvoyer l'état logique du signal et propager ses erreurs de lecture.
 
 `PprzTransport` et `XbeeTransport` dérivent tous deux de `Transport` : un
 programme peut choisir l'un ou l'autre avec un `std::unique_ptr<Transport>`.
@@ -1936,6 +2361,12 @@ nécessitent une reconnexion ou un arrêt.
 | Rien ne déclenche le callback Ivy | Même domaine Ivy, abonnement encore vivant, boucle active et publication après découverte ? |
 | Requête Ivy sans réponse | Le répondeur est-il abonné à la définition `_REQ` et retourne-t-il le bon type de réponse ? |
 | XBee écrit des octets mais rien n'arrive | Destination radio correcte, modem en AP=1, statuts TX traités ? |
+| `hardwareFlowControl`, `RadioRetries` ou `XbeeAddress` inconnus à la compilation | Le SDK actif contient-il ces API ? Reconstruire et réinstaller la bibliothèque, puis vérifier `pprzlink++_DIR` dans le cache CMake. |
+| Référence indéfinie vers une nouvelle méthode XBee | Les en-têtes et archives viennent-ils de la même version du SDK ? |
+| `getCTS()` provoque `ENOTTY` | Un pseudo-terminal ou ce pilote ne fournit pas les signaux modem ; ce n'est pas un état CTS désaffirmé. |
+| Un setter de contrôle de flux lève `std::logic_error` après initialisation XBee | Reconfigurer les deux côtés avec `XbeeConfiguration::hardwareFlowControl`, puis relancer `startInitialization()`. |
+| Les retours cessent pendant l'émission | La callback rend-elle la main ? Une écriture synchrone attend-elle les tampons ou CTS ? |
+| « Trame OK » sans preuve de réception | L'envoi est-il unicast avec ACK activés, ou sans ACK/en broadcast ? |
 
 Toutes les erreurs ne passent pas par `pprzlink_exception` : les erreurs de
 conversion, de type et de longueur ont d'autres bases standard. Le

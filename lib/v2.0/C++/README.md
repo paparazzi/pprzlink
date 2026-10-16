@@ -245,6 +245,7 @@ Defaults match OCaml, including **9600 baud**, uplink enabled, UDP ports
 export PAPARAZZI_HOME=/path/to/paparazzi
 ./build-gcc13/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport pprz
 ./build-gcc13/apps/link/link++ -udp -udp_port 4242 -udp_uplink_port 4243
+./build-gcc13/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport xbee -hfc
 ./build-gcc13/apps/link/link++ -help
 ```
 
@@ -283,6 +284,21 @@ and does **not** change or save the modem's baudrate. AT replies and deadlines
 are still checked. Host retries preserve the frame ID; `-xbee_retries` sets the
 maximum total attempts, including the first send. Pending IDs are not reused;
 a missing status expires after five seconds without blindly resending a command.
+
+Both initial sends and host resends select `RadioRetries::FromDefinition`.
+An absent or `true` XML `radio_retry` attribute preserves normal radio retries
+and permits host resends up to `-xbee_retries` (default 10 total attempts).
+`radio_retry="false"` disables the radio ACK/retry bit and forbids host resends,
+regardless of this CLI limit. Transmit-status tracking remains enabled.
+`-xbee_retries 1` suppresses host resends for all messages while keeping the
+per-message radio choice from XML.
+
+`-hfc` enables paired RTS/CTS on the host and XBee modem (`D6=1`, `D7=1`).
+Omitting it disables both sides (`D6=0`, `D7=0`); the default is off.
+The AT initialization verifies both settings before the ready message. In
+PPRZ serial mode, `-hfc` configures the host UART only. The
+[French guide](guide_d_utilisation.md#utiliser-link-avec-une-radio-xbee) includes
+Paparazzi build/launch commands and the XML retry policy.
 
 `-xbee_868` selects AP=1 TX 0x10, RX 0x90 and status 0x8b frames. This framing is
 covered by fixtures and a simulated modem; physical 868 modem configuration and
@@ -376,16 +392,84 @@ auto serialDevice = std::make_unique<pprzlink::BoostSerialPortDevice>(context, "
 serialDevice->setBaudrate(pprzlink::BoostSerialPortDevice::Baudrate(57600));
 // Set any other serial options here, before transferring ownership.
 pprzlink::XbeeTransport transport(std::move(serialDevice), dictionary);
-transport.startInitialization(); // Autobaud -> 57600, MY=0x100, channel unchanged, AP=1
+pprzlink::XbeeConfiguration configuration;
+configuration.hardwareFlowControl = true; // One choice for both the host UART and modem.
+transport.startInitialization(configuration); // Autobaud -> 57600, MY=0x100, channel unchanged, AP=1
 transport.setSanityChecksEnabled(true);
 message.setReceiverId(42);
 transport.onReady([&] {
     transport.sendMessage(message); // XBee destination 42, after initialization.
-    transport.sendMessageTo64(message, 0x0013a200405291abULL);
+    transport.sendMessageTo(message, pprzlink::XbeeAddress::ieee(0x0013a200405291ab));
 });
 transport.start();
 context.run();
 ```
+
+Use a named radio destination with the unified `sendMessageTo()` API:
+
+```cpp
+using pprzlink::XbeeAddress;
+const auto receiver = XbeeAddress::network(0x0100); // Short MY network address.
+const auto radio = XbeeAddress::ieee(0x0013a200405291ab); // IEEE SH/SL address.
+transport.sendMessageTo(message, receiver);
+transport.sendMessageTo(message, radio);
+```
+
+The address kind is selected explicitly by the factory, never inferred from
+the numeric magnitude. `ieee(0x0100)` still uses IEEE addressing. Network values
+must fit in sixteen bits; IEEE values must fit in sixty-four bits. Negative or
+oversized values throw `std::out_of_range` before narrowing. Integer literals
+need no casts or suffixes; floating-point and bool inputs are rejected.
+Network addresses require legacy 802.15.4 mode; Series868 requires `ieee()`.
+The standalone header is `<pprzlink/XbeeAddress.h>`; `XbeeTransport.h` includes it.
+The older `sendMessageTo16()` and `sendMessageTo64()` remain compatibility wrappers.
+
+Choose the radio ACK/retry behavior per transmission with the scoped enum
+`XbeeTransport::RadioRetries`, in the last argument position:
+
+```cpp
+using RadioRetries = pprzlink::XbeeTransport::RadioRetries;
+const auto receiver = pprzlink::XbeeAddress::network(0x0100);
+transport.sendMessageTo(setting, receiver); // Default: FromDefinition.
+transport.sendMessageTo(setting, receiver, RadioRetries::FromDefinition);
+transport.sendMessageTo(setting, receiver, RadioRetries::Enabled);
+transport.sendMessageTo(position, receiver, RadioRetries::Disabled);
+```
+
+`Enabled` preserves the existing wire option `0x00`; `Disabled` sets the
+per-frame Disable ACK bit (`0x01`). This selects modem behavior, not a host-side
+resend queue. On legacy 802.15.4 it controls MAC ACK/retries; it does not rewrite
+the modem's MM/RR configuration. The 868 `0x10` frame uses the same Disable ACK
+bit. Other firmware retry layers and global modem settings still apply.
+See Digi's [TX16 format](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x01.htm)
+and [868 format, page 54](https://ftp1.digi.com/support/documentation/90001020_F.pdf).
+
+`sendMessageWithId()`, `sendMessageTo()` and the compatibility wrappers accept the
+optional last argument with default `RadioRetries::FromDefinition`.
+`sendMessage(message, radioRetries)` is an overload: the one-argument override
+also selects `FromDefinition`, including calls through `Transport&`.
+The definition reads the optional `radio_retry` attribute on each XML message:
+
+```xml
+<message name="POSITION" id="1" radio_retry="false">
+  <field name="altitude" type="float" unit="m"/>
+</message>
+```
+
+An explicit `Enabled` or `Disabled` send overrides the definition for that frame.
+With `FromDefinition`, `radio_retry="false"` disables ACK/retries and
+`radio_retry="true"` enables normal modem behavior. A missing attribute defaults
+to `Enabled`, preserving older XML files. XML boolean spellings `0` and `1` are
+also accepted; other values fail at dictionary loading with `bad_message_file`.
+`MessageDefinition::getRadioRetries()` returns the resolved `Enabled` or `Disabled`
+hint. It is metadata, never an extra PPRZLINK payload field, and does not affect
+PPRZ serial, UDP or Ivy. The shared enum is declared in `<pprzlink/RadioRetries.h>`;
+`XbeeTransport::RadioRetries` remains an alias for existing source code.
+
+Disabling retries on one send does not affect subsequent sends. Invalid enum
+values throw before writing any bytes. The frame ID and transmit-status callback
+remain independent: ID zero suppresses the status, not the radio retries.
+Without radio ACKs, a successful transmit status does not prove remote reception.
 
 The default radio destination is the PPRZLINK receiver ID. Receiver 255 means
 broadcast and maps to radio address `0xffff`. The RF data consists of the four
@@ -421,20 +505,61 @@ command mode and queries `ATBD` again to verify the change before issuing
 `ATWR` and checking its `OK`. The next startup tries the saved target first.
 There is no flash write when the modem already uses the requested rate.
 **ATWR stores all current modem parameters**, so it is deliberately issued
-before this initializer changes MY, CH or AP; pre-existing volatile settings
+before this initializer changes MY, CH, AP, D6 or D7; pre-existing volatile settings
 are still included in that save. The initializer then sends `ATMY`, optional
-`ATCH`, `ATAP1` and the final `ATCN`, checking each `OK`. Those MY/CH/AP
+`ATCH`, `ATAP1`, paired D6/D7 settings and the final `ATCN`, checking each `OK`. Those MY/CH/AP/D6/D7
 changes remain volatile. The PAN and API output format (`AO`) are not changed.
 
 Baud detection requires a `SerialDevice`, implemented by `BoostSerialPortDevice`.
 Its `resetBaudrate()` changes the host UART and discards buffered input and
 completions from the previous rate. Stale kernel input is drained during the
 guard before `+++`; no flush is performed after AT commands.
-Set `targetBaudrate = std::nullopt` for fixed-baud initialization with a generic
-`Device`: the host and modem must then already match, and no BD query or flash
+Set `targetBaudrate = std::nullopt` for fixed-baud initialization with a
+`SerialDevice`: the host and modem baud rates must then already match, and no BD query or flash
 write is performed. Automatic targets are limited to the eight standard rates
 listed above, common to legacy S1/S2C firmware. Rounded custom BD replies near
 a probed rate are accepted for discovery, but arbitrary custom rates are not scanned.
+
+`XbeeConfiguration::hardwareFlowControl` is the single RTS/CTS setting for both
+the host UART and the modem. Its default `false` explicitly configures **00**:
+no host flow control, `D6=0`, `D7=0`. Set it to `true` for **11**: host RTS/CTS,
+`D6=1`, `D7=1`. Independent host/modem choices are not exposed.
+`BoostSerialPortDevice` uses Asio's native serial option (`CRTSCTS` on Linux).
+Initialization temporarily disables host flow control so an unconfigured CTS
+cannot block AT writes. It checks both `ATD6` and `ATD7` readbacks, waits for the
+final `ATCN` reply, applies and reads back the requested host setting, and only
+then marks the modem ready. No binary message can be sent before those checks.
+After initialization first claims the UART, both `setFlowcontrol()` and
+`setHardwareFlowControl()` reject independent changes with `std::logic_error`.
+To switch either way, call `startInitialization()` again with the shared option.
+
+Two physical endpoints cannot be changed atomically: a failure after a radio
+command can leave partially applied hardware settings. Such a failure never
+publishes readiness or enables binary sends; correct the cause and reinitialize.
+RTS/CTS wiring is required for **11**. Baud rate and flow control are separate:
+this setting does not increase UART throughput and synchronous writes can wait
+while the modem deasserts CTS. Runtime D6/D7 changes are not saved to flash.
+The legacy already-configured constructor mode skips all modem checks; callers
+using that mode are responsible for an already consistent hardware configuration.
+
+Read the local UART's instantaneous CTS input through `SerialDevice::getCTS()`:
+
+```cpp
+const auto &serial = dynamic_cast<const pprzlink::SerialDevice &>(transport.getDevice());
+const bool clearToSend = serial.getCTS(); // true: asserted; false: deasserted.
+```
+
+The name follows [`wjwwood/serial`](https://github.com/wjwwood/serial/blob/main/include/serial/serial.h).
+`BoostSerialPortDevice` implements it using `ioctl(TIOCMGET)` and `TIOCM_CTS` on
+POSIX systems supporting those constants. It reads the logical signal even when
+flow control is disabled, without changing settings or waiting for assertion.
+Calls are serialized with other port I/O. An unsupported query or native error
+throws `boost::system::system_error`, rather than pretending CTS is deasserted;
+Linux PTYs normally report `ENOTTY`. Other `SerialDevice` adapters inherit an
+optional default that throws `operation_not_supported` until they implement it.
+`getHardwareFlowControl()` still reports configuration, and `isReady()` still
+reports modem initialization. A CTS sample cannot guarantee the next synchronous
+write will not block: the signal can change and host buffers may be full.
 
 The default guard time is two seconds before and after `+++`; the reply timeout
 is two seconds per AT command (for entry, after the post-escape guard).
@@ -504,7 +629,9 @@ From this directory after the CMake build:
 `-xbee-dest` and `-xbee-dest64` override the radio destination independently of
 `-receiver`. Radio addresses accept decimal or `0x` hexadecimal notation.
 Serial settings are 8N1 without flow control by default; `-hfc` selects RTS/CTS
-when the wiring and modem configuration support it. Ctrl-C stops reception.
+on both the UART and modem in XBee mode, and on the UART alone in PPRZ mode.
+`-hfc` is rejected with `-xbee-no-init` because that combination cannot configure
+the modem half. Ctrl-C stops reception.
 
 `-xbeesan` enables an additional check of each complete transmit frame immediately
 before the serial write. It verifies the `0x7e` delimiter, declared versus actual
