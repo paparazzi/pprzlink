@@ -258,6 +258,10 @@ if(BUILD_TESTING)
                      --peer $<TARGET_FILE:pty_peer>
                      ${pty_controller_args})
             set_tests_properties(pty_peers PROPERTIES TIMEOUT 20)
+            add_test(NAME udp_messages COMMAND ${Python3_EXECUTABLE}
+                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/UdpMessagesTest.py"
+                     $<TARGET_FILE:udp_messages>)
+            set_tests_properties(udp_messages PROPERTIES TIMEOUT 15)
             add_test(NAME pty_agents COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyAgentsTest.py"
                      --agent $<TARGET_FILE:pty_agent> ${pty_controller_args})
