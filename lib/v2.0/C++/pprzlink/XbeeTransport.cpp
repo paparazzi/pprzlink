@@ -151,7 +151,7 @@ namespace pprzlink {
 
   size_t XbeeTransport::sendMessage(const Message &message)
   {
-    return sendMessage(message, RadioRetries::FromDefinition);
+    return sendMessage(message, RadioRetries::Enabled);
   }
 
   size_t XbeeTransport::sendMessage(const Message &message, RadioRetries radioRetries)
@@ -190,8 +190,6 @@ namespace pprzlink {
   {
     auto lock = lockReceiver();
     if (!isReady()) throw std::logic_error("XBee initialization must succeed before sending messages");
-    if (radioRetries == RadioRetries::FromDefinition)
-      radioRetries = message.getDefinition().getRadioRetries();
     uint8_t transmitOptions = 0;
     switch (radioRetries) {
       case RadioRetries::Enabled: break;

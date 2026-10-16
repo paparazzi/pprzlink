@@ -41,8 +41,8 @@ namespace pprzlink {
     /// @brief Per-frame radio ACK/retry choice, independent of host-side retries.
     /// Legacy 802.15.4 controls MAC ACK/retries. This does not change modem
     /// parameters (MM/RR/TO) or the host's decision to resend after a failure.
-    /// FromDefinition is the send default and reads MessageDefinition::getRadioRetries().
-    /// Keep the existing XbeeTransport::RadioRetries spelling available.
+    /// Enabled is the send default. Broadcast addresses never request MAC ACKs.
+    /// XML link routing is handled by applications such as link++.
     using RadioRetries = pprzlink::RadioRetries;
     /// @brief Maximum RF bytes, including the four-byte PPRZLINK header.
     static constexpr size_t maximumRfPayloadSize = 100;
@@ -110,8 +110,7 @@ namespace pprzlink {
     /// Use the PPRZLINK receiver as radio destination (64-bit in 868 mode).
     /// Receiver 255 broadcasts to 0xffff in either mode.
     /// Returns bytes written to the serial device, not confirmation of RF delivery.
-    /// This override uses RadioRetries::FromDefinition, including polymorphic calls.
-    /// Missing XML radio_retry preserves the legacy Enabled behavior.
+    /// This override uses RadioRetries::Enabled, including polymorphic calls.
     /// @param[in] message Populated message with valid v2 IDs and at most 100 RF payload bytes.
     /// @return Complete AP=1 frame bytes synchronously written to the device.
     /// @throws std::exception Not ready, invalid message/size, sanity check or I/O failure.
@@ -127,39 +126,39 @@ namespace pprzlink {
     /// The application must not reuse an outstanding ID for a different message.
     /// @param[in] message Populated message; its receiver selects destination/broadcast addressing.
     /// @param[in] frameId Explicit radio frame ID, including zero to disable status responses.
-    /// @param[in] radioRetries Explicit choice or FromDefinition (default); missing XML means Enabled.
+    /// @param[in] radioRetries Radio ACK/retry choice; Enabled preserves normal transmit options.
     /// @return Complete radio frame bytes written, not delivery confirmation.
     /// @throws std::exception Readiness, validation, encoding or I/O failure.
     size_t sendMessageWithId(const Message &message, uint8_t frameId,
-                             RadioRetries radioRetries = RadioRetries::FromDefinition);
+                             RadioRetries radioRetries = RadioRetries::Enabled);
     /// @brief Send to an explicit network or IEEE radio destination.
     /// The address factory selects TX16/TX64 in legacy mode. Series868 requires
     /// an IEEE destination and emits a 0x10 frame. The PPRZLINK receiver is unchanged.
     /// @param[in] message Populated PPRZLINK message.
     /// @param[in] destination Validated radio address from XbeeAddress::network() or ieee().
-    /// @param[in] radioRetries Explicit choice or FromDefinition (default); missing XML means Enabled.
+    /// @param[in] radioRetries Radio ACK/retry choice; Enabled preserves normal transmit options.
     /// @return Complete AP=1 frame bytes synchronously written to the device.
     /// @throws std::invalid_argument A network destination is used with Series868, or the retry enum is invalid.
     /// @throws std::exception Readiness, payload validation, encoding or I/O failure.
     size_t sendMessageTo(const Message &message, XbeeAddress destination,
-                        RadioRetries radioRetries = RadioRetries::FromDefinition);
+                        RadioRetries radioRetries = RadioRetries::Enabled);
     /// Compatibility wrapper for sendMessageTo(message, XbeeAddress::network(destination), radioRetries).
     /// @param[in] message Populated PPRZLINK message.
     /// @param[in] destination Explicit sixteen-bit radio address.
-    /// @param[in] radioRetries Explicit choice or FromDefinition (default); missing XML means Enabled.
+    /// @param[in] radioRetries Radio ACK/retry choice; Enabled preserves normal transmit options.
     /// @return Complete TX16 frame bytes written to the device.
     /// @throws std::invalid_argument This transport uses the 868 frame family.
     /// @throws std::exception Readiness, payload validation or I/O failure.
     size_t sendMessageTo16(const Message &message, uint16_t destination,
-                          RadioRetries radioRetries = RadioRetries::FromDefinition);
+                          RadioRetries radioRetries = RadioRetries::Enabled);
     /// @brief Compatibility wrapper for sendMessageTo(message, XbeeAddress::ieee(destination), radioRetries).
     /// @param[in] message Populated PPRZLINK message, with its own independent receiver ID.
     /// @param[in] destination Radio destination address used by TX64 or extended 868 TX.
-    /// @param[in] radioRetries Explicit choice or FromDefinition (default); missing XML means Enabled.
+    /// @param[in] radioRetries Radio ACK/retry choice; Enabled preserves normal transmit options.
     /// @return Complete radio frame bytes written to the device.
     /// @throws std::exception Readiness, validation, encoding or I/O failure.
     size_t sendMessageTo64(const Message &message, uint64_t destination,
-                          RadioRetries radioRetries = RadioRetries::FromDefinition);
+                          RadioRetries radioRetries = RadioRetries::Enabled);
 
     /// Extra validation of the complete API frame immediately before Device::writeBuffer.
     /// Failures throw without writing any bytes. Applications choose how to report them.

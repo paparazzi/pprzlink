@@ -89,38 +89,27 @@ namespace {
     }
   }
 
-  void testRadioRetries()
+  void testLinkModes()
   {
-    require(MessageDefinition{}.getRadioRetries() == RadioRetries::Enabled,
-            "An empty definition preserves the legacy radio retry default");
+    using Mode = MessageDefinition::LinkMode;
+    require(MessageDefinition{}.getLinkMode() == Mode::None, "An empty schema has no routing hint");
     const auto dict = dictionary("<protocol><msg_class name='test' id='1'>"
-      "<message name='LEGACY' id='1'/>"
-      "<message name='ENABLED' id='2' radio_retry='true'/>"
-      "<message name='DISABLED' id='3' radio_retry='false'><field name='x' type='uint8'/></message>"
-      "<message name='ONE' id='4' radio_retry='1'/>"
-      "<message name='ZERO' id='5' radio_retry='0'/>"
-      "<message name='UPPER' id='6' RADIO_RETRY='false'/>"
-      "<message name='BOTH' id='7' radio_retry='false' RADIO_RETRY='true'/>"
+      "<message name='DEFAULT' id='1'/>"
+      "<message name='TARGET' id='2' link='forwarded'/>"
+      "<message name='BROADCAST' id='3' link='broadcasted'><field name='ac_id' type='uint8'/></message>"
+      "<message name='UPPER' id='4' LINK='broadcasted'/>"
       "</msg_class></protocol>");
-    for (const auto *name : {"LEGACY", "ENABLED", "ONE"})
-      require(dict.getDefinition(name).getRadioRetries() == RadioRetries::Enabled,
-              "Missing/true/1 radio_retry enables the normal modem behavior");
-    for (const auto *name : {"DISABLED", "ZERO", "UPPER", "BOTH"})
-      require(dict.getDefinition(name).getRadioRetries() == RadioRetries::Disabled,
-              "false/0 disables retries; lowercase takes precedence over uppercase");
-    Message copied(dict.getDefinition("DISABLED"));
-    require(copied.getDefinition().getRadioRetries() == RadioRetries::Disabled &&
-            copied.getDefinition().getNbFields() == 1 && copied.getDefinition().getMinimumSize() == 1,
-            "Message retains the hint after XML destruction without adding a payload field");
-    for (const auto *value : {"", "enabled", "disabled", "yes", "TRUE", "2", "-1", "falsejunk"}) {
-      const auto error = expectException<bad_message_file>([&] {
-        (void)dictionary(std::string("<protocol><msg_class name='test' id='1'>") +
-          "<message name='BAD' id='1' radio_retry='" + value + "'/></msg_class></protocol>");
-      });
-      for (const auto *context : {"test", "BAD", "radio_retry"})
-        require(error.find(context) != std::string::npos,
-                "Invalid retry values are rejected with class/message/attribute context");
-    }
+    require(dict.getDefinition("DEFAULT").getLinkMode() == Mode::None &&
+            dict.getDefinition("TARGET").getLinkMode() == Mode::Forwarded &&
+            dict.getDefinition("BROADCAST").getLinkMode() == Mode::Broadcasted &&
+            dict.getDefinition("UPPER").getLinkMode() == Mode::Broadcasted,
+            "Existing XML link attributes describe routing without a separate retry policy");
+    Message message(dict.getDefinition("BROADCAST"));
+    message.setReceiverId(255);
+    message.setField("ac_id", 42);
+    require(message.getDefinition().getLinkMode() == Mode::Broadcasted &&
+            message.getDefinition().getNbFields() == 1 && message.getField<uint8_t>("ac_id") == 42,
+            "Broadcast addressing preserves the application aircraft identifier after XML destruction");
   }
 
   void testFiles()
@@ -146,7 +135,7 @@ int main(int argc, char **argv)
   try {
     testInvalidDefinitions();
     testLookups();
-    testRadioRetries();
+    testLinkModes();
     testFiles();
     if (argc > 1) {
       MessageDictionary real(argv[1]);

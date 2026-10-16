@@ -51,15 +51,6 @@ namespace pprzlink {
         else if (std::string_view(link) == "broadcasted") linkMode = LinkMode::Broadcasted;
         else throw bad_message_file("Unknown link mode: " + std::string(link));
       }
-      const char *retry = message.Attribute("radio_retry");
-      if (!retry) retry = message.Attribute("RADIO_RETRY");
-      if (retry) {
-        const std::string_view value(retry);
-        if (value == "true" || value == "1") radioRetries = RadioRetries::Enabled;
-        else if (value == "false" || value == "0") radioRetries = RadioRetries::Disabled;
-        else throw bad_message_file("Invalid radio_retry: " + std::string(retry) +
-                                    " (expected true, false, 1 or 0)");
-      }
       for (auto field = message.FirstChildElement("field"); field;
            field = field->NextSiblingElement("field")) {
         const auto fieldName = detail::xml::attribute(*field, "name", "NAME");

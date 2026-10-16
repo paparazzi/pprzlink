@@ -5,13 +5,12 @@
 
 namespace pprzlink {
   /// @brief Per-frame radio ACK/retry policy, separate from application resends.
-  /// @ingroup messages
-  /// MessageDefinition stores Enabled or Disabled. An XBee send can select
-  /// FromDefinition to use that message's XML radio_retry hint.
+  /// @ingroup xbee
+  /// This is an explicit send option. Broadcast destinations do not request
+  /// MAC acknowledgements even with the normal Enabled transmit options.
   enum class RadioRetries {
     Enabled, ///< Normal radio transmit options, subject to modem configuration.
-    Disabled, ///< Disable the radio ACK and associated retries for this frame.
-    FromDefinition ///< Use the message definition; missing radio_retry means Enabled.
+    Disabled ///< Disable the radio ACK and associated retries for this frame.
   };
 }
 

@@ -29,7 +29,6 @@
 #define PPRZLINKCPP_MESSAGEDEFINITION_H
 
 #include <pprzlink/MessageField.h>
-#include <pprzlink/RadioRetries.h>
 #include <tinyxml2.h>
 #include <map>
 #include <vector>
@@ -53,7 +52,7 @@ namespace pprzlink {
     /// @brief Copy and validate a message element and its containing class identifier.
     /// @param[in] xml Non-null XML message element; its lifetime need not outlive the copy.
     /// @param[in] classId Message class in [0, 15].
-    /// @throws bad_message_file Invalid elements, identifiers, field types, duplicate names, routing mode or radio_retry.
+    /// @throws bad_message_file Invalid elements, identifiers, field types, duplicate names or routing mode.
     explicit MessageDefinition(const tinyxml2::XMLElement *xml, int classId);
 
     /// @brief Read the message class identifier.
@@ -105,18 +104,11 @@ namespace pprzlink {
     /// @return Parsed link mode, defaulting to LinkMode::None.
     [[nodiscard]] LinkMode getLinkMode() const noexcept { return linkMode; }
 
-    /// @brief Read the per-message radio ACK/retry hint from XML radio_retry.
-    /// @return Enabled or Disabled; a missing attribute preserves Enabled.
-    /// This metadata is not serialized in PPRZLINK payloads. Only a transport
-    /// using RadioRetries::FromDefinition applies it; explicit sends override it.
-    [[nodiscard]] RadioRetries getRadioRetries() const noexcept { return radioRetries; }
-
   private:
     uint8_t classId;
     uint8_t id;
     std::string name;
     LinkMode linkMode = LinkMode::None;
-    RadioRetries radioRetries = RadioRetries::Enabled;
     std::vector<MessageField> fields;
     std::map<std::string, size_t> fieldNameToIndex;
   };

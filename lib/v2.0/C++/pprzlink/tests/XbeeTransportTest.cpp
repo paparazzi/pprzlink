@@ -292,93 +292,6 @@ namespace {
     }
   }
 
-  void testXmlRadioRetries()
-  {
-    using Retries = XbeeTransport::RadioRetries;
-    static_assert(std::is_same_v<Retries, pprzlink::RadioRetries>);
-    struct XmlCase { const char *attribute; uint8_t options; };
-    for (const auto &[attribute, xmlOptions] : std::array<XmlCase, 5>{{
-           {"", 0}, {" radio_retry='true'", 0}, {" radio_retry='false'", 1},
-           {" radio_retry='1'", 0}, {" radio_retry='0'", 1}}}) {
-      tinyxml2::XMLDocument xml;
-      const auto text = std::string("<protocol><msg_class name='test' id='1'>") +
-        "<message name='BYTE' id='1'" + attribute + "><field name='value' type='uint8'/>"
-        "</message></msg_class></protocol>";
-      require(xml.Parse(text.c_str()) == tinyxml2::XML_SUCCESS, "XML retry fixture parses");
-      MessageDictionary dictionary(xml.RootElement());
-      Message message(dictionary.getDefinition("BYTE"));
-      message.setField("value", 123);
-      message.setSenderId(42);
-      message.setReceiverId(7);
-      message.setComponentId(3);
-      for (const auto api : {XbeeTransport::Api::Legacy802154, XbeeTransport::Api::Series868}) {
-        auto owner = std::make_unique<MemoryDevice>();
-        auto &device = *owner;
-        XbeeTransport transport(std::move(owner), dictionary, api);
-        const bool extended = api == XbeeTransport::Api::Series868;
-        const uint8_t implicitType = extended ? 0x10 : 0x01;
-        const uint8_t ieeeType = extended ? 0x10 : 0x00;
-        const auto check = [&](uint8_t options, uint8_t type) {
-          const size_t offset = type == 0x01 ? 7 : (type == 0x00 ? 13 : 16);
-          require(device.outgoing.size() == offset + 7 && device.outgoing[3] == type &&
-                  device.outgoing[offset] == options,
-                  "XML/explicit priority selects the radio options in TX16, TX64 and TX868");
-          const BytesBuffer payload{42, 7, 0x31, 1, 123};
-          require(std::equal(payload.begin(), payload.end(), device.outgoing.begin() + offset + 1),
-                  "Radio retry metadata never changes the serialized PPRZLINK payload");
-          transport.validateTransmitFrame(device.outgoing);
-        };
-
-        transport.sendMessage(message);
-        check(xmlOptions, implicitType);
-        if (!extended && xmlOptions == 1) {
-          const BytesBuffer expected{0x7e, 0, 10, 1, 1, 0, 7, 1, 42, 7, 0x31, 1, 123, 0x17};
-          require(device.outgoing == expected, "XML false/0 produces the exact Disable ACK TX16 wire fixture");
-        }
-        Transport &base = transport;
-        base.sendMessage(message);
-        check(xmlOptions, implicitType);
-        transport.sendMessageWithId(message, 0);
-        check(xmlOptions, implicitType);
-        require(transport.getLastFrameId() == 0, "XML policy also applies with TX status disabled");
-        transport.sendMessageTo(message, XbeeAddress::ieee(0x0100));
-        check(xmlOptions, ieeeType);
-        transport.sendMessageTo64(message, 0x0100);
-        check(xmlOptions, ieeeType);
-        if (!extended) {
-          transport.sendMessageTo(message, XbeeAddress::network(0x0100));
-          check(xmlOptions, 0x01);
-          transport.sendMessageTo16(message, 0x0100);
-          check(xmlOptions, 0x01);
-        }
-        for (const auto retries : {Retries::Enabled, Retries::Disabled, Retries::FromDefinition}) {
-          const uint8_t options = retries == Retries::FromDefinition ? xmlOptions
-                                  : retries == Retries::Disabled ? 1 : 0;
-          transport.sendMessage(message, retries);
-          check(options, implicitType);
-          transport.sendMessageWithId(message, 77, retries);
-          check(options, implicitType);
-          require(transport.getLastFrameId() == 77, "XML policy preserves explicit frame IDs");
-          transport.sendMessageTo(message, XbeeAddress::ieee(0x0100), retries);
-          check(options, ieeeType);
-          transport.sendMessageTo64(message, 0x0100, retries);
-          check(options, ieeeType);
-          if (!extended) {
-            transport.sendMessageTo(message, XbeeAddress::network(0x0100), retries);
-            check(options, 0x01);
-            transport.sendMessageTo16(message, 0x0100, retries);
-            check(options, 0x01);
-          }
-        }
-        transport.sendMessage(message);
-        check(xmlOptions, implicitType);
-        require(message.getDefinition().getRadioRetries() ==
-                  (xmlOptions ? Retries::Disabled : Retries::Enabled),
-                "Explicit per-send choices never mutate the message definition");
-      }
-    }
-  }
-
   void testReception(const MessageDictionary &dictionary)
   {
     for (const auto &fixture : {rx16, rx64}) {
@@ -583,7 +496,6 @@ int main()
     testAddressFactories();
     testTypedAddressSending(dictionary);
     testRadioRetries(dictionary);
-    testXmlRadioRetries();
     testReception(dictionary);
     testCorruption(dictionary);
     testStatuses(dictionary);
