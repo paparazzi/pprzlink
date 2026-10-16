@@ -88,6 +88,43 @@ namespace {
     require(receiver.isRunning(), "Explicit restart after an application failure");
   }
 
+  void predicateStop()
+  {
+    const auto dict = dictionary();
+    auto device = std::make_unique<MemoryDevice>(); auto &wire = *device;
+    PprzTransport receiver(std::move(device), dict);
+    int predicates = 0, selected = 0, later = 0;
+    receiver.bind("VALUE", {.where = [&](const Message &) {
+      if (++predicates == 1) receiver.stop();
+      return true;
+    }}, [&](const Message &) { ++selected; });
+    receiver.bind(ALL, [&](const Message &) { ++later; });
+    receiver.start(); emit(wire, value(dict));
+    require(predicates == 1 && selected == 0 && later == 0 && !receiver.isRunning(),
+            "A predicate that stops reception suppresses its own and subsequent callbacks");
+    receiver.start(); emit(wire, value(dict));
+    require(predicates == 2 && selected == 1 && later == 1 && receiver.isRunning(),
+            "Restart preserves bindings after predicate-side stop");
+  }
+
+  void predicateUnbind()
+  {
+    const auto dict = dictionary();
+    auto device = std::make_unique<MemoryDevice>(); auto &wire = *device;
+    PprzTransport receiver(std::move(device), dict);
+    Receiver::BindingId self = 0;
+    int predicates = 0, selected = 0, later = 0;
+    self = receiver.bind("VALUE", {.where = [&](const Message &) {
+      ++predicates;
+      receiver.unbind(self);
+      return true;
+    }}, [&](const Message &) { ++selected; });
+    receiver.bind(ALL, [&](const Message &) { ++later; });
+    receiver.start(); emit(wire, value(dict)); emit(wire, value(dict));
+    require(predicates == 1 && selected == 0 && later == 2 && receiver.isRunning(),
+            "A predicate that unbinds itself suppresses its callback and preserves other bindings");
+  }
+
   void udpSourcesAndLifetime()
   {
     const auto dict = dictionary();
@@ -178,7 +215,8 @@ namespace {
 int main()
 {
   try {
-    bindings(); mutationsAndFailures(); udpSourcesAndLifetime(); multipleRunners(); radioFilters();
+    bindings(); mutationsAndFailures(); predicateStop(); predicateUnbind();
+    udpSourcesAndLifetime(); multipleRunners(); radioFilters();
     std::cout << "Reactive bindings, filters, mutation, errors, restart, peers and lifetime passed\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }

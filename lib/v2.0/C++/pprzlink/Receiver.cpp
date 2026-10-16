@@ -155,7 +155,10 @@ namespace pprzlink {
       if (filter.xbeeAddress && (!info.xbee || info.xbee->sourceAddress != *filter.xbeeAddress)) continue;
       if (filter.minimumRssi && (!info.xbee || !info.xbee->hasRssi ||
                                 -static_cast<int>(info.xbee->rssi) < *filter.minimumRssi)) continue;
-      if (filter.where(message, info)) binding->callback(message, info);
+      if (!filter.where(message, info)) continue;
+      // Predicates may stop reception or remove their own binding.
+      if (!receiverState->running || !binding->active) continue;
+      binding->callback(message, info);
     }
   }
 }
