@@ -94,7 +94,7 @@ namespace link_app {
       radio->startInitialization(configuration);
       radio->onReady([enabled = options.hardwareFlowControl] {
         std::cerr << "XBee ready: RTS/CTS " << (enabled ? "enabled" : "disabled")
-                  << " on host and modem; retries follow message XML\n";
+                  << " on host and modem; broadcasts are not resent by link++\n";
       });
       xbee = std::make_unique<XbeeTransmitter>(*radio, options.xbeeRetries);
       radio->setStatusCallback([this](const Radio::RadioStatus &status) {

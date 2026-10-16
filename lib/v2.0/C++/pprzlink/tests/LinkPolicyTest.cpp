@@ -9,55 +9,63 @@
 using namespace std::chrono_literals;
 
 namespace {
-  void testXmlRetries()
+  void testRoutedDestinations()
   {
-    for (const auto *attribute : {"", " radio_retry='true'", " radio_retry='false'"}) {
+    for (const auto *attribute : {"", " link='forwarded'", " link='broadcasted'"}) {
       tinyxml2::XMLDocument xml;
       const auto text = std::string("<protocol><msg_class name='datalink' id='2'>") +
         "<message name='PING' id='8'" + attribute + "/></msg_class></protocol>";
-      require(xml.Parse(text.c_str()) == tinyxml2::XML_SUCCESS, "Retry fixture XML");
+      require(xml.Parse(text.c_str()) == tinyxml2::XML_SUCCESS, "Routing fixture XML");
       pprzlink::MessageDictionary dictionary(xml.RootElement());
-      pprzlink::Message message(dictionary.getDefinition("PING"));
-      message.setReceiverId(42);
-      const bool enabled = dictionary.getDefinition("PING").getRadioRetries() == pprzlink::RadioRetries::Enabled;
-      for (const auto api : {pprzlink::XbeeTransport::Api::Legacy802154, pprzlink::XbeeTransport::Api::Series868}) {
-        auto device = std::make_unique<MemoryDevice>();
-        auto &wire = *device;
-        pprzlink::XbeeTransport radio(std::move(device), dictionary, api);
-        link_app::XbeeTransmitter sender(radio, 3);
-        const auto start = link_app::XbeeTransmitter::Clock::now();
-        sender.send(message, start);
-        const auto original = wire.outgoing;
-        const bool extended = api == pprzlink::XbeeTransport::Api::Series868;
-        require(original[extended ? 16 : 7] == (enabled ? 0 : 1),
-                "link++ sends the XML-selected radio ACK/retry bit");
-        const uint8_t id = original[4];
-        require(id != 0, "No-retry messages still request a transmit status");
-        const uint8_t failure = extended ? 0x21 : 1;
-        sender.status({id, failure}, start);
-        wire.outgoing.clear();
-        if (!enabled) {
-          require(!sender.nextDeadline(), "XML false immediately releases the failed no-retry message");
-          sender.poll(start + 1s);
-          require(wire.outgoing.empty(), "XML false forbids a host retry despite a larger CLI retry limit");
-          for (int i = 0; i < 300; ++i) {
-            sender.send(message, start);
-            sender.status({wire.outgoing[4], failure}, start);
+      // Routing has already chosen the receiver before handing a message to the
+      // transmitter. The actual destination governs retries, including overrides.
+      for (const uint8_t receiver : {uint8_t{42}, uint8_t{255}}) {
+        pprzlink::Message message(dictionary.getDefinition("PING"));
+        message.setReceiverId(receiver);
+        const bool enabled = receiver != 255;
+        for (const auto api : {pprzlink::XbeeTransport::Api::Legacy802154, pprzlink::XbeeTransport::Api::Series868}) {
+          auto device = std::make_unique<MemoryDevice>();
+          auto &wire = *device;
+          pprzlink::XbeeTransport radio(std::move(device), dictionary, api);
+          link_app::XbeeTransmitter sender(radio, 3);
+          const auto start = link_app::XbeeTransmitter::Clock::now();
+          sender.send(message, start);
+          const auto original = wire.outgoing;
+          const bool extended = api == pprzlink::XbeeTransport::Api::Series868;
+          require(original[extended ? 16 : 7] == 0,
+                  "link++ preserves normal legacy transmit options; broadcast inherently has no MAC ACK");
+          const size_t addressEnd = extended ? 12 : 6;
+          require(original[addressEnd - 1] == (enabled ? 0 : 255) &&
+                  original[addressEnd] == (enabled ? 42 : 255),
+                  "The selected unicast/broadcast destination reaches the radio frame");
+          const uint8_t id = original[4];
+          require(id != 0, "Broadcast messages still request a local transmit status");
+          const uint8_t failure = extended ? 0x21 : 1;
+          sender.status({id, failure}, start);
+          wire.outgoing.clear();
+          if (!enabled) {
+            require(!sender.nextDeadline(), "Broadcast failure releases the pending transmission");
+            sender.poll(start + 1s);
+            require(wire.outgoing.empty(), "A broadcast is never resent, regardless of the CLI limit");
+            for (int i = 0; i < 300; ++i) {
+              sender.send(message, start);
+              sender.status({wire.outgoing[4], failure}, start);
+            }
+            require(!sender.nextDeadline(), "Broadcast failures release frame IDs across wraparound");
+            continue;
           }
-          require(!sender.nextDeadline(), "No-retry failures release frame IDs across wraparound");
-          continue;
+          sender.poll(start + 250ms);
+          require(wire.outgoing == original, "Unicast retries preserve the complete frame and ID");
+          sender.status({id, failure}, start + 250ms);
+          wire.outgoing.clear();
+          sender.poll(start + 500ms);
+          require(wire.outgoing == original, "Unicast uses the configured third attempt");
+          sender.status({id, failure}, start + 500ms);
+          wire.outgoing.clear();
+          sender.poll(start + 1s);
+          require(wire.outgoing.empty() && !sender.nextDeadline(),
+                  "The CLI maximum attempt count bounds unicast retries");
         }
-        sender.poll(start + 250ms);
-        require(wire.outgoing == original, "Legacy/true XML preserves the full frame on the second attempt");
-        sender.status({id, failure}, start + 250ms);
-        wire.outgoing.clear();
-        sender.poll(start + 500ms);
-        require(wire.outgoing == original, "Enabled XML uses the configured third attempt");
-        sender.status({id, failure}, start + 500ms);
-        wire.outgoing.clear();
-        sender.poll(start + 1s);
-        require(wire.outgoing.empty() && !sender.nextDeadline(),
-                "The CLI maximum attempt count still bounds retry-enabled messages");
       }
     }
   }
@@ -66,7 +74,7 @@ namespace {
 int main()
 {
   try {
-    testXmlRetries();
+    testRoutedDestinations();
     link_app::AircraftRegistry registry;
     require(!registry.isLive(42, 0), "Disabling expiry must not make unknown aircraft live");
     registry.received(42, 13, 1, false, 1, std::nullopt);

@@ -164,7 +164,7 @@ namespace link_app {
   -uplink Enable uplink (deprecated; enabled by default)
   -xbee_addr <address> Local MY address; default is 256
   -xbee_retries <count> Maximum host attempts including the initial send; default is 10
-    Applies only when XML radio_retry is true or absent; false means one send
+    Unicast only; broadcast messages are never resent by link++
   -xbee_868 Use XBee 868 API frames
   -redlink Enable redundant-link telemetry encapsulation
   -id <id> Link identifier; default is -1

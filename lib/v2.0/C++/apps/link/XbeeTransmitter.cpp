@@ -15,7 +15,8 @@ namespace link_app {
       const uint8_t id = nextId;
       nextId = nextId == 255 ? 1 : static_cast<uint8_t>(nextId + 1);
       if (pending[id]) continue;
-      transport.sendMessageWithId(message, id, pprzlink::RadioRetries::FromDefinition);
+      // The chosen destination controls MAC ACKs: broadcast never requests one.
+      transport.sendMessageWithId(message, id, pprzlink::RadioRetries::Enabled);
       pending[id] = Pending{message, 1, now + 5s, std::nullopt};
       return;
     }
@@ -26,7 +27,7 @@ namespace link_app {
   {
     auto &entry = pending[status.frameId];
     if (!entry || entry->retryAt) return; // Ignore unknown or duplicate failure indications.
-    const bool retryEnabled = entry->message.getDefinition().getRadioRetries() == pprzlink::RadioRetries::Enabled;
+    const bool retryEnabled = entry->message.getReceiverId() != 255;
     if (retryEnabled && (status.status == 1 || status.status == 0x21) && entry->attempts < maximumAttempts) {
       const auto delay = std::chrono::milliseconds(std::uniform_int_distribution<int>(10, 209)(random));
       entry->retryAt = now + delay;
@@ -52,7 +53,7 @@ namespace link_app {
       if (!entry) continue;
       if (entry->retryAt && now >= *entry->retryAt) {
         transport.sendMessageWithId(entry->message, static_cast<uint8_t>(id),
-                                    pprzlink::RadioRetries::FromDefinition);
+                                    pprzlink::RadioRetries::Enabled);
         ++entry->attempts;
         entry->retryAt.reset();
         entry->expires = now + 5s;
