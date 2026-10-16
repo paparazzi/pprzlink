@@ -151,32 +151,44 @@ namespace pprzlink {
 
   size_t XbeeTransport::sendMessage(const Message &message)
   {
-    const uint16_t destination = message.getReceiverId() == 255 ? 0xffff : message.getReceiverId();
-    return api == Api::Series868 ? sendMessageTo64(message, destination)
-                                 : sendMessageTo16(message, destination);
+    return sendMessage(message, RadioRetries::Enabled);
   }
 
-  size_t XbeeTransport::sendMessageWithId(const Message &message, uint8_t frameId)
+  size_t XbeeTransport::sendMessage(const Message &message, RadioRetries radioRetries)
+  {
+    const uint16_t destination = message.getReceiverId() == 255 ? 0xffff : message.getReceiverId();
+    return api == Api::Series868 ? sendMessageTo64(message, destination, radioRetries)
+                                 : sendMessageTo16(message, destination, radioRetries);
+  }
+
+  size_t XbeeTransport::sendMessageWithId(const Message &message, uint8_t frameId, RadioRetries radioRetries)
   {
     const uint64_t destination = message.getReceiverId() == 255 ? 0xffff : message.getReceiverId();
-    return sendTo(message, destination, api == Api::Series868, frameId);
+    return sendTo(message, destination, api == Api::Series868, frameId, radioRetries);
   }
 
-  size_t XbeeTransport::sendMessageTo16(const Message &message, uint16_t destination)
+  size_t XbeeTransport::sendMessageTo16(const Message &message, uint16_t destination, RadioRetries radioRetries)
   {
     if (api == Api::Series868) throw std::invalid_argument("868 API requires 64-bit addressing");
-    return sendTo(message, destination, false);
+    return sendTo(message, destination, false, std::nullopt, radioRetries);
   }
 
-  size_t XbeeTransport::sendMessageTo64(const Message &message, uint64_t destination)
+  size_t XbeeTransport::sendMessageTo64(const Message &message, uint64_t destination, RadioRetries radioRetries)
   {
-    return sendTo(message, destination, true);
+    return sendTo(message, destination, true, std::nullopt, radioRetries);
   }
 
-  size_t XbeeTransport::sendTo(const Message &message, uint64_t destination, bool addressIs64Bit, std::optional<uint8_t> requestedId)
+  size_t XbeeTransport::sendTo(const Message &message, uint64_t destination, bool addressIs64Bit,
+                              std::optional<uint8_t> requestedId, RadioRetries radioRetries)
   {
     auto lock = lockReceiver();
     if (!isReady()) throw std::logic_error("XBee initialization must succeed before sending messages");
+    uint8_t transmitOptions = 0;
+    switch (radioRetries) {
+      case RadioRetries::Enabled: break;
+      case RadioRetries::Disabled: transmitOptions = 0x01; break;
+      default: throw std::invalid_argument("Invalid XBee radio retry choice");
+    }
     const auto payload = detail::encodeMessagePayload(message, maximumRfPayloadSize);
     const size_t addressSize = addressIs64Bit ? 8 : 2;
     const size_t dataSize = 3 + addressSize + payload.size() + (api == Api::Series868 ? 3 : 0);
@@ -186,7 +198,7 @@ namespace pprzlink {
     frame.reserve(dataSize + envelopeSize);
     for (size_t i = addressSize; i > 0; --i) frame.push_back(static_cast<uint8_t>(destination >> (8 * (i - 1))));
     if (api == Api::Series868) frame.insert(frame.end(), {0xff, 0xfe, 0x00});
-    frame.push_back(0); // Normal transmission: enable the modem's acknowledgement/retry mechanism.
+    frame.push_back(transmitOptions); // Per-frame Disable ACK bit; no modem configuration change.
     // No 0x99/length/PPRZ checksum inside the XBee RF data.
     frame.insert(frame.end(), payload.begin(), payload.end());
     frame.push_back(checksum(std::span(frame).subspan(3)));

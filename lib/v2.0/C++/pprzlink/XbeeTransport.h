@@ -35,13 +35,21 @@ namespace pprzlink {
       Legacy802154, ///< TX16/TX64 and RX16/RX64 802.15.4 API frames.
       Series868 ///< Extended TX 0x10, RX 0x90 and status 0x8b frames.
     };
+
+    /// @brief Per-frame radio ACK/retry choice, independent of host-side retries.
+    /// Legacy 802.15.4 controls MAC ACK/retries. This does not change modem
+    /// parameters (MM/RR/TO) or the host's decision to resend after a failure.
+    enum class RadioRetries {
+      Enabled, ///< Preserve normal transmit options (0x00), subject to modem configuration.
+      Disabled ///< Set Disable ACK (0x01), suppressing the associated radio ACK/retries.
+    };
     /// @brief Maximum RF bytes, including the four-byte PPRZLINK header.
     static constexpr size_t maximumRfPayloadSize = 100;
 
     /// @brief Delivery status of a radio transmission, correlated by its frame ID.
     struct TransmitStatus {
       uint8_t frameId; ///< Transmit frame identifier selected by the sender.
-      uint8_t status; ///< Modem status: zero is success; other values depend on the frame family.
+      uint8_t status; ///< Modem result; zero without ACKs does not confirm remote reception.
       uint8_t retries = 0; ///< Retry count reported by extended 0x8b status frames only.
     };
     /// @brief Modem lifecycle/network status indication.
@@ -73,7 +81,10 @@ namespace pprzlink {
     /// Start/restart AT initialization before exchanging messages. Clears buffered
     /// frames and metadata. Do not access the device directly during initialization.
     /// Settings are validated before replacing prior state or discarding input.
-    /// @param[in] configuration AT settings and optional autobaud target.
+    /// hardwareFlowControl configures/verifies host RTS/CTS and modem D6/D7
+    /// together; readiness and binary sends stay blocked on any partial failure.
+    /// The device must be a SerialDevice, even with autobaud disabled.
+    /// @param[in] configuration AT settings, optional autobaud target and paired RTS/CTS choice.
     /// @param[in] now Initial monotonic timestamp, real or test-injected.
     /// @throws std::invalid_argument Channel, timing or baud settings are invalid.
     void startInitialization(const XbeeConfiguration &configuration = {},
@@ -98,30 +109,44 @@ namespace pprzlink {
     /// Use the PPRZLINK receiver as radio destination (64-bit in 868 mode).
     /// Receiver 255 broadcasts to 0xffff in either mode.
     /// Returns bytes written to the serial device, not confirmation of RF delivery.
+    /// This override preserves RadioRetries::Enabled for existing/polymorphic calls.
     /// @param[in] message Populated message with valid v2 IDs and at most 100 RF payload bytes.
     /// @return Complete AP=1 frame bytes synchronously written to the device.
     /// @throws std::exception Not ready, invalid message/size, sanity check or I/O failure.
     size_t sendMessage(const Message &message) override;
+    /// @brief Send using the message receiver, with an explicit per-frame radio retry choice.
+    /// @param[in] message Populated message with at most 100 RF payload bytes.
+    /// @param[in] radioRetries Radio ACK/retry choice for this frame only.
+    /// @return Complete AP=1 frame bytes synchronously written to the device.
+    /// @throws std::invalid_argument The enum value is invalid.
+    /// @throws std::exception Readiness, validation, encoding or I/O failure.
+    size_t sendMessage(const Message &message, RadioRetries radioRetries);
     /// Caller-owned frame ID for tracking/retries; zero disables the status response.
     /// The application must not reuse an outstanding ID for a different message.
     /// @param[in] message Populated message; its receiver selects destination/broadcast addressing.
     /// @param[in] frameId Explicit radio frame ID, including zero to disable status responses.
+    /// @param[in] radioRetries Radio ACK/retry choice; defaults to the existing enabled behavior.
     /// @return Complete radio frame bytes written, not delivery confirmation.
     /// @throws std::exception Readiness, validation, encoding or I/O failure.
-    size_t sendMessageWithId(const Message &message, uint8_t frameId);
-    /// Explicit radio addressing, independent of the PPRZLINK header's receiver ID.
+    size_t sendMessageWithId(const Message &message, uint8_t frameId,
+                             RadioRetries radioRetries = RadioRetries::Enabled);
+    /// Send to an explicit sixteen-bit radio destination.
     /// @param[in] message Populated PPRZLINK message.
     /// @param[in] destination Explicit sixteen-bit radio address.
+    /// @param[in] radioRetries Radio ACK/retry choice; defaults to the existing enabled behavior.
     /// @return Complete TX16 frame bytes written to the device.
     /// @throws std::invalid_argument This transport uses the 868 frame family.
     /// @throws std::exception Readiness, payload validation or I/O failure.
-    size_t sendMessageTo16(const Message &message, uint16_t destination);
-    /// @brief Send to an explicit eight-byte radio destination.
+    size_t sendMessageTo16(const Message &message, uint16_t destination,
+                          RadioRetries radioRetries = RadioRetries::Enabled);
+    /// @brief Send to an explicit sixty-four-bit radio destination.
     /// @param[in] message Populated PPRZLINK message, with its own independent receiver ID.
     /// @param[in] destination Radio destination address used by TX64 or extended 868 TX.
+    /// @param[in] radioRetries Radio ACK/retry choice; defaults to the existing enabled behavior.
     /// @return Complete radio frame bytes written to the device.
     /// @throws std::exception Readiness, validation, encoding or I/O failure.
-    size_t sendMessageTo64(const Message &message, uint64_t destination);
+    size_t sendMessageTo64(const Message &message, uint64_t destination,
+                          RadioRetries radioRetries = RadioRetries::Enabled);
 
     /// Extra validation of the complete API frame immediately before Device::writeBuffer.
     /// Failures throw without writing any bytes. Applications choose how to report them.
@@ -160,7 +185,7 @@ namespace pprzlink {
     bool decodeMessage();
     std::optional<RadioStatus> decodeFrame(std::span<const uint8_t> data);
     size_t sendTo(const Message &message, uint64_t destination, bool addressIs64Bit,
-                  std::optional<uint8_t> frameId = std::nullopt);
+                  std::optional<uint8_t> frameId, RadioRetries radioRetries);
 
     BytesBuffer transportBuffer;
     std::unique_ptr<Message> currentMessage;

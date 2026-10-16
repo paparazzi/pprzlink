@@ -1,7 +1,10 @@
 #include "TestSupport.h"
 #include <pprzlink/XbeeTransport.h>
+#include <algorithm>
 #include <iostream>
+#include <limits>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 using namespace pprzlink;
@@ -96,6 +99,99 @@ namespace {
     expectException<std::runtime_error>([&] { failed.sendMessage(large); });
     require(failed.getLastFrameId() == 0, "Write failure is not reported as a successful send");
     expectException<std::invalid_argument>([&] { XbeeTransport invalid(nullptr, dictionary); });
+  }
+
+  void testRadioRetries(const MessageDictionary &dictionary)
+  {
+    using Retries = XbeeTransport::RadioRetries;
+    const BytesBuffer payload{42, 7, 0x31, 1, 123};
+    for (const auto api : {XbeeTransport::Api::Legacy802154, XbeeTransport::Api::Series868}) {
+      auto owner = std::make_unique<MemoryDevice>();
+      auto &device = *owner;
+      XbeeTransport transport(std::move(owner), dictionary, api);
+      transport.setSanityChecksEnabled(true);
+      Message message(dictionary.getDefinition("BYTE"));
+      message.setField("value", 123);
+      message.setSenderId(42);
+      message.setReceiverId(7);
+      message.setComponentId(3);
+      const bool extended = api == XbeeTransport::Api::Series868;
+      const uint8_t implicitType = extended ? 0x10 : 0x01;
+      const uint8_t explicit64Type = extended ? 0x10 : 0x00;
+      uint8_t id = 0;
+      const auto check = [&](uint8_t options, uint8_t expectedId, uint8_t type) {
+        const size_t optionsOffset = type == 0x01 ? 7 : (type == 0x00 ? 13 : 16);
+        require(device.outgoing.size() == optionsOffset + payload.size() + 2 &&
+                device.outgoing[0] == 0x7e && device.outgoing[3] == type,
+                "Retry choice preserves the selected XBee frame family and payload size");
+        require(device.outgoing[optionsOffset] == options, "Per-frame radio retry option at the documented wire offset");
+        require(device.outgoing[4] == expectedId && transport.getLastFrameId() == expectedId,
+                "Radio retry choice preserves the requested/automatic status identifier");
+        require(std::equal(payload.begin(), payload.end(), device.outgoing.begin() + optionsOffset + 1),
+                "Radio retry choice does not alter the PPRZLINK message");
+        transport.validateTransmitFrame(device.outgoing); // Includes the checksum.
+      };
+
+      transport.sendMessage(message, Retries::Disabled);
+      check(1, ++id, implicitType);
+      if (!extended) {
+        const BytesBuffer disabledTx16{0x7e, 0, 10, 1, 1, 0, 7, 1, 42, 7, 0x31, 1, 123, 0x17};
+        require(device.outgoing == disabledTx16, "Exact TX16 fixture with Disable MAC ACK and corrected checksum");
+      }
+      transport.sendMessage(message);
+      check(0, ++id, implicitType);
+      transport.sendMessage(message, Retries::Enabled);
+      check(0, ++id, implicitType);
+      Transport &polymorphic = transport;
+      polymorphic.sendMessage(message);
+      check(0, ++id, implicitType);
+
+      transport.sendMessageTo64(message, 0x0013a200405291ab, Retries::Disabled);
+      check(1, ++id, explicit64Type);
+      transport.sendMessageTo64(message, 0x0013a200405291ab);
+      check(0, ++id, explicit64Type);
+      transport.sendMessageTo64(message, 0x0013a200405291ab, Retries::Enabled);
+      check(0, ++id, explicit64Type);
+      if (!extended) {
+        transport.sendMessageTo16(message, 0x1234, Retries::Disabled);
+        check(1, ++id, 0x01);
+        transport.sendMessageTo16(message, 0x1234);
+        check(0, ++id, 0x01);
+        transport.sendMessageTo16(message, 0x1234, Retries::Enabled);
+        check(0, ++id, 0x01);
+      }
+
+      transport.sendMessageWithId(message, 77, Retries::Disabled);
+      check(1, 77, implicitType);
+      bool receivedStatus = false;
+      transport.setStatusCallback([&](const XbeeTransport::RadioStatus &event) {
+        const auto *status = std::get_if<XbeeTransport::TransmitStatus>(&event);
+        receivedStatus = status && status->frameId == 77 && status->status == 0;
+      });
+      ReceiptQueue inbox(transport);
+      device.incoming = frame(extended ? BytesBuffer{0x8b, 77, 0xff, 0xfe, 0, 0, 0}
+                                       : BytesBuffer{0x89, 77, 0});
+      require(!inbox.hasMessage() && receivedStatus, "Disabling radio retries does not suppress transmit-status callbacks");
+
+      transport.sendMessageWithId(message, 78, Retries::Enabled);
+      check(0, 78, implicitType);
+      transport.sendMessageWithId(message, 79);
+      check(0, 79, implicitType);
+      transport.sendMessageWithId(message, 0, Retries::Disabled);
+      check(1, 0, implicitType);
+      transport.sendMessageWithId(message, 0, Retries::Enabled);
+      check(0, 0, implicitType);
+
+      const auto previous = device.outgoing;
+      const auto invalid = static_cast<Retries>(99);
+      expectException<std::invalid_argument>([&] { transport.sendMessage(message, invalid); });
+      expectException<std::invalid_argument>([&] { transport.sendMessageWithId(message, 5, invalid); });
+      expectException<std::invalid_argument>([&] { transport.sendMessageTo64(message, 7, invalid); });
+      if (!extended)
+        expectException<std::invalid_argument>([&] { transport.sendMessageTo16(message, 7, invalid); });
+      require(device.outgoing == previous && transport.getLastFrameId() == 0,
+              "An invalid retry enum never writes or advances the frame ID");
+    }
   }
 
   void testReception(const MessageDictionary &dictionary)
@@ -299,6 +395,7 @@ int main()
     </msg_class></protocol>)");
     MessageDictionary dictionary(xml.RootElement());
     testSending(dictionary);
+    testRadioRetries(dictionary);
     testReception(dictionary);
     testCorruption(dictionary);
     testStatuses(dictionary);
