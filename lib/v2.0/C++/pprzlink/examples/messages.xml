@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <protocol>
+  <!-- Catalogue minimal pour IvyRoundTrip : un type de message avec une altitude en mètres. -->
   <msg_class name="example" id="1">
+    <!-- L'unité sert aux accès SI ; le codec transmet seulement la valeur native du float. -->
     <message name="EXAMPLE_ALTITUDE" id="1">
       <field name="altitude" type="float" unit="m"/>
     </message>

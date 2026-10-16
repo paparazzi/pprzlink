@@ -273,6 +273,10 @@ if(BUILD_TESTING)
             set(client_ivy_args)
             if(PPRZLINK_WITH_IVY)
                 list(APPEND client_ivy_args --ivy $<TARGET_FILE:ivy_receiver> --bus $<TARGET_FILE:link_test_bus>)
+                add_test(NAME workshop_ivy COMMAND ${Python3_EXECUTABLE}
+                         "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/WorkshopIvyTest.py"
+                         $<TARGET_FILE:workshop_ivy>)
+                set_tests_properties(workshop_ivy PROPERTIES TIMEOUT 30)
             endif()
             add_test(NAME client_examples COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/ClientExamplesTest.py"

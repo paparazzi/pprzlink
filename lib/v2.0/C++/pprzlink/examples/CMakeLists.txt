@@ -24,4 +24,5 @@ if(PPRZLINK_WITH_IVY)
     # Ces programmes sont ajoutés uniquement lorsque le composant Ivy est disponible.
     add_pprzlink_example(ivy_round_trip IvyRoundTrip.cpp ivy)
     add_pprzlink_example(ivy_receiver clients/IvyReceiver.cpp ivy)
+    add_pprzlink_example(workshop_ivy clients/WorkshopIvy.cpp ivy)
 endif()

@@ -36,4 +36,6 @@ if(CLIENTS_WITH_IVY)
     # Avec CLIENTS_WITH_IVY=OFF, aucun en-tête ni bibliothèque Ivy n'est demandé.
     add_executable(ivy_receiver IvyReceiver.cpp)
     target_link_libraries(ivy_receiver PRIVATE pprzlink::ivy)
+    add_executable(workshop_ivy WorkshopIvy.cpp)
+    target_link_libraries(workshop_ivy PRIVATE pprzlink::ivy)
 endif()
