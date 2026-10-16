@@ -106,9 +106,10 @@ signifie pas que tous les défauts de l'ancienne implémentation sont reproduits
    automatique d'une commande dont la livraison est inconnue. Les retries sur
    erreur d'ACK restent bornés. Une trame ne confirme pas l'exécution de la
    commande par l'avion.
-   L'extension XML `radio_retry="false"` désactive les ACK/réessais radio et
-   les réémissions côté PC. Une valeur `true` ou absente conserve la politique
-   de tentatives bornées par `-xbee_retries`, premier envoi compris.
+   Les réémissions côté PC concernent les envois unicast. Le routage XML
+   existant `link="broadcasted"` choisit la diffusion radio sans ACK MAC,
+   avec conservation du champ applicatif `ac_id`. Les broadcasts ne sont
+   pas réémis par l'agent, quelle que soit la limite `-xbee_retries`.
 6. **Entrées incorrectes** : C++ refuse les ports/adresses hors plage, périodes
    invalides (`status_period < 3 ms`, `ping_period <= 0`), valeurs numériques
    hors type et combinaison UDP/XBee incohérente. Les textes d'erreur et de
@@ -123,12 +124,13 @@ pour `rx_err` (zéro en mode XBee), diffusions comptées pour les avions connus,
 et différence dernier PONG/dernier PING pouvant devenir négative entre réponses.
 Les statistiques détaillées de la bibliothèque restent disponibles séparément.
 
-Le test C++ `link_xbee_configuration` vérifie séparément cette extension XML
-et le contrôle de flux couplé, avec un pair Ivy et un modem simulé sur PTY.
-Il couvre les attributs absent/true/false, les modes legacy/868, les commandes
-AT et le réglage Linux `CRTSCTS`, la limite de tentatives et la poursuite des
-commandes après un échec final. Les scénarios comparatifs historiques gardent
-leur XML sans cet attribut.
+Le test C++ `link_xbee_configuration` vérifie le routage XML existant et le
+contrôle de flux couplé, avec un pair Ivy et un modem simulé sur PTY.
+Il couvre les modes `forwarded`/`broadcasted` en legacy/868, la conservation de
+`ac_id`, les commandes AT et le réglage Linux `CRTSCTS`, la limite des
+réémissions unicast, leur absence en broadcast et la poursuite des commandes
+après un échec final. Le test de politique vérifie aussi que l'adresse
+réellement choisie gouverne les réémissions après le routage.
 
 ## Validation de compilation et d'exécution
 

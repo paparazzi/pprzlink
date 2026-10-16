@@ -94,11 +94,11 @@ Créez `messages.xml` dans `projet` :
   <!-- Les messages de l'atelier partagent la classe guide, d'identifiant binaire 1. -->
   <msg_class name="guide" id="1">
     <!-- Une altitude exprimée en mètres et stockée dans un float. -->
-    <message name="GUIDE_ALTITUDE" id="1">
+    <message name="GUIDE_ALTITUDE" id="1" link="broadcasted">
       <field name="altitude" type="float" unit="m"/>
     </message>
     <!-- Une commande : avion visé dans ac_id et valeur du réglage dans value. -->
-    <message name="GUIDE_SETTING" id="2">
+    <message name="GUIDE_SETTING" id="2" link="forwarded">
       <field name="ac_id" type="uint8"/>
       <field name="value" type="float"/>
     </message>
@@ -117,6 +117,8 @@ Créez `messages.xml` dans `projet` :
 
 Pour le moment, regardez seulement `GUIDE_ALTITUDE` : il contient un champ
 appelé `altitude`, de type `float`. Les autres messages serviront plus tard.
+Les attributs `link` serviront au choix unicast/broadcast de l'atelier XBee.
+Ces métadonnées ne sont pas ajoutées à la charge utile PPRZLINK.
 
 Le XML est chargé **à l'exécution**. Il n'est pas nécessaire de générer une
 classe C++ par message. Un objet `Message` pourra représenter n'importe
@@ -1671,13 +1673,17 @@ ensuite le choix commun à la radio et au port.
 
 ### Envoyer trois messages dans la callback d'un timer
 
+Le catalogue donne `link="broadcasted"` à `GUIDE_ALTITUDE`. Cet exemple lit
+la définition pour choisir l'adresse radio `0xffff` et le destinataire
+PPRZLINK 255. Dans cet atelier, les autres cas utilisent la radio `0x0100`.
+Le broadcast ne demande aucun ACK MAC, avec les options normales du modem.
+
 ```cpp
 // Un seul contexte traite le timer, les messages reçus et les statuts radio.
 int emit(boost::asio::io_context &context, pprzlink::XbeeTransport &transport,
          const pprzlink::MessageDictionary &dictionary)
 {
-  using RadioRetries = pprzlink::XbeeTransport::RadioRetries;
-  const auto receiver = pprzlink::XbeeAddress::network(0x0100);
+  const auto unicastReceiver = pprzlink::XbeeAddress::network(0x0100);
   boost::asio::steady_timer timer(context);
   boost::asio::signal_set signals(context, SIGINT, SIGTERM);
   double offset = 0;
@@ -1686,9 +1692,13 @@ int emit(boost::asio::io_context &context, pprzlink::XbeeTransport &transport,
   sendMessages = [&](const boost::system::error_code &error) {
     if (error || !transport.isRunning()) return;
     for (const double metres : {100.0, 110.0, 123.5}) {
-      const auto message = altitude(dictionary, metres + offset);
-      const auto sent = transport.sendMessageTo(message, receiver,
-                                               RadioRetries::Enabled);
+      auto message = altitude(dictionary, metres + offset);
+      const bool broadcast = message.getDefinition().getLinkMode() ==
+                             pprzlink::MessageDefinition::LinkMode::Broadcasted;
+      if (broadcast) message.setReceiverId(255);
+      const auto receiver = broadcast ? pprzlink::XbeeAddress::network(0xffff)
+                                      : unicastReceiver;
+      const auto sent = transport.sendMessageTo(message, receiver);
       const auto frameId = transport.getLastFrameId();
       std::cout << "Envoyé : " << message.toString()
                 << " (" << sent << " octets série, trame "
@@ -1922,14 +1932,12 @@ transport.sendMessageTo(telemetry, receiver, RadioRetries::Disabled);
 ```
 
 Ces appels ont lieu après l'initialisation, par exemple dans une callback.
-Omettre le dernier argument équivaut à `RadioRetries::FromDefinition` : l'appel
-`transport.sendMessageTo(setting, receiver)` consulte alors la définition du
-message. Si le XML ne précise rien, les réessais restent activés.
+Omettre le dernier argument équivaut à `RadioRetries::Enabled` :
+`transport.sendMessageTo(setting, receiver)` conserve les options normales du modem.
 
 | Valeur de l'enum | Options de la trame | Effet en 802.15.4 legacy |
 | --- | --- | --- |
-| `RadioRetries::FromDefinition`, par défaut | Selon le XML | Applique `radio_retry` ; absent, utilise `Enabled`. |
-| `RadioRetries::Enabled` | `0x00` | Autorise les ACK et réessais MAC selon la configuration du modem. |
+| `RadioRetries::Enabled`, par défaut | `0x00` | Mode normal du modem ; ACK et réessais MAC en unicast selon sa configuration. |
 | `RadioRetries::Disabled` | `0x01`, bit « Disable MAC ACK » | Désactive l'ACK MAC pour cet envoi et les réessais associés. |
 
 Il s'agit d'un `enum class`, pas d'un booléen. Ce choix est propre à la trame,
@@ -1940,41 +1948,20 @@ En particulier, `Enabled` conserve le comportement antérieur, sans forcer
 des mécanismes que la configuration globale du modem aurait désactivés.
 Voir le [format TX16 de Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x01.htm).
 
+Une destination radio broadcast n'exige aucun ACK MAC, même avec les options
+normales `0x00`. Pour les commandes Paparazzi, l'attribut XML existant
+`link="broadcasted"` permet à `link++` de choisir cette diffusion ; les
+commandes ciblées conservent leur champ `ac_id` pour le filtrage dans l'autopilote.
+La [section link++](#utiliser-link-avec-une-radio-xbee) détaille cette convention.
+Le choix explicite `Disabled` reste utile pour un envoi unicast sans ACK.
+
 Le même argument final est accepté par `sendMessageWithId()` et les anciennes
 méthodes d'adressage conservées pour compatibilité. Pour l'adressage déduit
 du destinataire PPRZLINK, utilisez
 `sendMessage(message, RadioRetries::Disabled)` ; l'appel historique
-`sendMessage(message)` utilise `FromDefinition`, y compris via `Transport&`.
-
-Pour fixer le choix par type de message, ajoutez l'attribut sur l'élément
-`<message>` du catalogue chargé à l'exécution :
-
-```xml
-<message name="GUIDE_ALTITUDE" id="1" radio_retry="false">
-  <field name="altitude" type="float" unit="m"/>
-</message>
-```
-
-Après rechargement du dictionnaire, ces appels suivent ce choix :
-
-```cpp
-transport.sendMessageTo(telemetry, receiver); // Utilise radio_retry="false".
-transport.sendMessageTo(telemetry, receiver, RadioRetries::FromDefinition);
-transport.sendMessageTo(telemetry, receiver, RadioRetries::Enabled); // Force les réessais pour cet envoi.
-```
-
-La priorité est **argument explicite `Enabled`/`Disabled`, puis attribut XML,
-puis `Enabled` si l'attribut est absent**. `radio_retry="true"` autorise les
-mécanismes normaux du modem. Les valeurs booléennes XML `1` et `0` sont aussi
-acceptées ; toute autre valeur lève `bad_message_file` au chargement, avec le
-nom du message concerné. Les anciens XML gardent donc le comportement legacy.
-
-`MessageDefinition` lit et conserve ce réglage ;
-`message.getDefinition().getRadioRetries()` renvoie `Enabled` ou `Disabled`.
-`XbeeTransport` l'applique à l'envoi en mode `FromDefinition`. Le type commun
-est déclaré dans `<pprzlink/RadioRetries.h>`, avec l'alias historique
-`XbeeTransport::RadioRetries`. Cet attribut est une métadonnée : il ne rajoute
-aucun champ au message PPRZLINK et n'affecte ni la série PPRZ, ni UDP, ni Ivy.
+`sendMessage(message)` utilise `Enabled`, y compris via `Transport&`.
+Le type est déclaré dans `<pprzlink/RadioRetries.h>`, avec l'alias
+`XbeeTransport::RadioRetries`.
 
 La bibliothèque n'ajoute aucune réémission côté PC. Le retour de statut radio
 reste disponible tant que le `frameId` est non nul, mais un statut « OK » sans
@@ -1992,8 +1979,8 @@ du choix `RadioRetries`.
 ### Choisir la destination radio
 
 L'envoi habituel utilise le destinataire PPRZLINK comme adresse radio.
-Dans la boucle d'envoi de `emit()`, les deux informations peuvent être
-renseignées séparément. Remplacez la construction de `message` et son envoi par :
+Pour essayer une destination unicast explicite dans la boucle de `emit()`,
+remplacez le bloc de construction, de sélection XML et d'envoi par :
 
 ```cpp
 // Destinataire logique de l'en-tête, indépendant de l'adresse radio passée à l'envoi.
@@ -2180,32 +2167,54 @@ pour obtenir le même réglage.
 
 Les messages sont chargés depuis `$PPRZLINK_DIR/messages.xml` si cette variable
 est définie, sinon depuis `$PAPARAZZI_HOME/var/messages.xml`, sinon depuis
-`/usr/share/pprzlink/messages.xml`. L'attribut `radio_retry` doit se trouver
-dans le fichier effectivement chargé. Après modification, relancez l'agent.
-Un `PPRZLINK_DIR` conservé d'un autre essai prend donc priorité sur
+`/usr/share/pprzlink/messages.xml`. Après modification du catalogue, relancez
+l'agent. Un `PPRZLINK_DIR` conservé d'un autre essai prend priorité sur
 `PAPARAZZI_HOME`.
 
-Les envois et réémissions de `link++` utilisent explicitement
-`RadioRetries::FromDefinition`. Le choix XML s'applique aussi à sa politique
-de réémission côté PC :
+Le choix par type de message utilise l'attribut XML `link` déjà présent dans
+Paparazzi. `MessageDefinition::getLinkMode()` l'expose ; `link++` choisit la
+destination puis `XbeeTransport` construit la trame radio correspondante.
 
 | Attribut sur `<message>` | Comportement radio | Réémission par link++ |
 | --- | --- | --- |
-| Absent | Mode normal du modem (`0x00`). | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
-| `radio_retry="true"` | Mode normal du modem (`0x00`). | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
-| `radio_retry="false"` | ACK/réessais MAC désactivés (`0x01`). | Aucun nouvel envoi après un échec radio. |
+| `link="forwarded"` | Unicast vers l'avion désigné par `ac_id` ; ACK MAC selon la configuration du modem. | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
+| `link="broadcasted"` | Diffusion radio à `0xffff`, sans ACK MAC ; les champs du message restent intacts. | Aucun nouvel envoi après un échec radio. |
+| Absent | Pas de routage automatique d'une commande Ivy ordinaire. | Les envois internes, tels que PING, gardent leur routage propre. |
+
+Une diffusion radio peut viser logiquement un seul avion. Par exemple, en
+conservant les champs habituels de `SETTING` :
+
+```xml
+<message name="SETTING" id="4" link="broadcasted">
+  <field name="index" type="uint8"/>
+  <field name="ac_id" type="uint8"/>
+  <field name="value" type="float"/>
+</message>
+```
+
+La commande Ivy `ground SETTING 3 42 12.5` est alors diffusée avec le
+`receiverId` PPRZLINK à 255 et l'adresse radio `0xffff`, tandis que le champ
+`ac_id` vaut toujours 42. Le gestionnaire `SETTING` de l'autopilote vérifie
+`ac_id == AC_ID` avant d'appliquer le réglage. Les autres avions rejettent
+cette commande. Le routage radio et le destinataire applicatif restent ainsi
+distincts, en suivant la convention Paparazzi existante.
 
 `-xbee_retries 3` autorise au maximum trois tentatives côté PC, premier envoi
-compris, pour les messages dont les réessais sont activés. La valeur par
-défaut est 10 ; `-xbee_retries 1` supprime les réémissions côté PC tout en
-laissant le choix radio au XML. Cette option ne réactive jamais les réessais
-d'un message portant `radio_retry="false"`.
+compris, pour les envois unicast. La valeur par défaut est 10 ;
+`-xbee_retries 1` supprime les réémissions côté PC. Cette option ne réactive
+jamais les réémissions de broadcasts. La bibliothèque conserve les options
+radio normales `0x00` dans l'agent : l'adresse broadcast suffit à supprimer
+les ACK MAC.
 
-Les statuts TX restent demandés et leurs identifiants sont suivis même pour
-un message sans réessais. Un statut absent expire après cinq secondes sans
-réémission automatique ; un statut « OK » sans ACK ne prouve pas la réception
-distante. La bibliothèque seule ne crée aucune réémission côté PC : cette
-politique supplémentaire appartient à l'agent `link++`.
+L'absence d'ACK ne garantit pas une émission radio unique : certains firmwares
+802.15.4 répètent les broadcasts selon le paramètre global `RR`. `link++`
+ne modifie pas ce paramètre. Voir [RR dans la documentation Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_cmd_rr.htm).
+
+Les statuts TX restent demandés et leurs identifiants sont suivis aussi pour
+les broadcasts. Un statut absent expire après cinq secondes sans réémission
+automatique ; un statut « OK » sans ACK ne prouve pas la réception distante.
+La bibliothèque seule ne crée aucune réémission côté PC : cette politique
+supplémentaire appartient à l'agent `link++`.
 
 ## 11. Construire un outil générique ou un adaptateur
 

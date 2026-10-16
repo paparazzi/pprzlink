@@ -285,20 +285,26 @@ are still checked. Host retries preserve the frame ID; `-xbee_retries` sets the
 maximum total attempts, including the first send. Pending IDs are not reused;
 a missing status expires after five seconds without blindly resending a command.
 
-Both initial sends and host resends select `RadioRetries::FromDefinition`.
-An absent or `true` XML `radio_retry` attribute preserves normal radio retries
-and permits host resends up to `-xbee_retries` (default 10 total attempts).
-`radio_retry="false"` disables the radio ACK/retry bit and forbids host resends,
-regardless of this CLI limit. Transmit-status tracking remains enabled.
-`-xbee_retries 1` suppresses host resends for all messages while keeping the
-per-message radio choice from XML.
+The agent follows the existing XML `link` attribute. `forwarded` commands
+use unicast to the aircraft identified by `ac_id`; `broadcasted` commands use
+radio destination `0xffff` and PPRZLINK receiver 255. The application fields
+remain unchanged: targeted command handlers in the autopilot filter on `ac_id`.
+Broadcasts request no MAC ACK, even with the normal `0x00` transmit options.
+
+Host resends apply only to unicast transmissions and are bounded by
+`-xbee_retries` (default 10 total attempts). Broadcast failures release their
+pending ID without scheduling a resend, regardless of this CLI limit.
+Transmit-status tracking remains enabled for both destinations.
+`-xbee_retries 1` suppresses all host resends. Some 802.15.4 firmware can repeat
+broadcasts according to its global `RR` setting; the agent does not change it.
+See Digi's [RR documentation](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_cmd_rr.htm).
 
 `-hfc` enables paired RTS/CTS on the host and XBee modem (`D6=1`, `D7=1`).
 Omitting it disables both sides (`D6=0`, `D7=0`); the default is off.
 The AT initialization verifies both settings before the ready message. In
 PPRZ serial mode, `-hfc` configures the host UART only. The
 [French guide](guide_d_utilisation.md#utiliser-link-avec-une-radio-xbee) includes
-Paparazzi build/launch commands and the XML retry policy.
+Paparazzi build/launch commands and the existing XML routing convention.
 
 `-xbee_868` selects AP=1 TX 0x10, RX 0x90 and status 0x8b frames. This framing is
 covered by fixtures and a simulated modem; physical 868 modem configuration and
@@ -431,8 +437,7 @@ Choose the radio ACK/retry behavior per transmission with the scoped enum
 ```cpp
 using RadioRetries = pprzlink::XbeeTransport::RadioRetries;
 const auto receiver = pprzlink::XbeeAddress::network(0x0100);
-transport.sendMessageTo(setting, receiver); // Default: FromDefinition.
-transport.sendMessageTo(setting, receiver, RadioRetries::FromDefinition);
+transport.sendMessageTo(setting, receiver); // Default: Enabled.
 transport.sendMessageTo(setting, receiver, RadioRetries::Enabled);
 transport.sendMessageTo(position, receiver, RadioRetries::Disabled);
 ```
@@ -446,26 +451,14 @@ See Digi's [TX16 format](https://docs.digi.com/resources/documentation/digidocs/
 and [868 format, page 54](https://ftp1.digi.com/support/documentation/90001020_F.pdf).
 
 `sendMessageWithId()`, `sendMessageTo()` and the compatibility wrappers accept the
-optional last argument with default `RadioRetries::FromDefinition`.
+optional last argument with default `RadioRetries::Enabled`.
 `sendMessage(message, radioRetries)` is an overload: the one-argument override
-also selects `FromDefinition`, including calls through `Transport&`.
-The definition reads the optional `radio_retry` attribute on each XML message:
-
-```xml
-<message name="POSITION" id="1" radio_retry="false">
-  <field name="altitude" type="float" unit="m"/>
-</message>
-```
-
-An explicit `Enabled` or `Disabled` send overrides the definition for that frame.
-With `FromDefinition`, `radio_retry="false"` disables ACK/retries and
-`radio_retry="true"` enables normal modem behavior. A missing attribute defaults
-to `Enabled`, preserving older XML files. XML boolean spellings `0` and `1` are
-also accepted; other values fail at dictionary loading with `bad_message_file`.
-`MessageDefinition::getRadioRetries()` returns the resolved `Enabled` or `Disabled`
-hint. It is metadata, never an extra PPRZLINK payload field, and does not affect
-PPRZ serial, UDP or Ivy. The shared enum is declared in `<pprzlink/RadioRetries.h>`;
-`XbeeTransport::RadioRetries` remains an alias for existing source code.
+also selects `Enabled`, including calls through `Transport&`.
+The shared enum is declared in `<pprzlink/RadioRetries.h>`;
+`XbeeTransport::RadioRetries` remains an alias. `MessageDefinition` carries
+routing metadata through `getLinkMode()`; applications choose the destination.
+A broadcast address does not request a MAC ACK even with `Enabled`.
+An explicit `Disabled` choice can also send unicast without a MAC ACK.
 
 Disabling retries on one send does not affect subsequent sends. Invalid enum
 values throw before writing any bytes. The frame ID and transmit-status callback

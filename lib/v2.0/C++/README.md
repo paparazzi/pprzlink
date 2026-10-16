@@ -37,7 +37,7 @@ To build without Ivy and the ground agent, configure with
 The [full reference](../../../doc/cpp/reference.md#build) covers SDK components,
 private dependency prefixes and standalone consumers. The
 [XBee guide](../../../doc/cpp/guide_d_utilisation.md#utiliser-link-avec-une-radio-xbee)
-explains paired RTS/CTS and per-message XML retry policies in `link++`.
+explains paired RTS/CTS and the existing XML unicast/broadcast routing in `link++`.
 
 ## Generated API reference
 

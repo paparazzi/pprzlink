@@ -113,8 +113,7 @@ présentes partout. `WIND_INFO`, par exemple, documente les bits de son champ
 | --- | --- |
 | Nom et identifiant de classe et de message | Chargés dans le dictionnaire et les définitions. |
 | Nom, type et ordre des champs | Chargés ; servent aux lectures, écritures et codecs. |
-| `link="forwarded"` ou `"broadcasted"` | Exposé par `MessageDefinition::getLinkMode()` ; la politique reste dans `link++`. |
-| `radio_retry="true"` ou `"false"` | Conservé par `MessageDefinition::getRadioRetries()` ; appliqué par `XbeeTransport` en mode `FromDefinition`, avec priorité au choix explicite de l'appel. Absent : réessais activés. |
+| `link="forwarded"` ou `"broadcasted"` | Exposé par `MessageDefinition::getLinkMode()` ; `link++` choisit unicast ou diffusion. Une diffusion radio ne demande pas d’ACK MAC ; les commandes ciblées conservent `ac_id` pour le filtrage applicatif. |
 | `format`, par exemple `"%.1f"` | Exposé par `MessageField::getFormat()` ; utilisé notamment par le formatage de compatibilité OCaml. |
 | `<description>` et texte explicatif d'un champ | Présents dans le fichier lorsqu'ils sont renseignés, mais non conservés dans les objets C++ actuels. |
 | `unit`, `alt_unit`, `alt_unit_coef` | Conservés dans `MessageField` et exposés par leurs getters. Les appels SI explicites convertissent les grandeurs par conversion affine. |
