@@ -1,13 +1,18 @@
 <?xml version="1.0"?>
 <protocol>
+  <!-- Ces identifiants sélectionnent les schémas ; les identifiants des correspondants sont dans l'en-tête. -->
   <msg_class name="telemetry" id="1">
+    <!-- Réponse sans champs au PING reçu par le serveur série. -->
     <message name="PONG" id="5"/>
+    <!-- Mesure en mètres, stockée dans un float ; 42 est ici l'identifiant du type de message. -->
     <message name="CLIENT_ALTITUDE" id="42">
       <field name="altitude" type="float" unit="m"/>
     </message>
   </msg_class>
   <msg_class name="datalink" id="2">
+    <!-- Demande sans champs ; l'application renseigne expéditeur et destinataire dans l'en-tête. -->
     <message name="PING" id="8"/>
+    <!-- Une commande contient l'avion visé et la valeur du réglage, indépendamment de l'adressage UDP. -->
     <message name="CLIENT_SETTING" id="43">
       <field name="ac_id" type="uint8"/>
       <field name="value" type="float"/>

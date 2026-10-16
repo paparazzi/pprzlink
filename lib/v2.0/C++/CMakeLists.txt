@@ -255,7 +255,7 @@ if(BUILD_TESTING)
             endif()
             add_test(NAME pty_peers COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyPeersTest.py"
-                     --requester $<TARGET_FILE:pty_requester> --responder $<TARGET_FILE:pty_responder>
+                     --peer $<TARGET_FILE:pty_peer>
                      ${pty_controller_args})
             set_tests_properties(pty_peers PROPERTIES TIMEOUT 20)
             add_test(NAME pty_agents COMMAND ${Python3_EXECUTABLE}
