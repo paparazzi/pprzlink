@@ -42,7 +42,10 @@ module PprzTransportBase(SubType:TRANSPORT_TYPE) = struct
     if len > SubType.offset_length then
       let l = Char.code buf.[start+SubType.offset_length] in
       DebugPL.call 'T' (fun f -> fprintf f "Pprz_transport len=%d\n" l);
-      max l SubType.overhead_length (** if l<4 (4=stx+length+ck_a+ck_b), it's not a valid length *)
+      if l < SubType.overhead_length then
+        raise Protocol.Not_enough (** if l<overhead (usually 4=stx+length+ck_a+ck_b), it's not a valid length *)
+      else
+        l
     else
       raise Protocol.Not_enough
 
