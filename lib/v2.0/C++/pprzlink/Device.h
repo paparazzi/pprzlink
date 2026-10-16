@@ -32,6 +32,8 @@
 #include <cstddef>
 #include <vector>
 #include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/system/system_error.hpp>
 #include <functional>
 #include <mutex>
 #include <stdexcept>
@@ -84,6 +86,18 @@ namespace pprzlink {
     /// @param[in] baudrate New host UART rate, in bits per second.
     /// @throws std::exception An unsupported setting or I/O failure.
     virtual void resetBaudrate(unsigned int baudrate) = 0;
+
+    /// @brief Query the instantaneous logical CTS input without waiting for assertion.
+    /// @return True when CTS is asserted (clear to send), false when deasserted.
+    /// This reads a signal, independently of whether hardware flow control is enabled.
+    /// The sample does not reserve buffer space or guarantee a later write cannot block.
+    /// @throws boost::system::system_error Status is unsupported or the native query fails.
+    /// The default reports operation_not_supported; adapters may override this optional query.
+    [[nodiscard]] virtual bool getCTS() const
+    {
+      throw boost::system::system_error(boost::asio::error::operation_not_supported,
+                                        "Serial CTS status is not supported by this device");
+    }
 
     /// @brief Inspect the host UART's hardware flow-control setting.
     /// @return True for RTS/CTS, false for no flow control.

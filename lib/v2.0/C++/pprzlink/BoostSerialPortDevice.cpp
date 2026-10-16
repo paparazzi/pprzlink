@@ -29,9 +29,13 @@
 #include <boost/asio/write.hpp>
 #include <boost/asio/post.hpp>
 #include <array>
+#include <cerrno>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
+#if !defined(BOOST_ASIO_WINDOWS) && !defined(__CYGWIN__)
+#include <sys/ioctl.h>
+#endif
 
 namespace pprzlink {
   /// @brief Shared serial state retained by pending handlers after wrapper destruction.
@@ -249,6 +253,22 @@ namespace pprzlink {
   BoostSerialPortDevice::Flowcontrol BoostSerialPortDevice::getFlowcontrol() const
   {
     return state->getOption<Flowcontrol>();
+  }
+
+  bool BoostSerialPortDevice::getCTS() const
+  {
+    std::lock_guard lock(state->mutex);
+#if !defined(BOOST_ASIO_WINDOWS) && !defined(__CYGWIN__) && defined(TIOCMGET) && defined(TIOCM_CTS)
+    int bits = 0;
+    if (::ioctl(state->port.native_handle(), TIOCMGET, &bits) < 0) {
+      const boost::system::error_code error(errno, boost::system::system_category());
+      throw boost::system::system_error(error, "Serial CTS status (TIOCMGET)");
+    }
+    return (bits & TIOCM_CTS) != 0;
+#else
+    throw boost::system::system_error(boost::asio::error::operation_not_supported,
+                                      "Serial CTS status is not supported on this platform");
+#endif
   }
 
   void BoostSerialPortDevice::setFlowcontrol(const Flowcontrol &value)

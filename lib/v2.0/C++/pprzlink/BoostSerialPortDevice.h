@@ -87,6 +87,14 @@ namespace pprzlink {
     /// @throws boost::system::system_error A pending receive error or port configuration failure.
     void resetBaudrate(unsigned int baudrate) override;
 
+    /// @brief Read the logical CTS input using the native serial driver.
+    /// @return True for asserted CTS (clear to send), false for deasserted CTS.
+    /// POSIX uses TIOCMGET/TIOCM_CTS. The query is serialized with other port I/O
+    /// and does not wait for CTS to change or modify flow-control configuration.
+    /// @throws boost::system::system_error Native query failure (including unsupported
+    /// modem lines on PTYs/adapters), or operation_not_supported on other platforms.
+    [[nodiscard]] bool getCTS() const override;
+
     /// @brief Query the current UART speed.
     /// @return The port's baud-rate option.
     /// @throws boost::system::system_error Querying the option fails.

@@ -9,7 +9,9 @@
 #include <fcntl.h>
 #include <iostream>
 #include <poll.h>
+#include <sys/ioctl.h>
 #include <thread>
+#include <termios.h>
 #include <unistd.h>
 
 using namespace pprzlink;
@@ -170,6 +172,62 @@ namespace {
     require(device.readAll() == BytesBuffer{42}, "Fresh completion uses the new generation");
   }
 
+  void testFlowControlOptions()
+  {
+    Terminal terminal;
+    boost::asio::io_context context;
+    BoostSerialPortDevice device(context, terminal.name);
+    for (const bool enabled : {false, true, false}) {
+      device.setHardwareFlowControl(enabled);
+      require(device.getHardwareFlowControl() == enabled, "Read back hardware flow control through SerialDevice");
+      termios attributes{};
+      require(tcgetattr(terminal.fd, &attributes) == 0, "Inspect native TTY attributes");
+      require(bool(attributes.c_cflag & CRTSCTS) == enabled, "Hardware flow control updates Linux CRTSCTS");
+      require(!(attributes.c_iflag & (IXON | IXOFF)), "Hardware/none disables XON/XOFF");
+    }
+    // Initialization claims the option before any command-mode bytes are sent.
+    XbeeConfiguration configuration;
+    configuration.targetBaudrate.reset();
+    XbeeModem modem(configuration);
+    require(!modem.poll(device), "Bootstrap is pending");
+    for (const auto value : {BoostSerialPortDevice::Flowcontrol::none,
+                            BoostSerialPortDevice::Flowcontrol::hardware,
+                            BoostSerialPortDevice::Flowcontrol::software}) {
+      expectException<std::logic_error>([&] {
+        device.setFlowcontrol(BoostSerialPortDevice::Flowcontrol(value));
+      });
+    }
+    expectException<std::logic_error>([&] { device.setHardwareFlowControl(true); });
+    require(!device.getHardwareFlowControl(), "Rejected independent changes leave the TTY setting unchanged");
+  }
+
+  void testNativeCTSQuery()
+  {
+#if defined(TIOCMGET) && defined(TIOCM_CTS)
+    Terminal terminal;
+    boost::asio::io_context context;
+    BoostSerialPortDevice device(context, terminal.name);
+    const auto descriptor = open(terminal.name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    require(descriptor >= 0, "Open the same native TTY for an independent status query");
+    int bits = 0;
+    const auto result = ioctl(descriptor, TIOCMGET, &bits);
+    const auto nativeError = errno;
+    close(descriptor);
+    if (result < 0) {
+      // Linux PTYs normally return ENOTTY: unsupported CTS must not become false.
+      bool failed = false;
+      try { (void)device.getCTS(); }
+      catch (const boost::system::system_error &error) {
+        failed = true;
+        require(error.code().value() == nativeError, "CTS exposes the native driver's error unchanged");
+      }
+      require(failed, "A native CTS query failure is distinct from deasserted CTS");
+    } else {
+      require(device.getCTS() == bool(bits & TIOCM_CTS), "CTS agrees with an independent native status read");
+    }
+#endif
+  }
+
   void testLifetime()
   {
     tinyxml2::XMLDocument xml;
@@ -204,6 +262,8 @@ int main()
   try {
     testTraffic();
     testDeferredBaudReset();
+    testFlowControlOptions();
+    testNativeCTSQuery();
     testLifetime();
     std::cout << "Pseudo-terminal reception, complete writes, cancellation and lifetime passed\n";
   } catch (const std::exception &error) {
