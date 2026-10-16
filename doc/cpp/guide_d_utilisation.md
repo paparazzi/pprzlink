@@ -442,7 +442,7 @@ ni le tableau de sortie d'une lecture ne sont remplacés. Le champ
 `axes` du catalogue initial n'a pas d'unité ; ajoutez une unité correspondant
 à vos mesures dans le XML avant d'utiliser une lecture SI.
 
-L'exemple autonome [SIUnits.cpp](pprzlink/examples/clients/SIUnits.cpp) fournit
+L'exemple autonome [SIUnits.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SIUnits.cpp) fournit
 ce XML et vérifie aussi l'encodage puis le décodage natif. Il se lance sans
 matériel ni réseau :
 
@@ -455,7 +455,7 @@ Vous devez notamment voir `1235 mm = 1.235 m` et `20 Celsius = 293.15 K`.
 
 ### Modifier les conventions Paparazzi
 
-La table de conversion est dans [UnitAliases.cpp](pprzlink/UnitAliases.cpp).
+La table de conversion est dans [UnitAliases.cpp](../../lib/v2.0/C++/pprzlink/UnitAliases.cpp).
 Une règle décrit directement la pente et le décalage vers l'unité SI :
 
 ```cpp
@@ -889,7 +889,7 @@ ses deux champs : le mécanisme de transport reste identique.
 
 ### Les trois modes de l'atelier
 
-L'exemple [WorkshopUdp.cpp](pprzlink/examples/clients/WorkshopUdp.cpp) propose
+L'exemple [WorkshopUdp.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopUdp.cpp) propose
 `both`, `emitter` et `receiver`. Pour l'utiliser comme `main.cpp` :
 
 ```sh
@@ -1152,7 +1152,7 @@ appliqué à votre avion. Vérifiez le type de message et les informations
 d'adressage attendues par votre application.
 
 Pour tester les deux côtés avec le même programme, utilisez
-[SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) et son
+[SerialAircraft.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) et son
 catalogue `client_messages.xml`. Son troisième argument choisit `s` pour le
 **serveur avion 42**, ou `c` pour le **client sol 0**. Dans un premier terminal :
 
@@ -1183,12 +1183,12 @@ Il sert ici à gérer la liaison : les deux instances de l'atelier utilisent
 directement la bibliothèque, sans lancer l'agent de télémétrie ni le bus Ivy.
 Le programme `socat` doit être installé et accessible sur PATH.
 
-L'exemple [PtyAgent.cpp](pprzlink/examples/clients/PtyAgent.cpp) est symétrique :
+L'exemple [PtyAgent.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyAgent.cpp) est symétrique :
 le **même programme** tourne dans les deux processus. Chaque instance publie
 `GUIDE_ALTITUDE` une fois par seconde et affiche les altitudes qu'elle reçoit.
 Elle fait tourner son contexte Asio et utilise uniquement les en-têtes publics
 de `pprzlink::io`. La copie du catalogue de l'atelier s'appelle
-[guide_messages.xml](pprzlink/examples/clients/guide_messages.xml).
+[guide_messages.xml](../../lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml).
 
 Les noms **Port A** et **Port B** sont des étiquettes. Les deux extrémités
 lisent et écrivent ; aucune n'est réservée au sol, à l'avion, au demandeur ou
@@ -1257,7 +1257,7 @@ décrit dans [API_USAGE.md](API_USAGE.md). Il se lie uniquement à
 `pprzlink::io`, sans Ivy.
 
 Pour travailler spécifiquement la requête et la réponse, utilisez le même
-programme [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) aux deux
+programme [PtyPeer.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) aux deux
 extrémités. Son troisième argument choisit `c` pour le client demandeur ou
 `s` pour le serveur répondeur. Depuis la racine du dépôt Paparazzi :
 
@@ -1296,7 +1296,7 @@ appelée lorsqu'un message correspondant arrive.
 ### Ajouter le composant Ivy
 
 Cette branche nécessite Ivy 3.18 ou plus et son interface native C++
-`ivy-cpp`. Le [README](README.md#build) précise l'installation Ivy utilisée
+`ivy-cpp`. Le [README](reference.md#build) précise l'installation Ivy utilisée
 pour les validations et la configuration d'un préfixe privé.
 
 Une fois ces dépendances installées, vérifiez leur découverte et reconstruisez
@@ -1327,7 +1327,7 @@ Le domaine Ivy est facultatif ; sa valeur par défaut est
 `127.255.255.255:2010`.
 
 Remplacez tout `main.cpp` par le programme suivant. Il est également disponible
-dans [WorkshopIvy.cpp](pprzlink/examples/clients/WorkshopIvy.cpp) :
+dans [WorkshopIvy.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopIvy.cpp) :
 
 ```cpp
 // SPDX-License-Identifier: LGPL-3.0-or-later
@@ -1501,7 +1501,7 @@ Enfin, le format texte Ivy n'encode pas les destinataire et composant de
 l'en-tête binaire. `setReceiverId()` ne sélectionne donc pas un destinataire
 sur le bus Ivy. Le contenu XML et les règles de l'application déterminent
 comment traiter une commande. L'exemple
-[IvyRoundTrip.cpp](pprzlink/examples/IvyRoundTrip.cpp) réunit aussi deux liens
+[IvyRoundTrip.cpp](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) réunit aussi deux liens
 Ivy dans un même processus pour un échange autonome.
 
 ## 9. Faire une requête et attendre sa réponse
@@ -2029,7 +2029,7 @@ constructeur, sélectionne les trames étendues et requiert une adresse `ieee()`
 Elle ne configure pas à elle seule un modem 868 MHz. Les essais logiciels
 de cette branche couvrent ces
 trames ; la validation sur matériel 868 reste à effectuer, comme indiqué
-dans le [rapport de validation](LINK_CPP_VALIDATION.md).
+dans le [rapport de validation](validation/LINK_CPP_VALIDATION.md).
 
 ### Distinguer écriture série et livraison radio
 
@@ -2125,7 +2125,7 @@ est limitée à 100 octets, en-tête PPRZLINK compris.
 
 ### Utiliser link++ avec une radio XBee
 
-L'agent [link++](apps/link) relie le bus Ivy aux avions, applique les règles
+L'agent [link++](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link) relie le bus Ivy aux avions, applique les règles
 `link="forwarded"` et `link="broadcasted"`, et suit leur présence. Il utilise
 les mêmes `MessageDefinition` et `XbeeTransport` que votre application.
 Il attend le catalogue Paparazzi complet, avec ses classes `telemetry`,
@@ -2400,24 +2400,24 @@ définitions aux deux extrémités.
 Pour utiliser ces acquis dans votre projet, remplacez `messages.xml` par le
 catalogue de votre configuration et choisissez les noms de messages qui y
 existent. Le catalogue source du dépôt se trouve dans
-[message_definitions/v1.0/messages.xml](../../../message_definitions/v1.0/messages.xml) ;
+[message_definitions/v1.0/messages.xml](../../message_definitions/v1.0/messages.xml) ;
 le `v1.0` de ce chemin désigne le catalogue et ne sélectionne pas le protocole
 de transport utilisé par la bibliothèque C++.
 
 Les règles de routage vers les avions, le suivi de présence, les délais de
 réponse et les réessais appartiennent à l'application. L'agent
-[link++](apps/link) montre une application complète qui relie les transports
+[link++](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link) montre une application complète qui relie les transports
 au bus Ivy et applique ces règles.
 
 Pour poursuivre avec des exemples déjà intégrés au dépôt :
 
-- [IvyRoundTrip.cpp](pprzlink/examples/IvyRoundTrip.cpp) échange une altitude
+- [IvyRoundTrip.cpp](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) échange une altitude
   entre deux liens Ivy et attend la découverte de l'abonnement.
-- [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) choisit le
+- [SerialAircraft.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) choisit le
   rôle client ou serveur pour échanger PING, une altitude et PONG sur série.
-- [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) choisit le client demandeur
+- [PtyPeer.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) choisit le client demandeur
   ou le serveur répondeur sur une liaison série physique ou virtuelle.
-- [UdpMessages.cpp](pprzlink/examples/clients/UdpMessages.cpp) choisit l'émission
+- [UdpMessages.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/UdpMessages.cpp) choisit l'émission
   d'une commande UDP ou la réception avec affichage de l'origine réseau.
 
 Pour ce dernier exemple, utilisez le catalogue `client_messages.xml` et le

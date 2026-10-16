@@ -4,7 +4,7 @@ Rapport du 29 septembre 2026. Le code est implémenté et les comparaisons
 logicielles sont exécutées sur Ubuntu 24.04 x86_64 avec GCC 13.3.
 Les essais radio physiques et la session complète serveur/GCS restent à faire.
 
-L'itération suivante de l'API est décrite dans [API_USAGE.md](API_USAGE.md) :
+L'itération suivante de l'API est décrite dans [API_USAGE.md](../API_USAGE.md) :
 réception avec métadonnées, abonnements Ivy possédés par l'appelant, conversions
 contrôlées et SDK modulaire. Ses 19 tests incluent les mêmes 17 scénarios de
 comparaison décrits ici. Les résultats à 15 tests ci-dessous décrivent la
@@ -12,7 +12,7 @@ validation initiale de l'agent.
 
 ## Ce qui est livré
 
-- Agent [`apps/link`](apps/link), construit par CMake et installé sous `bin/link++`.
+- Agent [`apps/link`](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link), construit par CMake et installé sous `bin/link++`.
 - Les 24 options OCaml, leurs défauts et `-help`/`--help`. La syntaxe
   `-option=valeur`, les options répétées et les arguments positionnels sont pris
   en charge comme dans `Arg.parse`.

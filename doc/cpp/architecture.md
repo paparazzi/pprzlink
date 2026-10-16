@@ -25,7 +25,7 @@ Elle peut servir à un simulateur, un enregistreur, une interface graphique,
 un outil de test, une passerelle ou un programme qui échange directement avec
 un avion.
 
-`link++`, dans [`apps/link`](apps/link), est une application de cette
+`link++`, dans [`apps/link`](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link), est une application de cette
 bibliothèque. Elle porte les règles de la station sol : options de lancement,
 association entre avions et liaisons, routage des commandes Ivy, PING/PONG,
 rapports de liaison, délais et politique de retransmission XBee. Ces règles
@@ -52,15 +52,15 @@ quel moment.
 ### Où se trouvent les définitions ?
 
 Le catalogue source est
-[`message_definitions/v1.0/messages.xml`](../../../message_definitions/v1.0/messages.xml).
+[`message_definitions/v1.0/messages.xml`](../../message_definitions/v1.0/messages.xml).
 Le `v1.0` de ce chemin désigne la version du catalogue de définitions ; cela
 n'empêche pas son utilisation avec le protocole PPRZLINK v2 et la bibliothèque
 située dans `lib/v2.0/C++`.
 
 Deux fichiers décrivent la syntaxe de ce XML :
 
-- [`messages.dtd`](../../../message_definitions/v1.0/messages.dtd) ;
-- [`pprz_schema.xsd`](../../../message_definitions/v1.0/pprz_schema.xsd).
+- [`messages.dtd`](../../message_definitions/v1.0/messages.dtd) ;
+- [`pprz_schema.xsd`](../../message_definitions/v1.0/pprz_schema.xsd).
 
 Le XML donne les définitions concrètes, tandis que la DTD et le XSD décrivent
 les éléments et attributs autorisés pour les écrire. Le chargeur C++ utilise
@@ -141,7 +141,7 @@ une sortie `vector<double>&`, validées entièrement avant remplacement.
 d'un scalaire ou d'un élément, avec le type numérique exact du XML.
 
 Les conversions affines immuables sont partagées par les copies de définitions.
-[UnitAliases.cpp](pprzlink/UnitAliases.cpp) décrit l'unité SI canonique, la pente,
+[UnitAliases.cpp](../../lib/v2.0/C++/pprzlink/UnitAliases.cpp) décrit l'unité SI canonique, la pente,
 l'offset et les sélecteurs message/champ. Un résolveur borné reconnaît les
 préfixes usuels sur des bases explicitement marquées, avec le bon exposant
 pour surfaces/volumes. Les unités composites et encodages spéciaux sont des
@@ -176,9 +176,9 @@ de recompiler une classe C++ pour un outil qui traite les messages génériqueme
 En contrepartie, les noms des champs et leurs types sont vérifiés à l'exécution.
 
 Le dépôt possède déjà un
-[générateur de code C](../../../tools/generator/gen_messages.py), avec les
+[générateur de code C](../../tools/generator/gen_messages.py), avec les
 sorties `C` et `C_standalone`. Le
-[générateur C v2](../../../tools/generator/gen_messages_v2_0_c.py) produit
+[générateur C v2](../../tools/generator/gen_messages_v2_0_c.py) produit
 notamment des fonctions `pprzlink_msg_v2_send_<MESSAGE>` prenant les champs du
 message comme paramètres. Cette API C, utilisable depuis C++, est distincte
 de l'API de la bibliothèque `pprzlink++` décrite ici. Il n'existe pas encore de
@@ -200,12 +200,12 @@ incorrectes sans erreur de décodage lorsque les tailles restent compatibles.
 
 | Type public | Rôle |
 | --- | --- |
-| [`MessageDictionary`](pprzlink/MessageDictionary.h) | Possède les définitions ; recherche par nom ou par couple classe/identifiant. |
-| [`MessageDefinition`](pprzlink/MessageDefinition.h) | Décrit un message et la liste ordonnée de ses champs. |
-| [`MessageField`](pprzlink/MessageField.h) / [`FieldType`](pprzlink/MessageFieldTypes.h) | Décrivent un champ : nom, type, tableau éventuel, format et unités/conversion SI. |
-| [`FieldValue`](pprzlink/FieldValue.h) | Contient la valeur d'un champ, scalaire ou tableau, dans un `std::variant`. |
-| [`Message`](pprzlink/Message.h) | Possède une copie de sa définition, ses valeurs et ses identifiants d'expéditeur/destinataire/composant. |
-| [`ReceivedMessage`](pprzlink/ReceivedMessage.h) | Possède un `Message` reçu et les métadonnées de sa réception. |
+| [`MessageDictionary`](../../lib/v2.0/C++/pprzlink/MessageDictionary.h) | Possède les définitions ; recherche par nom ou par couple classe/identifiant. |
+| [`MessageDefinition`](../../lib/v2.0/C++/pprzlink/MessageDefinition.h) | Décrit un message et la liste ordonnée de ses champs. |
+| [`MessageField`](../../lib/v2.0/C++/pprzlink/MessageField.h) / [`FieldType`](../../lib/v2.0/C++/pprzlink/MessageFieldTypes.h) | Décrivent un champ : nom, type, tableau éventuel, format et unités/conversion SI. |
+| [`FieldValue`](../../lib/v2.0/C++/pprzlink/FieldValue.h) | Contient la valeur d'un champ, scalaire ou tableau, dans un `std::variant`. |
+| [`Message`](../../lib/v2.0/C++/pprzlink/Message.h) | Possède une copie de sa définition, ses valeurs et ses identifiants d'expéditeur/destinataire/composant. |
+| [`ReceivedMessage`](../../lib/v2.0/C++/pprzlink/ReceivedMessage.h) | Possède un `Message` reçu et les métadonnées de sa réception. |
 
 Construire `Message(dictionary.getDefinition("SETTING"))` crée un message dont
 la structure est connue mais dont les champs n'ont pas encore de valeur.
@@ -267,7 +267,7 @@ classDiagram
     IvyLink *-- IvyBus
 ```
 
-[`Device`](pprzlink/Device.h) est une interface abstraite de **flux d'octets**.
+[`Device`](../../lib/v2.0/C++/pprzlink/Device.h) est une interface abstraite de **flux d'octets**.
 Elle ne connaît ni les messages XML ni les avions. `readAll()` consomme les
 octets disponibles ; `writeBuffer()` doit écrire tout le buffer ou signaler
 une erreur. Une erreur d'I/O peut survenir après l'écriture d'une partie des
@@ -285,7 +285,7 @@ ces réglages ; un adaptateur sans cette capacité signale une erreur explicite.
 avec Boost.Asio. `PosixFileDevice` fournit l'adaptation pour un descripteur de
 fichier ou de FIFO.
 
-[`Transport`](pprzlink/Transport.h) est une classe abstraite au niveau des
+[`Transport`](../../lib/v2.0/C++/pprzlink/Transport.h) est une classe abstraite au niveau des
 **messages**. Elle possède son périphérique via `std::unique_ptr<Device>` et
 emprunte le dictionnaire. Elle déclare les opérations virtuelles d'envoi et de
 réception événementielle. `bind()` conserve les abonnements ; `start()` active
@@ -299,7 +299,7 @@ Les opérations spécifiques à XBee restent accessibles sur `XbeeTransport`.
 
 ### UDP et Ivy ne dérivent pas de Transport
 
-[`UdpTransport`](pprzlink/UdpTransport.h) possède un socket UDP et utilise le
+[`UdpTransport`](../../lib/v2.0/C++/pprzlink/UdpTransport.h) possède un socket UDP et utilise le
 même `PprzFrameDecoder` que le transport PPRZ. Il retourne également un
 `ReceivedMessage`, mais chaque envoi exige une destination réseau explicite :
 `sendMessage(message, destination)`.
@@ -309,7 +309,7 @@ datagramme peut fournir plusieurs trames ; une trame incomplète en fin de
 datagramme est abandonnée, afin de ne pas assembler des morceaux provenant
 de datagrammes ou de pairs différents.
 
-[`IvyLink`](pprzlink/IvyLink.h) possède un bus Ivy natif et expose les
+[`IvyLink`](../../lib/v2.0/C++/pprzlink/IvyLink.h) possède un bus Ivy natif et expose les
 abonnements, publications et requêtes. Il utilise le codec texte Ivy, avec un
 modèle de publication/abonnement plutôt qu'un flux binaire.
 
@@ -321,7 +321,7 @@ au même traitement applicatif.
 
 ### Réutiliser les codecs avec une autre bibliothèque d'I/O
 
-[`PprzFrameCodec.h`](pprzlink/PprzFrameCodec.h) expose
+[`PprzFrameCodec.h`](../../lib/v2.0/C++/pprzlink/PprzFrameCodec.h) expose
 `encodePprzFrame(message)`, `PprzFrameDecoder::pushBytes()` et `tryReceive()`.
 Ces opérations ne font aucune I/O. Une application Qt, par exemple, pourrait
 leur fournir les octets de son propre port série, puis écrire les trames
@@ -596,21 +596,21 @@ pas Ivy. La construction sans Ivy est également disponible.
 
 Les exemples exécutables à relire pour évaluer l'API sont :
 
-- [`IvyReceiver.cpp`](pprzlink/examples/clients/IvyReceiver.cpp) pour l'abonnement
+- [`IvyReceiver.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/IvyReceiver.cpp) pour l'abonnement
   et les lectures de champs ;
-- [`WorkshopIvy.cpp`](pprzlink/examples/clients/WorkshopIvy.cpp) pour choisir
+- [`WorkshopIvy.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopIvy.cpp) pour choisir
   l'émission ou la réception Ivy avec le même programme ;
-- [`SerialAircraft.cpp`](pprzlink/examples/clients/SerialAircraft.cpp) pour
+- [`SerialAircraft.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) pour
   choisir le client sol ou le serveur avion et échanger PING/altitude/PONG ;
-- [`PtyPeer.cpp`](pprzlink/examples/clients/PtyPeer.cpp) pour choisir le client
+- [`PtyPeer.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) pour choisir le client
   demandeur ou le serveur répondeur sur une liaison série ;
-- [`UdpMessages.cpp`](pprzlink/examples/clients/UdpMessages.cpp) pour choisir
+- [`UdpMessages.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/UdpMessages.cpp) pour choisir
   l'émission d'une commande complète ou la réception avec son origine réseau.
 
 Les instructions de compilation et d'utilisation se trouvent dans
-[`README.md`](README.md) et [`API_USAGE.md`](API_USAGE.md). Les contraintes de
+[`README.md`](reference.md) et [`API_USAGE.md`](API_USAGE.md). Les contraintes de
 remplacement de l'application OCaml sont suivies dans
-[`LINK_CPP_PLAN.md`](LINK_CPP_PLAN.md), les comparaisons dans
-[`LINK_CPP_VALIDATION.md`](LINK_CPP_VALIDATION.md), et la validation de la
+[`LINK_CPP_PLAN.md`](historique/LINK_CPP_PLAN.md), les comparaisons dans
+[`LINK_CPP_VALIDATION.md`](validation/LINK_CPP_VALIDATION.md), et la validation de la
 plateforme minimale dans
-[`VALIDATION_UBUNTU24_GCC13.md`](VALIDATION_UBUNTU24_GCC13.md).
+[`VALIDATION_UBUNTU24_GCC13.md`](validation/VALIDATION_UBUNTU24_GCC13.md).

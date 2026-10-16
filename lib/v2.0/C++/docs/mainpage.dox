@@ -55,7 +55,7 @@
  * the prepared SI unit; UnitAliases.cpp contains editable scoped conventions.
  *
  * @section examples Learning examples
- * The repository's guide_d_utilisation.md walks through the public API.
+ * The repository's doc/cpp/guide_d_utilisation.md walks through the public API.
  * The offline `si_units` example demonstrates metadata, conversion and native framing.
  * The `pty_agent` example runs the same sender/receiver at either end of a
  * virtual serial pair. `link++ -socat start` creates interchangeable ports

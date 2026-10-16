@@ -41,7 +41,7 @@ d’API/ABI.
   automatique en mode XBee, options de configuration et de destination radio.
   C’est un exemple de diagnostic série, pas une réimplémentation complète du
   processus OCaml `link` ni une passerelle Ivy/série.
-- Intégration CMake et documentation dans `../README.md` ; Make inclut les
+- Intégration CMake et documentation dans [référence C++](../reference.md) ; Make inclut les
   nouveaux fichiers grâce à ses listes automatiques de sources/en-têtes.
 
 Les options principales sont `-xbeesan`, `-xbee_addr` (MY, défaut 0x100), `-ch`
@@ -99,8 +99,8 @@ Le script configure, compile et teste les trois variantes, puis vérifie le
 chargement d’Ivy avec ldd. GCC utilise les headers et bibliothèques du paquet
 3.18.2 extrait ; les variantes Clang utilisent Ivy instrumenté privé.
 Résultat : **12/12 tests réussis dans chacune des trois variantes**, sans alerte
-ASan/UBSan/fuite ni TSan. Voir `VALIDATION_CLANG22.md` pour les résultats détaillés.
-Si les répertoires temporaires ont disparu, reconstruire selon `../README.md`
+ASan/UBSan/fuite ni TSan. Voir [VALIDATION_CLANG22.md](../validation/VALIDATION_CLANG22.md) pour les résultats détaillés.
+Si les répertoires temporaires ont disparu, reconstruire selon [référence C++](../reference.md)
 et recréer les préfixes instrumentés pour les tests SAN.
 Aucun autre compilateur n’a été téléchargé.
 

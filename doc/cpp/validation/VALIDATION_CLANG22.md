@@ -192,4 +192,4 @@ nouvelle exécution des sanitizers pour un simple changement des métadonnées d
 
 Rapport et reproduction côté Ivy :
 [VALIDATION_3.18.3.md](https://github.com/alex31/libivy-c/blob/b0bf831702c5bfd1313e83ded62eb14d17198534/VALIDATION_3.18.3.md).
-Les instructions de compilation portables de pprzlink sont dans `../README.md`.
+Les instructions de compilation portables de pprzlink sont dans [référence C++](../reference.md).

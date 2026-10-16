@@ -8,15 +8,15 @@ copié dans un autre projet et compilé avec le SDK installé.
 
 | Exemple | Parcours et limite qu'il permet d'observer |
 | --- | --- |
-| [SIUnits.cpp](pprzlink/examples/clients/SIUnits.cpp) | Consulter les unités XML/SI, arrondir une altitude vers l'entier XML, convertir les températures/tableaux et conserver l'encodage natif, sans I/O. |
-| [IvyReceiver.cpp](pprzlink/examples/clients/IvyReceiver.cpp) | S'abonner, lire une altitude en mètres par `getFieldSI()`, arrêter la boucle. L'abonnement est possédé par une variable locale ; le délai utilise encore l'API native Ivy. |
-| [WorkshopIvy.cpp](pprzlink/examples/clients/WorkshopIvy.cpp) | Choisir `e` ou `r` pour publier ou recevoir une altitude avec le même exécutable. Attendre l'annonce de l'abonnement avant de publier, avec le XML du guide. |
-| [SerialAircraft.cpp](pprzlink/examples/clients/SerialAircraft.cpp) | Choisir le client sol (`c`) ou le serveur avion (`s`) ; échanger PING, une altitude en mètres SI et PONG sur deux ports série reliés. L'application fournit et fait tourner son contexte Asio. |
-| [UdpMessages.cpp](pprzlink/examples/clients/UdpMessages.cpp) | Choisir l'émetteur (`e`) ou le récepteur (`r`) d'une commande UDP avec le même exécutable, puis afficher l'origine réseau et les champs reçus. |
-| [UdpRecorder.cpp](pprzlink/examples/clients/UdpRecorder.cpp) | Recevoir trois messages avec leur adresse source et leur taille. Aucun bus Ivy n'est démarré ni lié au programme. |
-| [UdpSettingSender.cpp](pprzlink/examples/clients/UdpSettingSender.cpp) | Remplir les deux champs d'une commande dans un seul `setField()`, puis envoyer son datagramme à un pair de test local. |
-| [PtyPeer.cpp](pprzlink/examples/clients/PtyPeer.cpp) | Choisir le client demandeur (`c`) ou le serveur répondeur (`s`) et échanger une altitude sur une liaison série, avec le XML du guide. |
-| [PtyAgent.cpp](pprzlink/examples/clients/PtyAgent.cpp) | Lancer le même agent aux deux extrémités : chaque processus publie et reçoit une altitude, sans rôle lié au port. |
+| [SIUnits.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SIUnits.cpp) | Consulter les unités XML/SI, arrondir une altitude vers l'entier XML, convertir les températures/tableaux et conserver l'encodage natif, sans I/O. |
+| [IvyReceiver.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/IvyReceiver.cpp) | S'abonner, lire une altitude en mètres par `getFieldSI()`, arrêter la boucle. L'abonnement est possédé par une variable locale ; le délai utilise encore l'API native Ivy. |
+| [WorkshopIvy.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopIvy.cpp) | Choisir `e` ou `r` pour publier ou recevoir une altitude avec le même exécutable. Attendre l'annonce de l'abonnement avant de publier, avec le XML du guide. |
+| [SerialAircraft.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) | Choisir le client sol (`c`) ou le serveur avion (`s`) ; échanger PING, une altitude en mètres SI et PONG sur deux ports série reliés. L'application fournit et fait tourner son contexte Asio. |
+| [UdpMessages.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/UdpMessages.cpp) | Choisir l'émetteur (`e`) ou le récepteur (`r`) d'une commande UDP avec le même exécutable, puis afficher l'origine réseau et les champs reçus. |
+| [UdpRecorder.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/UdpRecorder.cpp) | Recevoir trois messages avec leur adresse source et leur taille. Aucun bus Ivy n'est démarré ni lié au programme. |
+| [UdpSettingSender.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/UdpSettingSender.cpp) | Remplir les deux champs d'une commande dans un seul `setField()`, puis envoyer son datagramme à un pair de test local. |
+| [PtyPeer.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) | Choisir le client demandeur (`c`) ou le serveur répondeur (`s`) et échanger une altitude sur une liaison série, avec le XML du guide. |
+| [PtyAgent.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyAgent.cpp) | Lancer le même agent aux deux extrémités : chaque processus publie et reçoit une altitude, sans rôle lié au port. |
 
 Ces exemples sont de petits clients exécutables de référence, pas des services
 complets de production. Les clients série/UDP/Ivy initiaux sont bornés à dix secondes.
@@ -113,7 +113,7 @@ d'une lecture. `setFieldSI()` renvoie `const Message&`, comme `setField()` ;
 on peut écrire `transport.sendMessage(message.setFieldSI("altitude", 123.5))`
 lorsque le message est complet.
 
-Les règles éditables sont dans [UnitAliases.cpp](pprzlink/UnitAliases.cpp) :
+Les règles éditables sont dans [UnitAliases.cpp](../../lib/v2.0/C++/pprzlink/UnitAliases.cpp) :
 
 ```cpp
 {"1e7deg", "rad", std::numbers::pi / (180.0 * 1e7)},
@@ -403,7 +403,7 @@ explicite. Le pair UDP et l'identifiant PPRZLINK sont indépendants. Les message
 d'un même datagramme gardent sa source ; les trames incomplètes sont abandonnées
 à sa frontière pour éviter de mélanger deux datagrammes ou deux émetteurs.
 
-L'exemple [WorkshopUdp.cpp](pprzlink/examples/clients/WorkshopUdp.cpp) propose
+L'exemple [WorkshopUdp.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopUdp.cpp) propose
 les modes `both`, `emitter` et `receiver` de l'atelier.
 
 ## Ivy : utiliser la propriété déjà fournie par Ivy C++
@@ -465,7 +465,8 @@ charge les dépendances des bibliothèques agrégées. Demander le composant `iv
 
 ## Construire et essayer les exemples
 
-Depuis `lib/v2.0/C++`, après préparation des dépendances décrites dans le README :
+Depuis `lib/v2.0/C++`, après préparation des dépendances décrites dans
+[la référence C++](reference.md#build) :
 
 ```sh
 cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \

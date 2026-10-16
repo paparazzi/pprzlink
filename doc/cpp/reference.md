@@ -6,7 +6,7 @@ The default build also includes Ivy **3.18 or newer** with its native C++ wrappe
 (`ivy-cpp`) and pkg-config. Set `PPRZLINK_WITH_IVY=OFF` to build without Ivy.
 Ubuntu 24.04 / GCC 13 is the minimum supported platform. The current sources
 have been built and tested with Ubuntu 24.04's GCC 13.3 and official Noble
-dependencies; see [the validation report](VALIDATION_UBUNTU24_GCC13.md).
+dependencies; see [the validation report](validation/VALIDATION_UBUNTU24_GCC13.md).
 Earlier validation also covers GCC 15. Ubuntu 22.04 is no longer targeted.
 For sharing this branch, use [Ivy 3.18.3](https://github.com/alex31/libivy-c/commit/b0bf831702c5bfd1313e83ded62eb14d17198534),
 which includes the cleanup, threading and context-ownership changes validated
@@ -30,23 +30,23 @@ For example, `MessageField("altitude", "float")` describes a field, while its
 
 | Class or file | Responsibility |
 | --- | --- |
-| [`FieldType`](pprzlink/MessageFieldTypes.h) | XML scalar/array type, such as `float`, `int16[]` or `char[5]`. |
-| [`MessageField`](pprzlink/MessageField.h) | Field name, XML type/unit metadata and prepared explicit SI conversion, without a value. |
-| [`UnitAliases.cpp`](pprzlink/UnitAliases.cpp) | Editable XML-to-SI slopes/offsets, including scoped rules and explicitly unsupported units. |
-| [`MessageDefinition`](pprzlink/MessageDefinition.h) | Message name, class/message IDs and ordered field definitions. |
-| [`MessageDictionary`](pprzlink/MessageDictionary.h) | Load definitions with TinyXML2 and look them up by name or IDs. |
-| [`FieldValue`](pprzlink/FieldValue.h) | Field definition and actual scalar/array value in a `std::variant`. |
-| [`MemoryDevice`](pprzlink/MemoryDevice.h) | Asynchronous in-memory loopback and byte injection on a caller-owned Asio context. |
-| [`Message`](pprzlink/Message.h) | A copy of a definition, populated field values and sender/receiver addressing. |
-| [`IvyLink`](pprzlink/IvyLink.h) | Own an Ivy bus and manage subscriptions, sends and requests. |
-| [`PprzTransport`](pprzlink/PprzTransport.h) | Implement `Transport` with binary PprzLink v2 framing over an owned `Device`. |
-| [`XbeeTransport`](pprzlink/XbeeTransport.h) | Carry PprzLink v2 messages in XBee 802.15.4 API frames (AP=1), with radio addressing, status events and optional transmit validation. |
-| [`XbeeModem`](pprzlink/XbeeModem.h) | Initialize the modem through AT commands, with guard times, checked replies and response deadlines. |
-| [`BoostSerialPortDevice`](pprzlink/BoostSerialPortDevice.h) | Implement the `Device` byte-stream interface with Boost.Asio serial I/O. |
-| [`PprzFrameDecoder`](pprzlink/PprzFrameCodec.h) | Decode PPRZ frames without owning a device or performing I/O. |
-| [`UdpTransport`](pprzlink/UdpTransport.h) | Send PPRZ datagrams and return messages with their source IP/port. |
-| [`ReceivedMessage`](pprzlink/ReceivedMessage.h) | Own a message, its complete frame size and optional XBee/UDP metadata. |
-| [`BinaryCodec`](pprzlink/BinaryCodec.h), [`IvyMessageCodec`](pprzlink/IvyMessageCodec.h), [`TextCodec`](pprzlink/TextCodec.h) | Convert messages/fields to and from bytes or text; these functions perform no device or bus I/O. |
+| [`FieldType`](../../lib/v2.0/C++/pprzlink/MessageFieldTypes.h) | XML scalar/array type, such as `float`, `int16[]` or `char[5]`. |
+| [`MessageField`](../../lib/v2.0/C++/pprzlink/MessageField.h) | Field name, XML type/unit metadata and prepared explicit SI conversion, without a value. |
+| [`UnitAliases.cpp`](../../lib/v2.0/C++/pprzlink/UnitAliases.cpp) | Editable XML-to-SI slopes/offsets, including scoped rules and explicitly unsupported units. |
+| [`MessageDefinition`](../../lib/v2.0/C++/pprzlink/MessageDefinition.h) | Message name, class/message IDs and ordered field definitions. |
+| [`MessageDictionary`](../../lib/v2.0/C++/pprzlink/MessageDictionary.h) | Load definitions with TinyXML2 and look them up by name or IDs. |
+| [`FieldValue`](../../lib/v2.0/C++/pprzlink/FieldValue.h) | Field definition and actual scalar/array value in a `std::variant`. |
+| [`MemoryDevice`](../../lib/v2.0/C++/pprzlink/MemoryDevice.h) | Asynchronous in-memory loopback and byte injection on a caller-owned Asio context. |
+| [`Message`](../../lib/v2.0/C++/pprzlink/Message.h) | A copy of a definition, populated field values and sender/receiver addressing. |
+| [`IvyLink`](../../lib/v2.0/C++/pprzlink/IvyLink.h) | Own an Ivy bus and manage subscriptions, sends and requests. |
+| [`PprzTransport`](../../lib/v2.0/C++/pprzlink/PprzTransport.h) | Implement `Transport` with binary PprzLink v2 framing over an owned `Device`. |
+| [`XbeeTransport`](../../lib/v2.0/C++/pprzlink/XbeeTransport.h) | Carry PprzLink v2 messages in XBee 802.15.4 API frames (AP=1), with radio addressing, status events and optional transmit validation. |
+| [`XbeeModem`](../../lib/v2.0/C++/pprzlink/XbeeModem.h) | Initialize the modem through AT commands, with guard times, checked replies and response deadlines. |
+| [`BoostSerialPortDevice`](../../lib/v2.0/C++/pprzlink/BoostSerialPortDevice.h) | Implement the `Device` byte-stream interface with Boost.Asio serial I/O. |
+| [`PprzFrameDecoder`](../../lib/v2.0/C++/pprzlink/PprzFrameCodec.h) | Decode PPRZ frames without owning a device or performing I/O. |
+| [`UdpTransport`](../../lib/v2.0/C++/pprzlink/UdpTransport.h) | Send PPRZ datagrams and return messages with their source IP/port. |
+| [`ReceivedMessage`](../../lib/v2.0/C++/pprzlink/ReceivedMessage.h) | Own a message, its complete frame size and optional XBee/UDP metadata. |
+| [`BinaryCodec`](../../lib/v2.0/C++/pprzlink/BinaryCodec.h), [`IvyMessageCodec`](../../lib/v2.0/C++/pprzlink/IvyMessageCodec.h), [`TextCodec`](../../lib/v2.0/C++/pprzlink/TextCodec.h) | Convert messages/fields to and from bytes or text; these functions perform no device or bus I/O. |
 
 The usual path is XML → dictionary → definition → populated message → Ivy link
 or binary transport. Reception reconstructs a message using the same definitions.
@@ -82,7 +82,7 @@ CMake build with `-DPPRZLINK_BUILD_DOCS=ON`.
 The conversion table is compiled directly into the library. No additional unit
 package or submodule initialization is required.
 
-From this directory:
+Run the following commands from the C++ source directory, `lib/v2.0/C++`:
 
 ```sh
 # With ivy-c / ivy-c-dev installed, the system pkg-config paths are sufficient.
@@ -110,8 +110,8 @@ required matching builds, as recorded in the comparison report.
 Instructions for building the Ivy packages
 are in [Ivy's Debian README](https://github.com/alex31/libivy-c/blob/b0bf831702c5bfd1313e83ded62eb14d17198534/debian/README).
 Validation results and limitations are recorded in
-[VALIDATION_UBUNTU24_GCC13.md](VALIDATION_UBUNTU24_GCC13.md) and the earlier
-[VALIDATION_CLANG22.md](pprzlink/VALIDATION_CLANG22.md). Their temporary paths are
+[VALIDATION_UBUNTU24_GCC13.md](validation/VALIDATION_UBUNTU24_GCC13.md) and the earlier
+[VALIDATION_CLANG22.md](validation/VALIDATION_CLANG22.md). Their temporary paths are
 validation logs, not build prerequisites.
 
 To check the minimum compiler explicitly, use a fresh build directory:
@@ -123,9 +123,9 @@ cmake --build build-gcc13 -j4
 ctest --test-dir build-gcc13 --output-on-failure
 ```
 
-The [step-by-step link replacement guide](LINK_CPP_PLAN.md) tracks the ground
+The [step-by-step link replacement guide](historique/LINK_CPP_PLAN.md) tracks the ground
 agent implementation and its remaining hardware validation. See also the
-[OCaml/C++ comparison report](LINK_CPP_VALIDATION.md). `serial_messages` remains
+[OCaml/C++ comparison report](validation/LINK_CPP_VALIDATION.md). `serial_messages` remains
 a separate diagnostic tool.
 
 `make libpprzlink++` and `make install DESTDIR=/path/to/install` are also supported.
@@ -192,7 +192,7 @@ calibration codes, logarithmic levels and mixed-frame arrays remain readable
 through raw access; requesting SI conversion throws `field_unit_error`.
 Conversion never changes coordinate frames, altitude references or time epochs.
 
-Edit [UnitAliases.cpp](pprzlink/UnitAliases.cpp) to add an explicit rule
+Edit [UnitAliases.cpp](../../lib/v2.0/C++/pprzlink/UnitAliases.cpp) to add an explicit rule
 `{"XML spelling", "canonical SI symbol", multiplier, offset}`. Conversion is
 `SI = XML * multiplier + offset`, with inverse `(SI - offset) / multiplier`.
 Optional message/field selectors disambiguate legacy spellings. An empty SI
@@ -206,7 +206,7 @@ string fields and unused alternative units. The error names the message,
 field, spelling and table to update. Known opaque labels remain available
 through native reads. Incompatible physical dimensions also fail at loading.
 The explicit XML coefficient multiplies the alternative rule's slope once;
-it does not scale the offset. See [the validation and size report](VALIDATION_AFFINE_UNITS.md).
+it does not scale the offset. See [the validation and size report](validation/VALIDATION_AFFINE_UNITS.md).
 
 Existing client source can adopt SI calls field by field. Rebuild the library
 and its clients: adding schema metadata changes the C++ class layout, so old
@@ -305,7 +305,7 @@ covered by fixtures and a simulated modem; physical 868 modem configuration and
 delivery have not been validated. See the comparison report for the corrected
 OCaml 868 transmit-type bug and other intentional differences.
 
-The application source is in [`apps/link`](apps/link). `Options` handles the CLI;
+The application source is in [`apps/link`](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link). `Options` handles the CLI;
 `IvyBridge` transfers incoming commands to the Asio loop; `AircraftRegistry`
 owns liveness/accounting; the library's `UdpTransport` preserves datagram origins;
 `XbeeTransmitter` owns outstanding sends and retries; `LinkAgent` connects these
@@ -342,7 +342,7 @@ cmake --build build-gcc13 -j4
 ctest --test-dir build-gcc13 --output-on-failure
 ```
 
-[`build_ocaml_reference.py`](pprzlink/tests/build_ocaml_reference.py) builds an
+[`build_ocaml_reference.py`](../../lib/v2.0/C++/pprzlink/tests/build_ocaml_reference.py) builds an
 isolated reference from Paparazzi and Ivy OCaml sources. The comparison report
 documents its dependencies and exact invocation. The Ubuntu 24.04/GCC 13 CI
 workflow runs the independent agent scenarios; differential tests additionally
@@ -350,12 +350,13 @@ require this OCaml executable.
 
 ## Complete example
 
-[`IvyRoundTrip.cpp`](pprzlink/examples/IvyRoundTrip.cpp) loads
-[`messages.xml`](pprzlink/examples/messages.xml), subscribes to `EXAMPLE_ALTITUDE`,
+[`IvyRoundTrip.cpp`](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) loads
+[`messages.xml`](../../lib/v2.0/C++/pprzlink/examples/messages.xml), subscribes to `EXAMPLE_ALTITUDE`,
 creates a message with altitude `123.5f`, sends it and reads the received value.
 It runs two Ivy links in one process, using their owned event-loop threads.
 
-The example is built by default and exercised by CTest. From this directory,
+The example is built by default and exercised by CTest. From the C++ source
+directory (`lib/v2.0/C++`),
 after configuring the dependencies as above:
 
 ```sh
@@ -612,7 +613,7 @@ prints the detected/configured rates after successful initialization.
 `-xbee-no-init` skips AT initialization for a preconfigured AP=1 modem.
 It receives and prints messages and optionally sends one message. It is a serial diagnostic
 example; it does not start an Ivy bridge or replace the full OCaml `link` agent.
-From this directory after the CMake build:
+From the C++ source directory (`lib/v2.0/C++`) after the CMake build:
 
 ```sh
 ./build/serial_messages -messages /path/to/messages.xml \
@@ -664,7 +665,7 @@ the saved rate between two process runs; this does not test physical flash or UA
 timing. Serial-device tests also cover baud resets with pending Asio completions. It requires Python 3 when building
 examples and tests on Unix. No physical XBee is required for these tests.
 
-Protocol references: [OCaml transport](../../common/ocaml/xbee_transport.ml),
+Protocol references: [OCaml transport](../../lib/common/ocaml/xbee_transport.ml),
 [Digi legacy 802.15.4 manual](https://docs.digi.com/resources/documentation/digidocs/pdfs/90000982.pdf),
 [Digi transmit status](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x89.htm),
 [Digi BD command](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_cmd_bd.htm).

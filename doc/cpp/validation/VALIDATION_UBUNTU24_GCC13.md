@@ -11,7 +11,7 @@ Cette validation porte sur PPRZLINK
 `756d00d1a88f8b7ad0a2c2a8ac6e98bf6fca34e6` et Ivy 3.18.3
 `b0bf831702c5bfd1313e83ded62eb14d17198534`. Les modifications de cette session
 concernent uniquement la documentation, dont le
-[guide de remplacement du link OCaml](LINK_CPP_PLAN.md).
+[guide de remplacement du link OCaml](../historique/LINK_CPP_PLAN.md).
 
 ## Environnement réellement utilisé
 

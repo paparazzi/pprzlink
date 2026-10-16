@@ -26,6 +26,7 @@ Contents
 	
     messages/index_message
     generators/generators
+    cpp/index
     python/python
     Ocaml/Ocaml
     Tutorials/Tutorials
