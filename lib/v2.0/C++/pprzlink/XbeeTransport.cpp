@@ -167,15 +167,22 @@ namespace pprzlink {
     return sendTo(message, destination, api == Api::Series868, frameId, radioRetries);
   }
 
+  size_t XbeeTransport::sendMessageTo(const Message &message, XbeeAddress destination, RadioRetries radioRetries)
+  {
+    const bool addressIs64Bit = destination.kind() == XbeeAddress::Kind::Ieee;
+    if (!addressIs64Bit && api == Api::Series868)
+      throw std::invalid_argument("868 API requires 64-bit addressing");
+    return sendTo(message, destination.value(), addressIs64Bit, std::nullopt, radioRetries);
+  }
+
   size_t XbeeTransport::sendMessageTo16(const Message &message, uint16_t destination, RadioRetries radioRetries)
   {
-    if (api == Api::Series868) throw std::invalid_argument("868 API requires 64-bit addressing");
-    return sendTo(message, destination, false, std::nullopt, radioRetries);
+    return sendMessageTo(message, XbeeAddress::network(destination), radioRetries);
   }
 
   size_t XbeeTransport::sendMessageTo64(const Message &message, uint64_t destination, RadioRetries radioRetries)
   {
-    return sendTo(message, destination, true, std::nullopt, radioRetries);
+    return sendMessageTo(message, XbeeAddress::ieee(destination), radioRetries);
   }
 
   size_t XbeeTransport::sendTo(const Message &message, uint64_t destination, bool addressIs64Bit,

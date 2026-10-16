@@ -10,6 +10,12 @@
 using namespace pprzlink;
 
 namespace {
+  template<class Integer>
+  concept CanCreateRadioAddress = requires(Integer address) {
+    XbeeAddress::network(address);
+    XbeeAddress::ieee(address);
+  };
+
   // PPRZLINK payload: sender=42, receiver=7, class=1/component=3, BYTE=123.
   // TX fixtures also checked against common/ocaml/xbee_transport.ml.
   const BytesBuffer tx16{0x7e, 0, 10, 1, 1, 0, 7, 0, 42, 7, 0x31, 1, 123, 0x18};
@@ -99,6 +105,97 @@ namespace {
     expectException<std::runtime_error>([&] { failed.sendMessage(large); });
     require(failed.getLastFrameId() == 0, "Write failure is not reported as a successful send");
     expectException<std::invalid_argument>([&] { XbeeTransport invalid(nullptr, dictionary); });
+  }
+
+  void testAddressFactories()
+  {
+    constexpr auto network = XbeeAddress::network(0x0100);
+    constexpr auto ieee = XbeeAddress::ieee(0x0100);
+    static_assert(network.kind() == XbeeAddress::Kind::Network && network.value() == 0x0100);
+    static_assert(ieee.kind() == XbeeAddress::Kind::Ieee && ieee.value() == 0x0100);
+    static_assert(network != ieee);
+    static_assert(network == XbeeAddress::network(0x0100));
+    static_assert(XbeeAddress::network(0).value() == 0);
+    static_assert(XbeeAddress::network(0xffff).value() == 0xffff);
+    static_assert(XbeeAddress::ieee(0xffffffffffffffff).value() == std::numeric_limits<std::uint64_t>::max());
+    static_assert(CanCreateRadioAddress<int> && CanCreateRadioAddress<std::uint64_t>);
+    static_assert(!CanCreateRadioAddress<bool> && !CanCreateRadioAddress<double>);
+    static_assert(!std::is_convertible_v<int, XbeeAddress> && !std::is_default_constructible_v<XbeeAddress>);
+    expectException<std::out_of_range>([] { (void)XbeeAddress::network(-1); });
+    expectException<std::out_of_range>([] { (void)XbeeAddress::network(0x10000); });
+    expectException<std::out_of_range>([] { (void)XbeeAddress::network(0x10000000100); });
+    expectException<std::out_of_range>([] { (void)XbeeAddress::ieee(-1); });
+  }
+
+  void testTypedAddressSending(const MessageDictionary &dictionary)
+  {
+    using Retries = XbeeTransport::RadioRetries;
+    const BytesBuffer payload{42, 7, 0x31, 1, 123};
+    for (const auto api : {XbeeTransport::Api::Legacy802154, XbeeTransport::Api::Series868}) {
+      auto owner = std::make_unique<MemoryDevice>();
+      auto &device = *owner;
+      XbeeTransport transport(std::move(owner), dictionary, api);
+      transport.setSanityChecksEnabled(true);
+      Message message(dictionary.getDefinition("BYTE"));
+      message.setField("value", 123);
+      message.setSenderId(42);
+      message.setReceiverId(7);
+      message.setComponentId(3);
+      const bool extended = api == XbeeTransport::Api::Series868;
+      uint8_t id = 0;
+      const auto check = [&](BytesBuffer header, size_t sent) {
+        header.insert(header.end(), payload.begin(), payload.end());
+        const auto expected = frame(header);
+        require(sent == expected.size() && device.outgoing == expected,
+                "Typed radio destination preserves addressing, retry options, PPRZLINK receiver and checksum");
+        require(transport.getLastFrameId() == id, "Typed send preserves automatic transmit IDs");
+      };
+      const auto checkIeee = [&](const BytesBuffer &addressBytes, uint8_t options, size_t sent) {
+        BytesBuffer header{extended ? uint8_t{0x10} : uint8_t{0x00}, ++id};
+        append(header, addressBytes);
+        if (extended) append(header, {0xff, 0xfe, 0});
+        header.push_back(options);
+        check(std::move(header), sent);
+      };
+
+      for (const auto retries : {Retries::Enabled, Retries::Disabled}) {
+        const uint8_t options = retries == Retries::Disabled ? 1 : 0;
+        if (extended) {
+          const auto previous = device.outgoing;
+          expectException<std::invalid_argument>([&] {
+            transport.sendMessageTo(message, XbeeAddress::network(0x0100), retries);
+          });
+          require(device.outgoing == previous && transport.getLastFrameId() == id,
+                  "Series868 rejects network addressing before writing or consuming a frame ID");
+        } else {
+          const auto sent = transport.sendMessageTo(message, XbeeAddress::network(0x0100), retries);
+          check({0x01, ++id, 0x01, 0x00, options}, sent);
+        }
+        auto sent = transport.sendMessageTo(message, XbeeAddress::ieee(0x0100), retries);
+        checkIeee({0, 0, 0, 0, 0, 0, 1, 0}, options, sent);
+        sent = transport.sendMessageTo(message, XbeeAddress::ieee(0x0013a200405291ab), retries);
+        checkIeee({0, 0x13, 0xa2, 0, 0x40, 0x52, 0x91, 0xab}, options, sent);
+        sent = transport.sendMessageTo(message, XbeeAddress::ieee(0xffffffffffffffff), retries);
+        checkIeee({0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, options, sent);
+      }
+
+      const auto destination = extended ? XbeeAddress::ieee(0x0100) : XbeeAddress::network(0x0100);
+      const auto sent = transport.sendMessageTo(message, destination);
+      if (extended) checkIeee({0, 0, 0, 0, 0, 0, 1, 0}, 0, sent);
+      else check({0x01, ++id, 0x01, 0x00, 0}, sent);
+      const auto previous = device.outgoing;
+      expectException<std::out_of_range>([&] {
+        transport.sendMessageTo(message, XbeeAddress::network(0x10000));
+      });
+      expectException<std::out_of_range>([&] {
+        transport.sendMessageTo(message, XbeeAddress::ieee(-1));
+      });
+      expectException<std::invalid_argument>([&] {
+        transport.sendMessageTo(message, destination, static_cast<Retries>(99));
+      });
+      require(device.outgoing == previous && transport.getLastFrameId() == id,
+              "Invalid typed destinations/retry enums never reach the wire or consume an ID");
+    }
   }
 
   void testRadioRetries(const MessageDictionary &dictionary)
@@ -395,6 +492,8 @@ int main()
     </msg_class></protocol>)");
     MessageDictionary dictionary(xml.RootElement());
     testSending(dictionary);
+    testAddressFactories();
+    testTypedAddressSending(dictionary);
     testRadioRetries(dictionary);
     testReception(dictionary);
     testCorruption(dictionary);

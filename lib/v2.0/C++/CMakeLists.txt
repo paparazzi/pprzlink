@@ -66,7 +66,7 @@ set(PUBLIC_HEADERS
     pprzlink/IvyMessageCodec.h pprzlink/Message.h pprzlink/MessageDefinition.h
     pprzlink/MessageDictionary.h pprzlink/MessageField.h pprzlink/MessageFieldTypes.h
     pprzlink/PprzTransport.h pprzlink/PprzFrameCodec.h pprzlink/TransportStatistics.h
-    pprzlink/XbeeTransport.h pprzlink/XbeeModem.h pprzlink/Transport.h
+    pprzlink/XbeeAddress.h pprzlink/XbeeTransport.h pprzlink/XbeeModem.h pprzlink/Transport.h
     pprzlink/ReceivedMessage.h pprzlink/Receiver.h pprzlink/BoostSerialPortDevice.h pprzlink/UdpTransport.h)
 if(UNIX)
     list(APPEND IO_SOURCES pprzlink/PosixFileDevice.cpp)

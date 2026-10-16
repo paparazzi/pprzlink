@@ -12,6 +12,7 @@
 #define PPRZLINKCPP_XBEETRANSPORT_H
 
 #include <pprzlink/Transport.h>
+#include <pprzlink/XbeeAddress.h>
 #include <pprzlink/XbeeModem.h>
 #include <boost/asio/steady_timer.hpp>
 #include <array>
@@ -130,7 +131,18 @@ namespace pprzlink {
     /// @throws std::exception Readiness, validation, encoding or I/O failure.
     size_t sendMessageWithId(const Message &message, uint8_t frameId,
                              RadioRetries radioRetries = RadioRetries::Enabled);
-    /// Send to an explicit sixteen-bit radio destination.
+    /// @brief Send to an explicit network or IEEE radio destination.
+    /// The address factory selects TX16/TX64 in legacy mode. Series868 requires
+    /// an IEEE destination and emits a 0x10 frame. The PPRZLINK receiver is unchanged.
+    /// @param[in] message Populated PPRZLINK message.
+    /// @param[in] destination Validated radio address from XbeeAddress::network() or ieee().
+    /// @param[in] radioRetries Per-frame radio ACK/retry choice; Enabled by default.
+    /// @return Complete AP=1 frame bytes synchronously written to the device.
+    /// @throws std::invalid_argument A network destination is used with Series868, or the retry enum is invalid.
+    /// @throws std::exception Readiness, payload validation, encoding or I/O failure.
+    size_t sendMessageTo(const Message &message, XbeeAddress destination,
+                        RadioRetries radioRetries = RadioRetries::Enabled);
+    /// Compatibility wrapper for sendMessageTo(message, XbeeAddress::network(destination), radioRetries).
     /// @param[in] message Populated PPRZLINK message.
     /// @param[in] destination Explicit sixteen-bit radio address.
     /// @param[in] radioRetries Radio ACK/retry choice; defaults to the existing enabled behavior.
@@ -139,7 +151,7 @@ namespace pprzlink {
     /// @throws std::exception Readiness, payload validation or I/O failure.
     size_t sendMessageTo16(const Message &message, uint16_t destination,
                           RadioRetries radioRetries = RadioRetries::Enabled);
-    /// @brief Send to an explicit sixty-four-bit radio destination.
+    /// @brief Compatibility wrapper for sendMessageTo(message, XbeeAddress::ieee(destination), radioRetries).
     /// @param[in] message Populated PPRZLINK message, with its own independent receiver ID.
     /// @param[in] destination Radio destination address used by TX64 or extended 868 TX.
     /// @param[in] radioRetries Radio ACK/retry choice; defaults to the existing enabled behavior.
