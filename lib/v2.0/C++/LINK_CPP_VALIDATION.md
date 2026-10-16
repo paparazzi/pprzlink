@@ -100,10 +100,15 @@ signifie pas que tous les défauts de l'ancienne implémentation sont reproduits
 4. **Initialisation XBee** : C++ attend les réponses AT et détecte les délais
    dépassés. Le lancement compatible reste à débit fixe : aucun ATBD/ATWR,
    même si le diagnostic `serial_messages` conserve son autobaud.
+   En mode XBee, `-hfc` configure et vérifie ensemble le TTY et `D6`/`D7` ;
+   sans ce commutateur, les deux côtés ont le contrôle de flux désactivé.
 5. **Statut TX absent** : un envoi expire après cinq secondes, sans réémission
    automatique d'une commande dont la livraison est inconnue. Les retries sur
    erreur d'ACK restent bornés. Une trame ne confirme pas l'exécution de la
    commande par l'avion.
+   L'extension XML `radio_retry="false"` désactive les ACK/réessais radio et
+   les réémissions côté PC. Une valeur `true` ou absente conserve la politique
+   de tentatives bornées par `-xbee_retries`, premier envoi compris.
 6. **Entrées incorrectes** : C++ refuse les ports/adresses hors plage, périodes
    invalides (`status_period < 3 ms`, `ping_period <= 0`), valeurs numériques
    hors type et combinaison UDP/XBee incohérente. Les textes d'erreur et de
@@ -117,6 +122,13 @@ Les choix historiques de LINK_REPORT restent conservés : compteur PPRZ global
 pour `rx_err` (zéro en mode XBee), diffusions comptées pour les avions connus,
 et différence dernier PONG/dernier PING pouvant devenir négative entre réponses.
 Les statistiques détaillées de la bibliothèque restent disponibles séparément.
+
+Le test C++ `link_xbee_configuration` vérifie séparément cette extension XML
+et le contrôle de flux couplé, avec un pair Ivy et un modem simulé sur PTY.
+Il couvre les attributs absent/true/false, les modes legacy/868, les commandes
+AT et le réglage Linux `CRTSCTS`, la limite de tentatives et la poursuite des
+commandes après un échec final. Les scénarios comparatifs historiques gardent
+leur XML sans cet attribut.
 
 ## Validation de compilation et d'exécution
 

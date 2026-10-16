@@ -153,7 +153,7 @@ namespace link_app {
   -s <baudrate> Default is 9600
   -socat <start|stop> Manage a background socat pair of virtual serial ports (Linux)
   -ch <channel> Default does not change configuration
-  -hfc Enable UART hardware flow control (CTS/RTS)
+  -hfc Enable RTS/CTS on the serial host and XBee modem; disabled by default
   -local_timestamp Add local timestamp to messages sent over Ivy
   -transport <transport> pprz or xbee; default is pprz
   -udp Listen on UDP instead of serial
@@ -163,7 +163,8 @@ namespace link_app {
   -udp_broadcast_addr <address> Default is {}
   -uplink Enable uplink (deprecated; enabled by default)
   -xbee_addr <address> Local MY address; default is 256
-  -xbee_retries <count> Maximum attempts including the initial send; default is 10
+  -xbee_retries <count> Maximum host attempts including the initial send; default is 10
+    Applies only when XML radio_retry is true or absent; false means one send
   -xbee_868 Use XBee 868 API frames
   -redlink Enable redundant-link telemetry encapsulation
   -id <id> Link identifier; default is -1

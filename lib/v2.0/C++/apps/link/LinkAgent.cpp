@@ -92,6 +92,10 @@ namespace link_app {
       configuration.localAddress = static_cast<uint16_t>(options.xbeeAddress);
       if (options.channel) configuration.channel = static_cast<uint8_t>(*options.channel);
       radio->startInitialization(configuration);
+      radio->onReady([enabled = options.hardwareFlowControl] {
+        std::cerr << "XBee ready: RTS/CTS " << (enabled ? "enabled" : "disabled")
+                  << " on host and modem; retries follow message XML\n";
+      });
       xbee = std::make_unique<XbeeTransmitter>(*radio, options.xbeeRetries);
       radio->setStatusCallback([this](const Radio::RadioStatus &status) {
         if (const auto result = std::get_if<Radio::TransmitStatus>(&status)) { xbee->status(*result); scheduleTransmission(); }

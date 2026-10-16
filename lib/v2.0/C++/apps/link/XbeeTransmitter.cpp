@@ -15,7 +15,7 @@ namespace link_app {
       const uint8_t id = nextId;
       nextId = nextId == 255 ? 1 : static_cast<uint8_t>(nextId + 1);
       if (pending[id]) continue;
-      transport.sendMessageWithId(message, id);
+      transport.sendMessageWithId(message, id, pprzlink::RadioRetries::FromDefinition);
       pending[id] = Pending{message, 1, now + 5s, std::nullopt};
       return;
     }
@@ -26,7 +26,8 @@ namespace link_app {
   {
     auto &entry = pending[status.frameId];
     if (!entry || entry->retryAt) return; // Ignore unknown or duplicate failure indications.
-    if ((status.status == 1 || status.status == 0x21) && entry->attempts < maximumAttempts) {
+    const bool retryEnabled = entry->message.getDefinition().getRadioRetries() == pprzlink::RadioRetries::Enabled;
+    if (retryEnabled && (status.status == 1 || status.status == 0x21) && entry->attempts < maximumAttempts) {
       const auto delay = std::chrono::milliseconds(std::uniform_int_distribution<int>(10, 209)(random));
       entry->retryAt = now + delay;
     } else {
@@ -50,7 +51,8 @@ namespace link_app {
       auto &entry = pending[id];
       if (!entry) continue;
       if (entry->retryAt && now >= *entry->retryAt) {
-        transport.sendMessageWithId(entry->message, static_cast<uint8_t>(id));
+        transport.sendMessageWithId(entry->message, static_cast<uint8_t>(id),
+                                    pprzlink::RadioRetries::FromDefinition);
         ++entry->attempts;
         entry->retryAt.reset();
         entry->expires = now + 5s;

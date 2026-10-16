@@ -7,7 +7,9 @@
 #include <random>
 
 namespace link_app {
-  /// Own outstanding IDs and host retries. The radio still performs its own ACK retries.
+  /// Own outstanding IDs and host retries, honoring the message's radio_retry hint.
+  /// Disabled suppresses radio ACK/retries and host resends. Enabled uses the
+  /// modem's normal radio behavior and the configured maximum host attempts.
   class XbeeTransmitter {
   public:
     using Clock = std::chrono::steady_clock;

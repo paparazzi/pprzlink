@@ -224,6 +224,12 @@ if(BUILD_TESTING)
                  --cpp $<TARGET_FILE:link++> --bus $<TARGET_FILE:link_test_bus> ${reference_args})
         set_tests_properties(link_agent PROPERTIES TIMEOUT 120)
         if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            add_test(NAME link_xbee_configuration COMMAND ${Python3_EXECUTABLE}
+                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/LinkXbeeConfigurationTest.py"
+                     --agent $<TARGET_FILE:link++> --bus $<TARGET_FILE:link_test_bus>)
+            set_tests_properties(link_xbee_configuration PROPERTIES TIMEOUT 60)
+        endif()
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             add_test(NAME link_socat COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/SocatSessionTest.py"
                      $<TARGET_FILE:link++>)
