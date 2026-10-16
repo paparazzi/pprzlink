@@ -38,17 +38,18 @@ namespace pprzlink {
       return static_cast<unsigned int>(found - standardBaudrates.begin());
     }
 
-    /// @brief Parse a complete hexadecimal ATBD response with an optional 0x prefix.
+    /// @brief Parse a complete hexadecimal AT reply with an optional 0x prefix.
     /// @param[in] text Modem response without its carriage-return terminator.
-    /// @return Parsed standard code or custom numeric rate.
+    /// @param[in] command AT command name used in error diagnostics.
+    /// @return Parsed unsigned value.
     /// @throws std::runtime_error The reply is empty, malformed or outside the unsigned range.
-    unsigned int parseBaudrate(std::string_view text)
+    unsigned int parseHexReply(std::string_view text, std::string_view command)
     {
       if (text.starts_with("0x") || text.starts_with("0X")) text.remove_prefix(2);
       unsigned int value = 0;
       const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value, 16);
       if (text.empty() || error != std::errc{} || end != text.data() + text.size()) {
-        throw std::runtime_error("invalid hexadecimal ATBD reply");
+        throw std::runtime_error(std::format("invalid hexadecimal {} reply", command));
       }
       return value;
     }
@@ -88,6 +89,10 @@ namespace pprzlink {
     commands.push_back(std::format("ATMY{:04X}\r", options.localAddress));
     if (options.channel) commands.push_back(std::format("ATCH{:02X}\r", *options.channel));
     commands.push_back("ATAP1\r");
+    commands.push_back(options.hardwareFlowControl ? "ATD61\r" : "ATD60\r");
+    commands.push_back(options.hardwareFlowControl ? "ATD71\r" : "ATD70\r");
+    commands.push_back("ATD6\r");
+    commands.push_back("ATD7\r");
     commands.push_back("ATCN\r");
   }
 
@@ -133,7 +138,9 @@ namespace pprzlink {
         if (entering) {
           if (line == "OK" || (hadBinary && line.ends_with("OK"))) return "OK";
         } else {
-          if (command != Command::ReadBaudrate && command != Command::VerifyBaudrate && line != "OK") {
+          const bool flowQuery = command == Command::Configure &&
+              (pendingCommand == "ATD6\r" || pendingCommand == "ATD7\r");
+          if (command != Command::ReadBaudrate && command != Command::VerifyBaudrate && !flowQuery && line != "OK") {
             fail("unexpected AT response (expected OK)");
           }
           return line;
@@ -174,7 +181,7 @@ namespace pprzlink {
   {
     switch (command) {
       case Command::ReadBaudrate:
-        if (!matchesBaudrate(parseBaudrate(line), currentBaudrate)) {
+        if (!matchesBaudrate(parseHexReply(line, "ATBD"), currentBaudrate)) {
           fail("ATBD reply does not match the detected baud rate");
         }
         baudrateInfo = XbeeBaudrateInfo{currentBaudrate, currentBaudrate, false};
@@ -191,19 +198,27 @@ namespace pprzlink {
         beginBaudrate(device, *configuration.targetBaudrate, now);
         break;
       case Command::VerifyBaudrate:
-        if (parseBaudrate(line) != baudrateCode(*configuration.targetBaudrate)) {
+        if (parseHexReply(line, "ATBD") != baudrateCode(*configuration.targetBaudrate)) {
           fail("ATBD verification failed at the new baud rate; flash was not written");
         }
         baudrateInfo->configured = currentBaudrate;
         sendCommand(device, now, Command::SaveBaudrate);
         break;
       case Command::SaveBaudrate:
-        // ATWR saves all current settings. Keep this before changing MY, CH or AP.
+        // ATWR saves all current settings. Keep this before changing MY/CH/AP/D6/D7.
         baudrateInfo->savedToFlash = true;
         sendCommand(device, now);
         break;
       case Command::Configure:
+        if (pendingCommand == "ATD6\r" || pendingCommand == "ATD7\r") {
+          if (parseHexReply(line, pendingCommand.substr(0, 4)) != (configuration.hardwareFlowControl ? 1u : 0u))
+            fail("RTS/CTS readback differs from the paired host/modem setting");
+        }
         if (++commandIndex == commands.size()) {
+          // ATCN has acknowledged all radio changes. Complete and verify the
+          // host half before publishing readiness or permitting binary sends.
+          auto &serial = dynamic_cast<SerialDevice &>(device);
+          serial.configureXbeeHardwareFlowControl(configuration.hardwareFlowControl);
           stage = Stage::Ready;
           return true;
         }
@@ -221,6 +236,14 @@ namespace pprzlink {
     if (stage == Stage::Ready) return true;
     if (stage == Stage::Failed) throw std::runtime_error(failure);
     try {
+      if (!flowControlPrepared) {
+        auto *serial = dynamic_cast<SerialDevice *>(&device);
+        if (!serial) throw std::invalid_argument("Paired XBee RTS/CTS configuration requires a SerialDevice");
+        // Ignore CTS during command-mode bootstrap: D7 may still be disabled.
+        // Claim the setting even in 00 mode to prevent later host-only changes.
+        serial->configureXbeeHardwareFlowControl(false);
+        flowControlPrepared = true;
+      }
       if (!baudrates.empty() && !currentBaudrate) beginBaudrate(device, baudrates.front(), now);
       if (stage == Stage::GuardAfter && !entered && now >= responseDeadline) {
         if (!baudrates.empty() && !verifyingBaudrate && baudrateIndex + 1 < baudrates.size()) {

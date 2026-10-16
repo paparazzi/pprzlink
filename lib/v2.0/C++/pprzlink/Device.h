@@ -33,6 +33,8 @@
 #include <vector>
 #include <boost/asio/any_io_executor.hpp>
 #include <functional>
+#include <mutex>
+#include <stdexcept>
 
 namespace pprzlink {
 
@@ -73,7 +75,7 @@ namespace pprzlink {
     virtual void writeBuffer(const BytesBuffer &data) = 0;
   };
 
-  /// Byte stream whose UART rate can be changed during modem initialization.
+  /// Byte stream whose UART rate and RTS/CTS can be changed during modem initialization.
   /// @ingroup transports
   class SerialDevice : public Device {
   public:
@@ -82,6 +84,64 @@ namespace pprzlink {
     /// @param[in] baudrate New host UART rate, in bits per second.
     /// @throws std::exception An unsupported setting or I/O failure.
     virtual void resetBaudrate(unsigned int baudrate) = 0;
+
+    /// @brief Inspect the host UART's hardware flow-control setting.
+    /// @return True for RTS/CTS, false for no flow control.
+    /// @throws std::exception The query fails or software flow control is active.
+    bool getHardwareFlowControl() const
+    {
+      std::lock_guard lock(flowControlMutex);
+      return readHardwareFlowControl();
+    }
+
+    /// @brief Configure RTS/CTS on a standalone UART, before handing it to XBee.
+    /// @param[in] enabled True selects RTS/CTS; false disables flow control.
+    /// @throws std::logic_error XBee owns this setting; use XbeeConfiguration instead.
+    /// @throws std::exception The native setting cannot be applied or verified.
+    void setHardwareFlowControl(bool enabled)
+    {
+      auto lock = lockStandaloneFlowControl();
+      applyHardwareFlowControl(enabled);
+      if (readHardwareFlowControl() != enabled)
+        throw std::runtime_error("Host UART did not apply the requested RTS/CTS setting");
+    }
+
+  protected:
+    /// @brief Serialize a standalone flow-control change and reject XBee-owned changes.
+    /// @return Lock held until the native option update is complete.
+    /// @throws std::logic_error A modem has claimed flow-control configuration.
+    std::unique_lock<std::mutex> lockStandaloneFlowControl() const
+    {
+      std::unique_lock lock(flowControlMutex);
+      if (xbeeOwnsFlowControl)
+        throw std::logic_error("XBee owns UART flow control; use XbeeConfiguration::hardwareFlowControl and reinitialize");
+      return lock;
+    }
+
+    /// @brief Apply RTS/CTS or no flow control without changing the baud rate or input buffers.
+    /// @param[in] enabled Whether to select hardware flow control.
+    /// @throws std::exception The native setting cannot be applied.
+    virtual void applyHardwareFlowControl(bool enabled) = 0;
+    /// @brief Query the native RTS/CTS setting, rejecting software flow control.
+    /// @return True for RTS/CTS, false for no flow control.
+    /// @throws std::exception Query failure or unsupported software flow control.
+    virtual bool readHardwareFlowControl() const = 0;
+
+  private:
+    friend class XbeeModem;
+    /// @brief Claim flow control for modem initialization and verify each native update.
+    /// @param[in] enabled Host setting during bootstrap or after the final ATCN.
+    /// @throws std::exception The native setting cannot be applied or verified.
+    void configureXbeeHardwareFlowControl(bool enabled)
+    {
+      std::lock_guard lock(flowControlMutex);
+      xbeeOwnsFlowControl = true;
+      applyHardwareFlowControl(enabled);
+      if (readHardwareFlowControl() != enabled)
+        throw std::runtime_error("Host UART did not apply the requested RTS/CTS setting");
+    }
+    mutable std::mutex flowControlMutex; ///< Serializes native updates and ownership checks.
+    bool xbeeOwnsFlowControl = false; ///< Once claimed, only modem initialization can change RTS/CTS.
   };
 }
 #endif // PPRZLINKCPP_DEVICE_H

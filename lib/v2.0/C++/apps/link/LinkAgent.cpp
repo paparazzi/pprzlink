@@ -73,7 +73,7 @@ namespace link_app {
       serial->setDataBits(Serial::DataBits(8));
       serial->setParity(Serial::Parity(Serial::Parity::none));
       serial->setStopBits(Serial::StopBits(Serial::StopBits::one));
-      serial->setFlowcontrol(Serial::Flowcontrol(options.hardwareFlowControl
+      serial->setFlowcontrol(Serial::Flowcontrol(options.transport == "pprz" && options.hardwareFlowControl
         ? Serial::Flowcontrol::hardware : Serial::Flowcontrol::none));
       device = std::move(serial);
     } else {
@@ -88,6 +88,7 @@ namespace link_app {
       radio->setSimulatedReceiveEnabled(true);
       pprzlink::XbeeConfiguration configuration;
       configuration.targetBaudrate = std::nullopt; // Preserve link's fixed -s and never write flash.
+      configuration.hardwareFlowControl = options.hardwareFlowControl;
       configuration.localAddress = static_cast<uint16_t>(options.xbeeAddress);
       if (options.channel) configuration.channel = static_cast<uint8_t>(*options.channel);
       radio->startInitialization(configuration);

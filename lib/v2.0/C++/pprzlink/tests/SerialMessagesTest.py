@@ -49,11 +49,15 @@ def exchange(executable, messages, transport, expected_tx, incoming, extra=()):
             if "-xbee-no-autobaud" not in extra:
                 assert read_exactly(master, 5) == b"ATBD\r"
                 os.write(master, b"6\r")
-            for at in (b"ATMY0100\r", b"ATAP1\r", b"ATCN\r"):
+            level = b"1" if "-hfc" in extra else b"0"
+            for at in (b"ATMY0100\r", b"ATAP1\r", b"ATD6" + level + b"\r",
+                       b"ATD7" + level + b"\r", b"ATD6\r", b"ATD7\r", b"ATCN\r"):
                 assert read_exactly(master, len(at)) == at
-                os.write(master, b"OK\r")
+                assert not termios.tcgetattr(master)[2] & termios.CRTSCTS, "CTS must not block bootstrap commands"
+                os.write(master, level + b"\r" if at in (b"ATD6\r", b"ATD7\r") else b"OK\r")
         actual = read_exactly(master, len(expected_tx))
         assert actual == expected_tx, (transport, actual.hex(), expected_tx.hex())
+        assert bool(termios.tcgetattr(master)[2] & termios.CRTSCTS) == ("-hfc" in extra)
         for byte in incoming:
             os.write(master, bytes([byte]))
         stdout, stderr = child.communicate(timeout=10)
@@ -162,8 +166,9 @@ def baud_transition(executable, messages, target=57600, failure=None):
                 stored_baud = target
             else:
                 expect(b"ATBD\r", target, code + b"\r")
-            for command in (b"ATMY0100\r", b"ATAP1\r", b"ATCN\r"):
-                expect(command, target, b"OK\r")
+            for command in (b"ATMY0100\r", b"ATAP1\r", b"ATD60\r", b"ATD70\r",
+                            b"ATD6\r", b"ATD7\r", b"ATCN\r"):
+                expect(command, target, b"0\r" if command in (b"ATD6\r", b"ATD7\r") else b"OK\r")
             assert read_exactly(master, len(expected_frame)) == expected_frame
             stdout, stderr = child.communicate(timeout=5)
             assert child.returncode == 0 and not stderr, (stdout, stderr)
@@ -219,6 +224,9 @@ def main():
         exchange(executable, messages, "xbee",
                  bytes.fromhex("7e 00 0a 01 01 00 07 00 2a 07 01 01 7b 48"),
                  status_and_rx, ("-xbee-no-autobaud",))
+        exchange(executable, messages, "xbee",
+                 bytes.fromhex("7e 00 0a 01 01 00 07 00 2a 07 01 01 7b 48"),
+                 status_and_rx, ("-hfc",))
         baud_transition(executable, messages)
         baud_transition(executable, messages, target=115200)
         baud_transition(executable, messages, failure="ERROR")
@@ -238,6 +246,7 @@ def main():
                           ("-transport", "xbee", "-ch", "0x18"),
                           ("-transport", "xbee", "-xbee-guard-ms", "0"),
                           ("-transport", "xbee", "-xbee-no-init", "-xbee_addr", "42"),
+                          ("-transport", "xbee", "-xbee-no-init", "-hfc"),
                           ("-transport", "xbee", "-xbee-dest", "1", "-xbee-dest64", "2")):
             result = subprocess.run([executable, "-messages", str(messages), "-d", "/no-such-port",
                                      *arguments], capture_output=True, text=True, timeout=5)

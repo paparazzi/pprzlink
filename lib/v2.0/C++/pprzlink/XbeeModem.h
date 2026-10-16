@@ -29,6 +29,11 @@ namespace pprzlink {
     /// Requires a SerialDevice. nullopt keeps the existing baud rate without probing.
     /// Supported rates are 1200, 2400, 4800, 9600, 19200, 38400, 57600 and 115200.
     std::optional<unsigned int> targetBaudrate{57600};
+    /// Single choice for both host RTS/CTS and modem D6/D7: false = 00, true = 11.
+    /// Initialization requires a SerialDevice, verifies both modem pins, then
+    /// applies/verifies the host setting before isReady(). No independent host
+    /// flow-control changes are allowed afterwards; reinitialize to change it.
+    bool hardwareFlowControl = false;
   };
 
   /// @brief Baud discovery and persistence result from successful initialization.
@@ -44,7 +49,11 @@ namespace pprzlink {
    * Exclusively use the device during initialization; service its I/O loop and poll
    * regularly. No sleeps or owned thread. The default escape character '+' is assumed.
    * Writes use Device's synchronous contract; response deadlines do not bound writes.
-   * ATWR saves all current settings, before this initializer changes MY/CH/AP.
+   * ATWR saves all current settings, before this initializer changes MY/CH/AP/D6/D7.
+   * Bootstrap temporarily disables host flow control so an unconfigured CTS pin
+   * cannot block command writes. Only the final, verified 00/11 pair is ready.
+   * A partial I/O/AT failure leaves initialization failed, not a ready mixed pair;
+   * changing two physical endpoints is not an atomic hardware transaction.
    */
   class XbeeModem {
   public:
@@ -60,7 +69,7 @@ namespace pprzlink {
     /// Returns true only after all replies, baud verification/save and final ATCN.
     /// Errors leave sends blocked. Only missing entry replies advance to another baud.
     /// Optional timestamps use steady_clock and allow deterministic timer tests.
-    /// @param[in,out] device Exclusively used AT byte stream; SerialDevice is required for autobaud.
+    /// @param[in,out] device Exclusively used SerialDevice, including in fixed-baud mode.
     /// @param[in] now Nondecreasing timestamp for guard/reply progression.
     /// @return True when initialization is complete; false while a guard or reply is pending.
     /// @throws std::runtime_error AT errors, timeouts, device incompatibility and I/O failures are latched with context.
@@ -104,6 +113,7 @@ namespace pprzlink {
     TimePoint responseDeadline;
     bool entered = false;
     bool replyHasBinary = false;
+    bool flowControlPrepared = false;
     std::string reply;
     std::string failure;
     BytesBuffer remainingBytes;

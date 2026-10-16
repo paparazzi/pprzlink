@@ -253,7 +253,21 @@ namespace pprzlink {
 
   void BoostSerialPortDevice::setFlowcontrol(const Flowcontrol &value)
   {
+    auto lock = lockStandaloneFlowControl();
     state->setOption(value);
+  }
+
+  void BoostSerialPortDevice::applyHardwareFlowControl(bool enabled)
+  {
+    state->setOption(Flowcontrol(enabled ? Flowcontrol::hardware : Flowcontrol::none));
+  }
+
+  bool BoostSerialPortDevice::readHardwareFlowControl() const
+  {
+    const auto value = getFlowcontrol().value();
+    if (value == Flowcontrol::software)
+      throw std::logic_error("XBee requires RTS/CTS or no flow control, not XON/XOFF");
+    return value == Flowcontrol::hardware;
   }
 
 }

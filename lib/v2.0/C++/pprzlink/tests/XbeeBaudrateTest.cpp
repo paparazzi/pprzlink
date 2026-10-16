@@ -94,6 +94,12 @@ namespace {
           require(!runtimeConfigurationStarted, "Save before changing MY/CH/AP");
           storedBaud = liveBaud;
           ++flashWrites;
+        } else if (command == "ATD6\r" || command == "ATD7\r") {
+          response = std::to_string(command == "ATD6\r" ? d6 : d7) + "\r";
+        } else if (command == "ATD60\r" || command == "ATD61\r" ||
+                   command == "ATD70\r" || command == "ATD71\r") {
+          (command[3] == '6' ? d6 : d7) = command[4] - '0';
+          runtimeConfigurationStarted = true;
         } else if (command.starts_with("ATMY") || command.starts_with("ATCH") || command == "ATAP1\r") {
           runtimeConfigurationStarted = true;
         } else {
@@ -105,13 +111,18 @@ namespace {
     }
 
     unsigned int hostBaud = 0, liveBaud, storedBaud, bd, flashWrites = 0;
+    unsigned int d6 = 0, d7 = 1;
     std::optional<unsigned int> pendingBd, queryOverride;
     std::optional<Fault> fault;
     bool silent = false, failReset = false, fragmentReplies = true;
     std::vector<unsigned int> resets;
     std::vector<std::pair<unsigned int, std::string>> writes;
     std::map<std::string, unsigned int> occurrences;
+  protected:
+    void applyHardwareFlowControl(bool enabled) override { hostFlowControl = enabled; }
+    bool readHardwareFlowControl() const override { return hostFlowControl; }
   private:
+    bool hostFlowControl = false;
     BytesBuffer incoming;
     bool inCommandMode = false, runtimeConfigurationStarted = false;
   };
@@ -135,10 +146,12 @@ namespace {
 
   void testDiscoveryAndPersistence()
   {
+    for (const bool flowControl : {false, true})
     for (const auto initial : rates) {
       Radio radio(initial);
       auto config = quickConfiguration();
       config.channel = 0x15;
+      config.hardwareFlowControl = flowControl;
       XbeeModem modem(config, {});
       require(!modem.getBaudrateInfo(), "No success report before initialization");
       complete(modem, radio);
@@ -149,6 +162,8 @@ namespace {
               radio.flashWrites == (initial != 57600 ? 1u : 0u), "Write flash only when changing baud rate");
       require(radio.hostBaud == 57600 && radio.liveBaud == 57600 && radio.storedBaud == 57600,
               "Host, running modem and stored baud rates agree");
+      require(radio.getHardwareFlowControl() == flowControl && radio.d6 == unsigned(flowControl) &&
+              radio.d7 == unsigned(flowControl), "Autobaud also verifies the paired host/modem RTS/CTS setting");
       require(radio.resets.front() == 57600 && radio.writes.back().second == "ATCN\r",
               "Try target first and finish by leaving command mode");
       if (initial == 57600) {

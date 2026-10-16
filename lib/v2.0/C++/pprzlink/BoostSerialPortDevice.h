@@ -125,6 +125,7 @@ namespace pprzlink {
     [[nodiscard]] Flowcontrol getFlowcontrol() const;
     /// @brief Configure UART flow control.
     /// @param[in] value Asio flow-control option.
+    /// @throws std::logic_error XBee owns flow control; reinitialize with XbeeConfiguration instead.
     /// @throws boost::system::system_error Applying the setting fails.
     void setFlowcontrol(const Flowcontrol &value);
 
@@ -142,6 +143,8 @@ namespace pprzlink {
     boost::asio::any_io_executor getExecutor() override;
 
   private:
+    void applyHardwareFlowControl(bool enabled) override;
+    bool readHardwareFlowControl() const override;
     struct State;
     std::shared_ptr<State> state;
   };

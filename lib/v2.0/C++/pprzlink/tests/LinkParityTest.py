@@ -150,7 +150,14 @@ class SerialWire:
                 command, _, rest = self.buffer.partition(b'\r')
                 self.buffer[:] = rest
                 self.commands.append(command.decode('ascii'))
-                os.write(self.master, b'OK\r')
+                if command in (b'ATD6', b'ATD7'):
+                    # Read back the setting written by the paired C++ initializer.
+                    pin = command.decode('ascii')
+                    setting = next((value[-1] for value in reversed(self.commands)
+                                    if value.startswith(pin) and len(value) == 5), '0')
+                    os.write(self.master, setting.encode('ascii') + b'\r')
+                else:
+                    os.write(self.master, b'OK\r')
                 if command == b'ATCN':
                     time.sleep(.03)
                     return
