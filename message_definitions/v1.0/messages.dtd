@@ -12,6 +12,7 @@
   name CDATA #REQUIRED
   id   CDATA #REQUIRED
   link CDATA #IMPLIED
+  radio_retry (true|false|1|0) #IMPLIED
 >
 
 <!ELEMENT description (#PCDATA)>

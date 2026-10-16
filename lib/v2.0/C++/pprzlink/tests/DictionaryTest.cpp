@@ -89,6 +89,40 @@ namespace {
     }
   }
 
+  void testRadioRetries()
+  {
+    require(MessageDefinition{}.getRadioRetries() == RadioRetries::Enabled,
+            "An empty definition preserves the legacy radio retry default");
+    const auto dict = dictionary("<protocol><msg_class name='test' id='1'>"
+      "<message name='LEGACY' id='1'/>"
+      "<message name='ENABLED' id='2' radio_retry='true'/>"
+      "<message name='DISABLED' id='3' radio_retry='false'><field name='x' type='uint8'/></message>"
+      "<message name='ONE' id='4' radio_retry='1'/>"
+      "<message name='ZERO' id='5' radio_retry='0'/>"
+      "<message name='UPPER' id='6' RADIO_RETRY='false'/>"
+      "<message name='BOTH' id='7' radio_retry='false' RADIO_RETRY='true'/>"
+      "</msg_class></protocol>");
+    for (const auto *name : {"LEGACY", "ENABLED", "ONE"})
+      require(dict.getDefinition(name).getRadioRetries() == RadioRetries::Enabled,
+              "Missing/true/1 radio_retry enables the normal modem behavior");
+    for (const auto *name : {"DISABLED", "ZERO", "UPPER", "BOTH"})
+      require(dict.getDefinition(name).getRadioRetries() == RadioRetries::Disabled,
+              "false/0 disables retries; lowercase takes precedence over uppercase");
+    Message copied(dict.getDefinition("DISABLED"));
+    require(copied.getDefinition().getRadioRetries() == RadioRetries::Disabled &&
+            copied.getDefinition().getNbFields() == 1 && copied.getDefinition().getMinimumSize() == 1,
+            "Message retains the hint after XML destruction without adding a payload field");
+    for (const auto *value : {"", "enabled", "disabled", "yes", "TRUE", "2", "-1", "falsejunk"}) {
+      const auto error = expectException<bad_message_file>([&] {
+        (void)dictionary(std::string("<protocol><msg_class name='test' id='1'>") +
+          "<message name='BAD' id='1' radio_retry='" + value + "'/></msg_class></protocol>");
+      });
+      for (const auto *context : {"test", "BAD", "radio_retry"})
+        require(error.find(context) != std::string::npos,
+                "Invalid retry values are rejected with class/message/attribute context");
+    }
+  }
+
   void testFiles()
   {
     char path[] = "/tmp/pprzlink-xml-XXXXXX";
@@ -112,6 +146,7 @@ int main(int argc, char **argv)
   try {
     testInvalidDefinitions();
     testLookups();
+    testRadioRetries();
     testFiles();
     if (argc > 1) {
       MessageDictionary real(argv[1]);

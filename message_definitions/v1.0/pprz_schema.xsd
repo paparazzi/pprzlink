@@ -17,6 +17,7 @@
 </xs:attribute>
 <xs:attribute name="id" type="xs:unsignedByte"/> <!-- message -->
 <xs:attribute name="link" type="xs:string"/> <!-- message -->
+<xs:attribute name="radio_retry" type="xs:boolean"/> <!-- message; absent means true in C++ -->
 <xs:attribute name="format" type="xs:string"/> <!-- field -->
 <xs:attribute name="unit" type="xs:string"/> <!-- field -->
 <xs:attribute name="alt_unit" type="xs:string"/> <!-- field -->
@@ -67,6 +68,7 @@
         <xs:attribute ref="name" use="required"/>
         <xs:attribute ref="id" use="required"/>
         <xs:attribute ref="link"/>
+        <xs:attribute ref="radio_retry"/>
     </xs:complexType>
 </xs:element>
 
