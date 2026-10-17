@@ -27,12 +27,12 @@ int main(int argc, char **argv)
       std::cout << "Aircraft " << std::get<std::string>(message.getSenderId()) << ": " << metres << " m\n";
       received = true;
       // Demande la sortie de la boucle Ivy après ce callback.
-      link.stop();
+      link.close();
     });
     // Conserve le jeton du timer : sa destruction annulerait l'attente immédiatement.
     // Ce timer à déclenchement unique borne aussi l'attente lorsqu'aucun message n'arrive.
     auto timeout = link.getBus().bind_event(
-      [&](std::chrono::milliseconds) { link.stop(); }, ivy::after(std::chrono::seconds(10)));
+      [&](std::chrono::milliseconds) { link.close(); }, ivy::after(std::chrono::seconds(10)));
     // Vérifie l'enregistrement avant de lancer la boucle d'événements.
     if (!timeout) throw std::system_error(timeout.error(), "Ivy timeout");
     // Traite les messages et le timer sur ce thread ; aucun thread supplémentaire n'est créé ici.

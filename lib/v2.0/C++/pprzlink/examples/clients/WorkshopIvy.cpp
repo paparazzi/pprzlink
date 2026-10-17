@@ -46,16 +46,16 @@ namespace {
                 std::cout << "Altitude de " << sender << " : "
                           << message.getFieldSI("altitude") << " m" << std::endl;
                 received = true;
-                link.stop();
+                link.close();
             });
         // Le résultat possède le jeton du timer ; sa durée de vie conserve l'attente active.
         auto timeout = link.getBus().bind_event(
-            [&](std::chrono::milliseconds) { link.stop(); },
+            [&](std::chrono::milliseconds) { link.close(); },
             ivy::after(std::chrono::seconds(10)));
         if (!timeout) throw std::system_error(timeout.error(), "Temporisation Ivy");
         std::cout << "Récepteur prêt sur Ivy (" << domain
                   << ", attente de 10 secondes)" << std::endl;
-        // Traite messages et timer sur ce thread, jusqu'à link.stop().
+        // Traite messages et timer sur ce thread, jusqu'à link.close().
         // subscription et timeout restent vivants pendant tout run().
         link.run();
         if (!received) std::cerr << "Aucune altitude reçue\n";

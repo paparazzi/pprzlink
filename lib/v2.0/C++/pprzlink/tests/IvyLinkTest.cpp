@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <unistd.h>
@@ -158,7 +159,7 @@ namespace {
       ++decodeErrors;
     });
     auto deadline = receiver.getBus().bind_event(
-      [&](std::chrono::milliseconds) { receiver.stop(); }, ivy::after(4s));
+      [&](std::chrono::milliseconds) { receiver.close(); }, ivy::after(4s));
     require(deadline.has_value(), "Shared traffic deadline registration");
     std::exception_ptr loopFailure;
     std::jthread runner([&] {
@@ -202,7 +203,7 @@ namespace {
     // this marker follows the correlated reply, so all traffic has been seen.
     sendRaw(server, "barrier EMPTY");
     waitFor([&] { return all == 4 && scoped == 2; }, "reply processed before final ordinary message");
-    receiver.stop();
+    receiver.close();
     runner.join();
     if (loopFailure) std::rethrow_exception(loopFailure);
     require(decodeErrors == 1 && !wrongError,
@@ -354,7 +355,7 @@ namespace {
   void testLifecycleAndErrors(const MessageDictionary &dict, const std::string &domain)
   {
     IvyLink manual(dict, "manual-loop", domain);
-    auto timer = manual.getBus().bind_event([&](std::chrono::milliseconds) { manual.stop(); }, ivy::after(10ms));
+    auto timer = manual.getBus().bind_event([&](std::chrono::milliseconds) { manual.close(); }, ivy::after(10ms));
     require(timer.has_value(), "Manual loop timer registration");
     manual.run();
     bool sendFailed = false;
@@ -377,6 +378,65 @@ namespace {
     require(invalidDelivered == 0, "Out-of-range uint8 must not wrap");
     require(!receiver.getBus().take_callback_error(), "Callback failure is observable");
     std::cout << "Manual loop, stopped-bus errors and range validation passed\n";
+  }
+
+  void testPauseResume(const MessageDictionary &dict, const std::string &domain, bool threaded)
+  {
+    std::atomic<int> selected{0}, all{0}, scoped{0}, ticks{0};
+    std::exception_ptr loopFailure;
+    const std::string name = threaded ? "pause-threaded" : "pause-manual";
+    IvyLink receiver(dict, name, domain, threaded);
+    pprzlink::Receiver &generic = receiver;
+    generic.bind("BYTE", {.senderId = 42}, [&](const Message &) {
+      if (++selected == 1) generic.stop(); // Callback-side pause suppresses later bindings.
+    });
+    generic.bind(pprzlink::ALL, [&](const Message &) { ++all; });
+    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { ++scoped; });
+    auto timer = receiver.getBus().bind_event([&](std::chrono::milliseconds) { ++ticks; }, ivy::every(5ms));
+    auto deadline = receiver.getBus().bind_event(
+      [&](std::chrono::milliseconds) { receiver.close(); }, ivy::after(4s));
+    require(timer.has_value() && deadline.has_value(), "Pause/resume timer registration");
+    std::optional<std::jthread> runner;
+    if (threaded) generic.start();
+    else runner.emplace([&] {
+      try { receiver.run(); }
+      catch (...) { loopFailure = std::current_exception(); }
+    });
+    IvyLink sender(dict, name + "-tx", domain, true);
+    waitBindings(sender, name, 2);
+    sendRaw(sender, "42 BYTE 7");
+    waitFor([&] { return selected == 1 && !generic.isRunning(); }, "callback-side Ivy pause");
+    waitBindings(sender, name, 1);
+    generic.stop(); // Repeated pause is harmless.
+    const int before = ticks.load();
+    sendRaw(sender, "42 BYTE 8");
+    sendRaw(sender, "42 EMPTY");
+    waitFor([&] { return scoped == 1 && ticks > before; }, "native subscriptions and timers survive pause");
+    require(selected == 1 && all == 0, "A paused receiver never dispatches its bindings");
+
+    generic.start();
+    generic.start(); // Repeated start must not install a second subscription.
+    waitBindings(sender, name, 2);
+    sendRaw(sender, "43 BYTE 9");
+    sendRaw(sender, "42 BYTE 10");
+    waitFor([&] { return selected == 2 && all == 2; }, "restart preserves bindings and sender filters");
+    generic.stop();
+    waitBindings(sender, name, 1);
+    generic.start();
+    waitBindings(sender, name, 2);
+    sendRaw(sender, "42 BYTE 11");
+    waitFor([&] { return selected == 3 && all == 3; }, "multiple pause/resume cycles remain usable");
+
+    receiver.close();
+    receiver.close(); // A terminal close is idempotent and ends manual run().
+    if (runner) runner->join();
+    if (loopFailure) std::rethrow_exception(loopFailure);
+    waitFor([&] { return receiver.getBus().state() == IVY_CTX_STOPPED; }, "explicit close stops Ivy loop");
+    bool restartFailed = false;
+    try { receiver.start(); }
+    catch (const std::system_error &) { restartFailed = true; }
+    require(restartFailed && !generic.isRunning(), "A permanently closed link cannot be restarted");
+    require(receiver.getBus().take_callback_error().has_value(), "Pause/resume callbacks remain valid");
   }
 
   void testOwnedSubscriptions(const MessageDictionary &dict, const std::string &domain)
@@ -464,6 +524,8 @@ int main()
     testRequests(dict, domainA);
     testIsolation(dict, domainA, domainB);
     testLifecycleAndErrors(dict, domainA);
+    testPauseResume(dict, domainA, false);
+    testPauseResume(dict, domainA, true);
     testOwnedSubscriptions(dict, domainA);
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

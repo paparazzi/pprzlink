@@ -84,7 +84,14 @@ namespace pprzlink {
   {
     auto lock = lockReceiver();
     deactivate();
+    ++receptionGeneration;
     reactiveSubscription.reset();
+  }
+
+  void IvyLink::close()
+  {
+    auto lock = lockReceiver();
+    stop();
     checked(bus.request_stop());
   }
 
@@ -92,7 +99,8 @@ namespace pprzlink {
   {
     auto lock = lockReceiver();
     if (!activate()) return;
-    auto notification = guarded([this](std::string_view sender, std::string_view body) {
+    auto notification = guarded([this, session = ++receptionGeneration](std::string_view sender, std::string_view body) {
+      if (session != receptionGeneration) return;
       std::optional<Message> message;
       try {
         const MessageDefinition *definition;

@@ -34,6 +34,7 @@
 #include <pprzlink/MessageDictionary.h>
 #include <pprzlink/Receiver.h>
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -148,7 +149,9 @@ namespace pprzlink {
     /// @throws std::exception Invalid request schema or native binding failure.
     long registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb);
 
-    /// Run the loop on this thread (only when constructed with threadedIvy=false).
+    /// Run the loop on this thread until close() or a terminal bus error.
+    /// Only valid when constructed with threadedIvy=false; stop() pauses reception
+    /// without ending this loop.
     /// @throws std::logic_error This link already owns a loop thread.
     /// @throws std::system_error The native loop or a recorded callback error fails.
     void run();
@@ -156,9 +159,15 @@ namespace pprzlink {
     /// Names absent from the dictionary are ignored. Malformed fields of known
     /// messages are reported through onError() as ReceiveError::Kind::Decode.
     void start() override;
-    /// Request stop; safe inside callbacks. Destruction joins the owned thread.
-    /// @throws std::system_error The native stop request fails.
+    /// Pause Receiver::bind reception while preserving bindings for start().
+    /// Scoped/native subscriptions, sends and bus timers remain active.
+    /// Safe inside callbacks; the event loop keeps running.
     void stop() override;
+    /// @brief Permanently stop this Ivy session and request return from run().
+    /// Safe inside callbacks. Destruction joins the owned thread. A closed link
+    /// cannot be restarted; create a new IvyLink for another session.
+    /// @throws std::system_error The native stop request fails.
+    void close();
     /// Borrow the bus for native API access and take_callback_error() inspection.
     /// Do not move/destroy it or run a second loop on it.
     /// @return Bus reference valid for this link's lifetime.
@@ -171,6 +180,7 @@ namespace pprzlink {
     std::map<long, ivy::Subscription> subscriptions;
     std::atomic<long> nextBindId{1};
     std::optional<ivy::Subscription> reactiveSubscription; ///< One native binding feeding the shared receiver registry.
+    uint64_t receptionGeneration = 0; ///< Ignore notifications retained from an earlier reception interval.
     // Declared last: stop/join before destroying subscriptions or the bus.
     std::optional<ivy::LoopThread> loop;
 
