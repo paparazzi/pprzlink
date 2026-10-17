@@ -38,6 +38,7 @@ For example, `MessageField("altitude", "float")` describes a field, while its
 | [`MessageDefinition`](../../lib/v2.0/C++/pprzlink/MessageDefinition.h) | Message name, class/message IDs and ordered field definitions. |
 | [`MessageDictionary`](../../lib/v2.0/C++/pprzlink/MessageDictionary.h) | Load definitions with TinyXML2 and look them up by name or IDs. |
 | [`FieldValue`](../../lib/v2.0/C++/pprzlink/FieldValue.h) | Field definition and actual scalar/array value in a `std::variant`. |
+| [`BytesBuffer`](../../lib/v2.0/C++/pprzlink/BytesBuffer.h) | Owned byte storage shared by values, codecs and devices, without an Asio dependency. |
 | [`MemoryDevice`](../../lib/v2.0/C++/pprzlink/MemoryDevice.h) | Asynchronous in-memory loopback and byte injection on a caller-owned Asio context. |
 | [`Message`](../../lib/v2.0/C++/pprzlink/Message.h) | A copy of a definition, populated field values and sender/receiver addressing. |
 | [`IvyLink`](../../lib/v2.0/C++/pprzlink/IvyLink.h) | Own an Ivy bus and manage subscriptions, sends and requests. |
@@ -321,12 +322,23 @@ and does **not** change or save the modem's baudrate. AT replies and deadlines
 are still checked. Host retries preserve the frame ID; `-xbee_retries` sets the
 maximum total attempts, including the first send. Pending IDs are not reused;
 a missing status expires after five seconds without blindly resending a command.
+If all 255 IDs are pending, a new send is skipped with a diagnostic on stderr.
+The agent keeps running and the existing expiry/retry timer stays armed, even
+when further commands arrive. Skipped sends are not queued; subsequent sends
+can succeed once a status or timeout frees an ID. A skipped PING does not
+start or replace an RTT measurement, and the periodic PING timer continues.
 
 The agent follows the existing XML `link` attribute. `forwarded` commands
 use unicast to the aircraft identified by `ac_id`; `broadcasted` commands use
 radio destination `0xffff` and PPRZLINK receiver 255. The application fields
 remain unchanged: targeted command handlers in the autopilot filter on `ac_id`.
 Broadcasts request no MAC ACK, even with the normal `0x00` transmit options.
+
+In UDP mode, a broadcast command normally sends one datagram to each live
+aircraft's peer. With `-udp_broadcast`, it sends a single datagram to
+`-udp_broadcast_addr` and `-udp_uplink_port`, provided at least one aircraft is
+live. Learning more aircraft does not multiply that network broadcast; with
+no live aircraft, no datagram is sent.
 
 Host resends apply only to unicast transmissions and are bounded by
 `-xbee_retries` (default 10 total attempts). Broadcast failures release their
@@ -468,6 +480,20 @@ Network addresses require legacy 802.15.4 mode; Series868 requires `ieee()`.
 The standalone header is `<pprzlink/XbeeAddress.h>`; `XbeeTransport.h` includes it.
 The older `sendMessageTo16()` and `sendMessageTo64()` remain compatibility wrappers.
 
+To choose both the radio destination and the transmit-status ID, use
+`sendMessageToWithId()`:
+
+```cpp
+transport.sendMessageToWithId(message, radio, 42);
+transport.sendMessageToWithId(message, radio, 0, pprzlink::RadioRetries::Disabled);
+```
+
+The first call uses normal radio ACK/retries and requests status ID 42; the
+second disables status responses and radio ACK/retries independently. The
+PPRZLINK receiver stays unchanged. The caller must allocate IDs without reusing
+one still awaiting a status. `sendMessageWithId()` remains available when the
+radio destination should be derived from the PPRZLINK receiver.
+
 Choose the radio ACK/retry behavior per transmission with the scoped enum
 `XbeeTransport::RadioRetries`, in the last argument position:
 
@@ -487,8 +513,9 @@ bit. Other firmware retry layers and global modem settings still apply.
 See Digi's [TX16 format](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x01.htm)
 and [868 format, page 54](https://ftp1.digi.com/support/documentation/90001020_F.pdf).
 
-`sendMessageWithId()`, `sendMessageTo()` and the compatibility wrappers accept the
-optional last argument with default `RadioRetries::Enabled`.
+`sendMessageWithId()`, `sendMessageTo()`, `sendMessageToWithId()` and the
+compatibility wrappers accept the optional last argument with default
+`RadioRetries::Enabled`.
 `sendMessage(message, radioRetries)` is an overload: the one-argument override
 also selects `Enabled`, including calls through `Transport&`.
 The shared enum is declared in `<pprzlink/RadioRetries.h>`;
@@ -569,7 +596,9 @@ command can leave partially applied hardware settings. Such a failure never
 publishes readiness or enables binary sends; correct the cause and reinitialize.
 RTS/CTS wiring is required for **11**. Baud rate and flow control are separate:
 this setting does not increase UART throughput and synchronous writes can wait
-while the modem deasserts CTS. Runtime D6/D7 changes are not saved to flash.
+while the modem deasserts CTS. No additional `ATWR` saves the new D6/D7 settings.
+A later initialization that changes the baud rate can save the settings left
+by an earlier session, because `ATWR` stores all parameters current at that time.
 The legacy already-configured constructor mode skips all modem checks; callers
 using that mode are responsible for an already consistent hardware configuration.
 
@@ -745,7 +774,15 @@ auto aliveSubscription = first.subscribeMessage("ALIVE",
 `threadedIvy=true` owns an `ivy::LoopThread`; destruction stops and joins it
 before releasing subscriptions and the bus. The default remains `false`:
 call `link.run()` to run its native loop on the calling thread. `link.stop()`
-requests a stop and may be called from a callback. The global
+pauses only reception through `Receiver::bind()`, preserving those bindings
+for `link.start()`. Native/scoped subscriptions (`subscribeMessage()`, requests
+and their legacy counterparts), sends and bus timers remain active while paused;
+`stop()` does not return from `run()`.
+
+Call `link.close()` to end the Ivy session and request return from `run()`.
+Both `stop()` and `close()` may be called from a callback. Closing is terminal:
+create a new `IvyLink` for another session. Destruction joins an owned loop thread.
+The global
 `Ivy::ivyMainLoop()`/old Qt adapter cannot drive these independent contexts.
 `getBus()` borrows the native wrapper for its public APIs and context integration;
 do not move/destroy the borrowed bus or run an additional loop on it.
@@ -834,6 +871,19 @@ or string per field. Parsing borrows numeric tokens unless underscore
 normalization is needed. `serializeLegacyMessage()` retains the separate
 OCaml/XML formatting contract, including explicitly requested decimal precision.
 
+Floating scalars and array elements also accept `nan`, `inf`, their uppercase
+forms `NAN`, `INF`, and an optional `+` or `-` sign. Both the standard and legacy
+Ivy codecs preserve the meaning of NaN and the sign of infinity. Text does not
+preserve a NaN's binary payload. Numeric overflow/underflow and malformed tokens
+still throw `wrong_message_format`; non-finite values are not accepted for
+integer fields.
+
+`<pprzlink/BytesBuffer.h>` declares `BytesBuffer` as `std::vector<uint8_t>`
+using only standard headers. Value and codec headers use it without importing
+`Device.h` or Asio; `Device.h` still includes it for existing device consumers.
+The CMake `core` target retains its Boost dependency for its receiver and
+transport interfaces.
+
 `<pprzlink/BinaryCodec.h>` contains little-endian encoding/decoding using
 `std::bit_cast` and bounded `std::span` input. Floating-point bit patterns and
 full-width integer arrays are preserved. The existing `addToBuffer`,
@@ -882,7 +932,10 @@ filters fail at bind time. Bindings remain active without retaining a return val
 retain the returned ID only for `unbind(id)`. Callbacks are serialized per receiver,
 borrow their arguments for the invocation, and can stop reception or send replies.
 Copy messages and metadata before retaining them or transferring them to another
-thread. `stop()` cancels only this receiver's reads and preserves its subscriptions.
+thread. `stop()` pauses this receiver and preserves its subscriptions for
+`start()`. It cancels binary channel reads; on Ivy it removes only the reactive
+bus subscription and leaves the native event loop running. Use `IvyLink::close()`
+when that loop must terminate.
 Application callback/predicate exceptions remain visible through the loop.
 `onError()` observes decoding, I/O and initialization failures; unhandled decoding
 failures are skipped and counted, while terminal failures stop reception and throw.

@@ -1,14 +1,82 @@
 # link++ : implémentation et comparaison avec OCaml
 
-Rapport du 29 septembre 2026. Le code est implémenté et les comparaisons
-logicielles sont exécutées sur Ubuntu 24.04 x86_64 avec GCC 13.3.
-Les essais radio physiques et la session complète serveur/GCS restent à faire.
+Rapport initial du 29 septembre 2026, actualisé le 17 octobre 2026.
+Les résultats comparatifs OCaml/C++ ci-dessous proviennent de la validation
+historique sous Ubuntu 24.04 x86_64/GCC 13.3. La validation actuelle sous Ubuntu
+26.04 est décrite séparément : elle ne constitue pas une nouvelle exécution
+comparative OCaml. Les essais radio physiques et la session complète serveur/GCS
+restent à faire.
 
-L'itération suivante de l'API est décrite dans [API_USAGE.md](../API_USAGE.md) :
-réception avec métadonnées, abonnements Ivy possédés par l'appelant, conversions
-contrôlées et SDK modulaire. Ses 19 tests incluent les mêmes 17 scénarios de
-comparaison décrits ici. Les résultats à 15 tests ci-dessous décrivent la
-validation initiale de l'agent.
+## État validé le 17 octobre 2026, après `9979bc1`
+
+La bibliothèque et l'agent, avec les corrections de la revue qui suit
+`9979bc1`, passent **31 tests CTest sur 31** sous Ubuntu 26.04, avec GCC 15.2,
+Boost 1.90, TinyXML2 11 et Ivy 3.18. Les tests existants ont été renforcés ;
+ce nombre n'est pas un nombre de scénarios différentiels OCaml.
+
+`PPRZLINK_OCAML_REFERENCE` est vide pour cette validation. L'ancien exécutable
+OCaml local porte le format de bytecode `Caml1999X031`, incompatible avec le
+runtime OCaml 5.4 qui attend `Caml1999X036`. Les sources OCaml ont été relues,
+mais aucune nouvelle réussite comparative avec cet exécutable n'est annoncée.
+Les résultats OCaml 4.14.1 du 29 septembre restent des résultats historiques.
+
+Les changements vérifiés sont les suivants :
+
+- **Diffusion UDP** : avec `-udp_broadcast`, une commande diffusée produit un
+  seul datagramme, même si plusieurs avions sont connus. Il faut toujours au
+  moins un avion vivant ; sans cette option, la diffusion conserve les envois
+  unicast vers chacun des avions vivants. Les copies multiples étaient aussi
+  présentes dans `link.ml` : leur correction prime sur cette parité historique.
+- **Saturation XBee** : les 255 identifiants occupés produisent un résultat
+  `Saturated`, sans arrêter le PING périodique ni écraser une transmission en
+  attente. L'envoi refusé n'est pas mis en file. Un statut ou une expiration
+  libère de la capacité pour les envois suivants ; les erreurs d'écriture
+  continuent à se propager.
+- **Nombres flottants Ivy** : les valeurs explicites `nan`/`NAN` et `inf`/`INF`,
+  avec signe éventuel, sont acceptées pour les champs flottants. Les dépassements
+  numériques et les valeurs non adaptées aux champs entiers restent rejetés.
+  La commande réelle `CAMERA_SNAPSHOT_DL`, dont les températures absentes sont
+  représentées par NaN dans le XML, traverse désormais la passerelle.
+- **Cycle de réception Ivy** : `stop()` suspend les abonnements `Receiver::bind`
+  et `start()` les reprend ; le bus, ses abonnements natifs et ses temporisations
+  restent actifs. `close()` termine définitivement la session et fait sortir
+  `run()`. Les notifications conservées d'une réception précédente sont
+  invalidées. Les exemples qui terminaient la boucle utilisent `close()`.
+- **API radio** : `sendMessageToWithId()` permet de choisir ensemble la
+  destination radio, l'identifiant de statut et la politique ACK/réémissions,
+  en conservant le destinataire PPRZLINK. Les contraintes d'initialisation et
+  d'adressage 868 restent vérifiées. Le type d'octets commun `BytesBuffer` est
+  fourni par son propre en-tête, sans imposer l'interface de périphérique aux
+  valeurs de messages.
+
+| Test CTest renforcé | Vérification actuelle |
+| --- | --- |
+| `link_agent` | 17 scénarios existants, commande `CAMERA_SNAPSHOT_DL` du XML réel avec deux NaN, plus contrôles C++ de diffusion UDP unique et de PING pendant/après saturation XBee. |
+| `link_policy` | 255 identifiants réservés, refus récupérable, reprise après statut et expiration, aucune réémission aveugle, erreurs I/O conservées. |
+| `ivy_message_codec` | NaN et infinis dans les scalaires/tableaux float et double, codecs compact/Legacy, messages caméra du XML réel et maintien des rejets numériques invalides. |
+| `ivy_link` | Pause/reprise manuelle et avec thread, arrêt depuis callback, abonnements/filtres conservés, temporisations natives actives, fermeture terminale. |
+| `xbee_transport` | Destination explicite et frame ID dans les deux API, options de retry indépendantes, ID zéro et rejets avant écriture. |
+
+L'installation du SDK dans un préfixe temporaire a également été vérifiée :
+deux consommateurs externes liés à `pprzlink::core` compilent et s'exécutent,
+l'un pour l'encodage d'une trame et l'autre pour `sendMessageToWithId()`.
+Le premier n'inclut ni `Device.h` ni les en-têtes Asio et ne dépend pas d'Ivy
+à l'exécution. La génération Doxygen réussit avec un journal d'avertissements vide.
+
+Le RTT corrigé par `9979bc1` reste celui du dernier échange terminé, mesuré avec
+une horloge monotone, avec `9999 ms` avant la première mesure. Le binaire link++
+lie les composants pprzlink statiques et ne dépend plus de leur répertoire de
+build ; Ivy, TinyXML2 et le runtime C++ restent des dépendances partagées.
+Le compilateur par défaut de `link_cpp.mk` est désormais `g++`.
+
+## Contexte des validations précédentes
+
+Une étape intermédiaire, alors décrite dans [API_USAGE.md](../API_USAGE.md),
+ajoutait réception avec métadonnées, abonnements Ivy possédés par l'appelant,
+conversions contrôlées et SDK modulaire. Ses 19 tests incluaient les mêmes
+17 scénarios comparatifs ; ce manuel décrit aujourd'hui l'API actuelle. Les
+résultats à 15 tests plus bas décrivent la validation initiale de l'agent, et
+non la suite actuelle à 31 tests.
 
 ## Ce qui est livré
 
@@ -23,7 +91,8 @@ validation initiale de l'agent.
 - Métadonnées XML, formats numériques Ivy, champs 64 bits, décodeur PPRZ sans
   I/O, statistiques et adaptateur de fichiers/FIFO dans la bibliothèque.
 - Intégration dans `sw/ground_segment/tmtc/Makefile` et `link_cpp.mk` du dépôt
-  Paparazzi parent ; workflow Ubuntu 24.04/GCC 13 dans le sous-module.
+  Paparazzi parent ; instructions actuelles Ubuntu 26.04/GCC 15 et résultats
+  historiques Ubuntu 24.04/GCC 13 conservés dans le sous-module.
 
 Les responsabilités sont séparées en composants nommés : `Options`,
 `AircraftRegistry`, `IvyBridge`, `XbeeTransmitter`, `LinkAgent`.
@@ -31,9 +100,9 @@ Le transport UDP est désormais fourni par `pprzlink::UdpTransport` dans la bibl
 Le routage et la politique des avions restent dans l'application. La
 bibliothèque fournit les données et les mécanismes réutilisables.
 
-## Référence indépendante
+## Référence indépendante du 29 septembre 2026
 
-La comparaison utilise le vrai `link.ml` de Paparazzi
+La comparaison historique utilise le vrai `link.ml` de Paparazzi
 `55cdd96c46d49d15ddad9814ed24ecc9a4fda914`, recompilé avec OCaml 4.14.1.
 `link.ml`, `pprzLink.ml`, les transports OCaml, les temporisations GLib et le
 pilote série C de Paparazzi ne sont pas remplacés par des simulations.
@@ -46,11 +115,12 @@ Les répertoires de construction sont privés ; les anciens binaires Paparazzi
 ne sont pas écrasés.
 
 Le banc Python encode les trames indépendamment de la bibliothèque C++.
-Chaque scénario lance successivement un processus OCaml et un processus C++,
-avec un véritable pair Ivy, un pseudo-terminal ou une socket UDP.
+Avec une référence OCaml fournie, chaque scénario lance successivement un
+processus OCaml et un processus C++, avec un véritable pair Ivy, un
+pseudo-terminal ou une socket UDP.
 Il compare les valeurs de retour des scénarios et vérifie les octets émis.
 
-## Scénarios comparatifs
+## Périmètre des 17 scénarios comparatifs historiques
 
 Le banc contient **17 scénarios**, dont plusieurs exécutent plusieurs variantes :
 
@@ -82,8 +152,11 @@ Les règles de comptage, arrondis des rapports et bornes d'expiration sont
 
 ## Différences intentionnelles
 
-La compatibilité est fonctionnelle sur les scénarios ci-dessus. Elle ne
-signifie pas que tous les défauts de l'ancienne implémentation sont reproduits.
+La comparaison historique établit une compatibilité fonctionnelle sur les
+scénarios ci-dessus. Elle ne signifie pas que tous les défauts de l'ancienne
+implémentation doivent être reproduits. Les corrections actuelles de la
+diffusion UDP et du RTT sont donc vérifiées selon leur résultat attendu C++,
+indépendamment de la reproduction de ces défauts OCaml.
 
 1. **`-xbee_retries`** : OCaml relie l'option à `XB.my_addr`. C++ la relie au
    nombre maximal de tentatives, premier envoi compris. Le défaut reste 10.
@@ -118,10 +191,15 @@ signifie pas que tous les défauts de l'ancienne implémentation sont reproduits
    concaténé au datagramme suivant, potentiellement envoyé par un autre avion.
 8. **Temps** : les échéances et l'horodatage relatif utilisent une horloge
    monotone. Les sorties historiques qui demandent l'heure civile la conservent.
+   Depuis `9979bc1`, le RTT est calculé au PONG et sa dernière mesure terminée
+   est conservée entre réponses. Un PING supprimé ne crée pas de mesure en
+   attente. PING/PONG n'ayant pas de numéro de séquence, une réponse très
+   retardée peut encore être associée à un PING plus récent.
 
-Les choix historiques de LINK_REPORT restent conservés : compteur PPRZ global
-pour `rx_err` (zéro en mode XBee), diffusions comptées pour les avions connus,
-et différence dernier PONG/dernier PING pouvant devenir négative entre réponses.
+Les choix historiques de comptage de LINK_REPORT restent conservés : compteur
+PPRZ global pour `rx_err` (zéro en mode XBee) et diffusions comptées pour les
+avions connus. L'ancien calcul dernier PONG moins dernier PING, susceptible de
+devenir négatif, a été remplacé par la mesure de RTT décrite ci-dessus.
 Les statistiques détaillées de la bibliothèque restent disponibles séparément.
 
 Le test C++ `link_xbee_configuration` vérifie le routage XML existant et le
@@ -132,9 +210,9 @@ réémissions unicast, leur absence en broadcast et la poursuite des commandes
 après un échec final. Le test de politique vérifie aussi que l'adresse
 réellement choisie gouverne les réémissions après le routage.
 
-## Validation de compilation et d'exécution
+## Validation historique de compilation et d'exécution
 
-Environnement GCC 13 et dépendances Noble :
+Résultats du 29 septembre 2026, environnement GCC 13 et dépendances Noble :
 [rapport de préparation](VALIDATION_UBUNTU24_GCC13.md).
 La bibliothèque et l'agent sont construits sans avertissement de compilation
 avec `-Wall -Wextra -Werror`.
@@ -161,12 +239,17 @@ Pour ces deux configurations validées, conserver une chaîne cohérente :
 compilateur, runtime, wrapper Ivy et pprzlink. Le seul numéro de version Ivy
 ne garantit pas la compatibilité de ses binaires C++ entre compilateurs.
 
-L'exécutable installé possède un chemin relatif vers la bibliothèque pprzlink
-du même préfixe. Les dépendances externes installées dans un autre préfixe,
-notamment Ivy, restent à déclarer au chargeur comme dans le README.
+Lors de cette validation historique, l'exécutable installé utilisait un chemin
+relatif vers la bibliothèque pprzlink du même préfixe. Depuis `9979bc1`, ses
+composants pprzlink sont liés statiquement. Les dépendances externes installées
+dans un autre préfixe, notamment Ivy, restent à déclarer au chargeur comme dans
+le README.
 
-## Reproduire la comparaison
+## Reproduire la comparaison avec une référence OCaml compatible
 
+La commande historique suivante nécessite une chaîne OCaml cohérente et un
+exécutable de référence compatible avec son runtime. Elle n'a pas été exécutée
+avec succès dans la validation Ubuntu 26.04 du 17 octobre.
 Après installation d'OCaml 4.14, de `libxml-light-ocaml-dev`,
 `liblablgtk3-ocaml-dev`, de leurs dépendances et d'Ivy C/GLib/C++ 3.18.3 :
 
@@ -197,7 +280,7 @@ OCaml extraits dans un préfixe privé. `--only` sélectionne un scénario du ba
 Sans `--ocaml`, les mêmes scénarios vérifient les résultats attendus du C++.
 Les tests nécessitent des sockets locales UDP/TCP et des pseudo-terminaux.
 
-Les constructions et traces locales sont dans :
+Les constructions et traces de la validation historique étaient dans :
 
 - `/tmp/pprzlink-ubuntu24-gcc13-bJLxvG/build` : CMake GCC 13 ; dépendances privées
   dans `deps` et `ivy`, consommateurs installés dans `consumer`.
@@ -226,11 +309,12 @@ make -C sw/ground_segment/tmtc LINK_IMPL=cpp link
 make -C sw/ground_segment/tmtc LINK_IMPL=ocaml link
 ```
 
-`PPRZLINK_CXX` vaut `g++-13` par défaut. `PPRZLINK_CPP_BUILD`,
+`PPRZLINK_CXX` vaut `g++` par défaut ; il valait `g++-13` lors de la validation
+initiale. `PPRZLINK_CPP_BUILD`,
 `PPRZLINK_BUILD_JOBS` et `PPRZLINK_CMAKE_OPTIONS` permettent de configurer la
-construction. L'intégration a été testée dans un répertoire privé et les deux
-cibles C++ ont été vérifiées avec `make -n` dans Paparazzi ; le binaire OCaml
-présent au chemin historique n'a pas été remplacé.
+construction. Lors de la validation initiale, l'intégration a été testée dans
+un répertoire privé et les deux cibles C++ ont été vérifiées avec `make -n` dans
+Paparazzi ; le binaire OCaml présent au chemin historique n'avait pas été remplacé.
 
 ## Limites encore à valider
 
@@ -238,8 +322,8 @@ présent au chemin historique n'a pas été remplacé.
   coupures d'alimentation et comportement 868. Les formats AP=1 sont testés,
   pas la configuration de tous les produits Digi.
 - Session complète serveur/GCS et link combiner en fonctionnement. Les messages
-  et enveloppes attendus sont comparés au link OCaml ; cela ne remplace pas
-  l'exécution de ces applications avec un avion.
+  et enveloppes du périmètre historique ont été comparés au link OCaml ; cela
+  ne remplace pas l'exécution de ces applications avec un avion.
 - Les autres architectures et systèmes, AP=2, et la gestion réseau Zigbee/DigiMesh
   ne font pas partie de cette validation.
 

@@ -1,14 +1,16 @@
 # Architecture de pprzlink++ et de link++
 
-Ce document décrit l'implémentation présente au 30 septembre 2026. Les
+Ce document décrit l'implémentation présente au 17 octobre 2026. Les
 adaptations proposées à la fin sont distinguées des API
-déjà disponibles. La cible reste C++23 compilable avec GCC 13 sur Ubuntu 24.04.
+déjà disponibles. La validation actuelle utilise C++23, GCC 15.2 et Boost 1.90
+sur Ubuntu 26.04 ; la configuration demande GCC 13+ et Boost 1.83+.
 
 Les réponses aux questions principales sont les suivantes :
 
 - L'indépendance des entrées/sorties repose sur une interface `Device`, une
   classe abstraite `Transport` et des codecs utilisables sans périphérique.
-  UDP et Ivy ont toutefois leurs propres classes, hors de cette hiérarchie.
+  UDP et Ivy ont leurs propres classes d'envoi ; les quatre modes partagent
+  l'interface de réception `Receiver`.
 - Le XML décrit déjà le contenu des messages : identifiants, noms, ordre et
   types des champs, ainsi que certaines informations documentaires.
 - Un callback Ivy reçoit déjà **un message complet avec tous ses champs**.
@@ -234,6 +236,12 @@ Leur correspondance éventuelle relève du message et de l'application.
 
 ```mermaid
 classDiagram
+    class Receiver {
+        <<abstract>>
+        bind(message, callback)
+        start()
+        stop()
+    }
     class Device {
         <<interface>>
         availableBytes()
@@ -249,11 +257,11 @@ classDiagram
     }
     class Transport {
         <<abstract>>
-        bind(message, callback)
-        start()
-        stop()
         sendMessage(message)
     }
+    Receiver <|-- Transport
+    Receiver <|-- UdpTransport
+    Receiver <|-- IvyLink
     Device <|-- SerialDevice
     SerialDevice <|-- BoostSerialPortDevice
     Device <|-- PosixFileDevice
@@ -295,12 +303,18 @@ transporte le message dans les trames API du modem XBee, traite les adresses
 radio et les statuts du modem. Ils sont interchangeables via un
 `Transport&` ou un `std::unique_ptr<Transport>` pour les opérations communes.
 Les opérations spécifiques à XBee restent accessibles sur `XbeeTransport`.
+`sendMessageToWithId(message, destination, frameId, radioRetries)` permet de
+choisir séparément l'adresse radio, le suivi de statut et les ACK/retries du
+modem. L'identifiant PPRZLINK du destinataire reste dans le message.
+La bibliothèque écrit la trame et publie les statuts reçus ; l'application
+décide des délais et des éventuelles retransmissions au niveau applicatif.
 
 ### UDP et Ivy ne dérivent pas de Transport
 
 [`UdpTransport`](../../lib/v2.0/C++/pprzlink/UdpTransport.h) possède un socket UDP et utilise le
-même `PprzFrameDecoder` que le transport PPRZ. Il retourne également un
-`ReceivedMessage`, mais chaque envoi exige une destination réseau explicite :
+même `PprzFrameDecoder` que le transport PPRZ. Il fournit le message décodé
+par callback, avec les métadonnées de sa réception.
+Chaque envoi exige une destination réseau explicite :
 `sendMessage(message, destination)`.
 
 Il conserve l'adresse source du datagramme avec chaque message décodé. Un
@@ -312,11 +326,16 @@ de datagrammes ou de pairs différents.
 abonnements, publications et requêtes. Il utilise le codec texte Ivy, avec un
 modèle de publication/abonnement plutôt qu'un flux binaire.
 
-Il n'y a donc **pas de classe de base unique couvrant PPRZ, XBee, UDP et Ivy**.
-La réutilisation repose sur le modèle `Message`, les codecs et, pour les
-transports binaires, `ReceivedMessage`. `link++` possède actuellement des
+La classe de base `Receiver` couvre la réception PPRZ, XBee, UDP et Ivy :
+abonnements, filtres, métadonnées et arrêt/reprise. Les opérations d'envoi
+conservent les destinations propres à chaque support. `link++` possède des
 membres distincts pour `Transport` et `UdpTransport` et raccorde leur réception
 au même traitement applicatif.
+
+`IvyLink::stop()` met en pause les abonnements `Receiver::bind()` ; `start()`
+les réactive. Le bus, les timers, les publications et les abonnements natifs
+ou à jeton continuent pendant cette pause. `IvyLink::close()` termine la
+session et demande le retour de `run()` ; cette fermeture est définitive.
 
 ### Réutiliser les codecs avec une autre bibliothèque d'I/O
 
@@ -325,6 +344,12 @@ au même traitement applicatif.
 Ces opérations ne font aucune I/O. Une application Qt, par exemple, pourrait
 leur fournir les octets de son propre port série, puis écrire les trames
 encodées avec ses propres primitives.
+
+[`BytesBuffer.h`](../../lib/v2.0/C++/pprzlink/BytesBuffer.h) fournit le type
+`std::vector<uint8_t>` commun aux codecs et aux périphériques. Les en-têtes
+de valeurs/codecs utilisent ce type sans inclure `Device.h` ni ses API Asio.
+La cible CMake `pprzlink::core` contient aussi la réception réactive et
+`MemoryDevice` : elle garde donc ses dépendances Boost et threads.
 
 Pour un nouveau flux d'octets, il est aussi possible d'implémenter `Device` et
 de conserver `PprzTransport`. Pour un nouveau protocole d'enveloppe sur un flux,
@@ -366,7 +391,7 @@ void receiveOneSetting(const std::string& messagesPath)
             std::cout << sender << ": aircraft=" << static_cast<unsigned>(aircraft)
                       << " index=" << static_cast<unsigned>(index)
                       << " value=" << value << '\n';
-            link.stop();
+            link.close();
         });
 
     link.run(); // Attend le message ; cet exemple ne fixe pas de délai.
@@ -388,6 +413,13 @@ services ajoutés par pprzlink++ au-dessus d'Ivy.
 requête/réponse ; leurs callbacks reçoivent également des messages complets.
 Les requêtes sont reconnues par le suffixe `_REQ` et utilisent `sendRequest()`
 au lieu de `sendMessage()`.
+
+Les codecs Ivy moderne et Legacy acceptent `nan`/`inf`, leurs signes et les
+variantes majuscules produites par les formats XML, pour les scalaires et
+tableaux flottants. Cela couvre les températures non mesurées explicitement
+prévues par `CAMERA_SNAPSHOT_DL`. Le passage par le texte conserve la valeur
+non finie, sans garantir les bits de charge utile d'un NaN. Les champs
+entiers et les nombres dépassant la plage du type restent contrôlés.
 
 ### Sur série, XBee et UDP : des abonnements sur le contexte Asio
 
@@ -471,6 +503,7 @@ XML, quel que soit l'ordre des appels `setField()`.
 | Liaison | Appel sur le message préparé |
 | --- | --- |
 | PPRZ ou XBee via `Transport` | `transport.sendMessage(message)` |
+| XBee, adresse radio et suivi explicites | `radio.sendMessageToWithId(message, destination, frameId, radioRetries)` |
 | UDP | `udp.sendMessage(message, pprzlink::UdpEndpoint{"127.0.0.1", 4242})` |
 | Ivy | `link.sendMessage(message)` |
 
@@ -566,13 +599,15 @@ peut aussi demander un thread possédé par `IvyLink`.
 
 Un désabonnement n'attend pas la fin d'un callback déjà commencé. Les objets
 capturés doivent donc rester vivants jusqu'à la fin de son exécution.
-`stop()` peut être appelé depuis un callback ; la destruction du lien doit
-avoir lieu en dehors de ce callback et après la fin des appels externes.
+`stop()` et `close()` peuvent être appelés depuis un callback Ivy ; la
+destruction du lien doit avoir lieu en dehors de ce callback et après la fin
+des appels externes.
 Une interface graphique doit transférer les données vers son propre thread
 avant de modifier ses widgets.
 
-L'absence de message est représentée par `std::nullopt`. Les erreurs de
-définition, de valeur, de décodage ou d'I/O utilisent des exceptions. Une
+Le décodeur autonome représente l'absence de message par `std::nullopt` ;
+la réception réactive appelle les abonnements lorsqu'un message est disponible.
+Les erreurs de définition, de valeur, de décodage ou d'I/O utilisent des exceptions. Une
 trame au contenu mal formé peut être consommée avant que l'erreur soit
 signalée ; l'appel suivant peut poursuivre le décodage. Les erreurs de
 callback Ivy suivent le mécanisme du bus natif, accessible par `getBus()` ;

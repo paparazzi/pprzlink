@@ -736,10 +736,21 @@ préserve exactement la valeur d'un `float` ou `double` fini à l'aller-retour.
 La notation scientifique peut apparaître pour des valeurs très petites ou
 très grandes ; les valeurs minuscules et le signe du zéro sont conservés.
 Ce format ne dépend ni de la locale ni de la précision de `std::cout`.
+Les champs `float` et `double`, scalaires ou tableaux, acceptent aussi `nan`,
+`inf`, leurs formes majuscules `NAN`, `INF`, avec un signe `+` ou `-` facultatif.
+Les codecs Ivy standard et Legacy conservent le sens de NaN et le signe de
+l'infini ; le texte ne conserve pas les bits de charge utile d'un NaN.
+Un dépassement numérique ou un jeton mal formé reste rejeté avec
+`wrong_message_format`. Ces formes non finies ne sont pas acceptées pour un entier.
 
 `parseMessageBody()` reçoit séparément l'expéditeur et le corps du message,
 qui commence par le nom. Ces fonctions ne nécessitent pas Ivy installé : elles
 appartiennent à `core` et ne font aucune communication.
+
+Pour manipuler uniquement les octets, `<pprzlink/BytesBuffer.h>` fournit
+`BytesBuffer`, alias de `std::vector<uint8_t>`, sans inclure Asio ni `Device.h`.
+Les en-têtes des valeurs et codecs utilisent ce type indépendant. La cible
+CMake `core` conserve toutefois Boost pour ses interfaces de réception et de transport.
 
 `toString()` est destiné au diagnostic ; `serializeMessage()` produit le
 format texte d'échange. Utilisez le codec, plutôt qu'une concaténation manuelle,
@@ -1391,16 +1402,16 @@ namespace {
                 std::cout << "Altitude de " << sender << " : "
                           << message.getFieldSI("altitude") << " m" << std::endl;
                 received = true;
-                link.stop();
+                link.close();
             });
         // Le résultat possède le jeton du timer ; sa durée de vie conserve l'attente active.
         auto timeout = link.getBus().bind_event(
-            [&](std::chrono::milliseconds) { link.stop(); },
+            [&](std::chrono::milliseconds) { link.close(); },
             ivy::after(std::chrono::seconds(10)));
         if (!timeout) throw std::system_error(timeout.error(), "Temporisation Ivy");
         std::cout << "Récepteur prêt sur Ivy (" << domain
                   << ", attente de 10 secondes)" << std::endl;
-        // Traite messages et timer sur ce thread, jusqu'à link.stop().
+        // Traite messages et timer sur ce thread, jusqu'à link.close().
         // subscription et timeout restent vivants pendant tout run().
         link.run();
         if (!received) std::cerr << "Aucune altitude reçue\n";
@@ -1457,10 +1468,17 @@ La fonction `receive()` utilise `subscribeMessage()`. Son callback reçoit
 l'expéditeur dans `sender`. Conservez `subscription` pendant toute la durée
 souhaitée de l'abonnement : sa destruction désabonne le callback.
 
-`link.run()` traite les événements sur le thread appelant. Le callback arrête
-cette boucle après la première altitude ; le timer l'arrête aussi si aucun
-message n'arrive pendant dix secondes. Son jeton reste vivant dans `timeout`
-pendant toute l'attente.
+`link.run()` traite les événements sur le thread appelant. Le callback appelle
+`close()` après la première altitude ; le timer fait de même si aucun message
+n'arrive pendant dix secondes. Cet appel termine la session et demande le retour
+de `run()`. Le jeton du timer reste vivant dans `timeout` pendant toute l'attente.
+
+Pour une pause temporaire des abonnements enregistrés avec `bind()`, utilisez
+`stop()`, puis `start()` pour reprendre avec les mêmes bindings. Pendant cette
+pause, les abonnements natifs `subscribeMessage()` et les requêtes restent
+actifs, ainsi que les envois et les timers : la boucle Ivy continue de tourner.
+`close()` termine la session définitivement ; pour en ouvrir une autre, créez
+un nouvel `IvyLink`. Ces deux méthodes peuvent être appelées depuis un callback.
 
 La fonction `emit()` construit le message et fournit l'altitude en mètres SI.
 Le paramètre `true` du constructeur démarre une boucle Ivy sur un thread
@@ -1847,6 +1865,9 @@ physiques ne changent pas simultanément : une erreur peut laisser des réglages
 partiellement appliqués, mais bloque l'état prêt et tous les envois de messages.
 Corrigez la cause, puis relancez l'initialisation. Aucun `ATWR` supplémentaire
 n'est émis pour sauvegarder ces réglages `D6`/`D7`.
+Une initialisation ultérieure qui change le débit peut toutefois enregistrer
+les réglages laissés par la session précédente : `ATWR` sauvegarde tous les
+paramètres courants, avant d'appliquer la nouvelle configuration de session.
 Si vous omettez complètement l'initialisation avec un modem déjà configuré,
 la bibliothèque ne peut pas vérifier cette cohérence.
 
@@ -2084,10 +2105,21 @@ valeur 0 désactive la réponse de statut. Le transport ne gère pas les
 réessais applicatifs ; définir un délai et décider d'une retransmission
 relèvent du programme utilisateur.
 
-`sendMessageWithId()` déduit actuellement la destination radio du destinataire
-PPRZLINK ; cette méthode ne prend pas d'`XbeeAddress` séparée.
-`sendMessageTo()` accepte une adresse radio indépendante et attribue son ID
-automatiquement. Ces deux capacités ne sont pas réunies dans une même surcharge.
+`sendMessageWithId()` déduit la destination radio du destinataire PPRZLINK.
+Pour choisir aussi une adresse radio indépendante, utilisez `sendMessageToWithId()` :
+
+```cpp
+const auto radio = pprzlink::XbeeAddress::ieee(0x0013a200405291ab);
+// L'application réserve l'identifiant 42 jusqu'au statut ou à son propre délai.
+transport.sendMessageToWithId(message, radio, 42);
+// ID nul et désactivation des ACK sont deux choix indépendants.
+transport.sendMessageToWithId(message, radio, 0, pprzlink::RadioRetries::Disabled);
+```
+
+Le destinataire dans l'en-tête PPRZLINK reste inchangé. Le choix de réessais
+par défaut est `RadioRetries::Enabled`. Les adresses `network()` conviennent
+au mode legacy ; le mode `Series868` requiert `ieee()`.
+`sendMessageTo()` reste disponible lorsque l'ID doit être attribué automatiquement.
 
 L'identifiant radio n'est ni l'identifiant XML du message ni un compteur
 illimité. Le compteur automatique peut boucler ; il ne réserve pas les
@@ -2238,8 +2270,20 @@ ne modifie pas ce paramètre. Voir [RR dans la documentation Digi](https://docs.
 Les statuts TX restent demandés et leurs identifiants sont suivis aussi pour
 les broadcasts. Un statut absent expire après cinq secondes sans réémission
 automatique ; un statut « OK » sans ACK ne prouve pas la réception distante.
+Lorsque les 255 identifiants sont occupés, un nouvel envoi est refusé avec un
+diagnostic sur stderr. L'agent poursuit son fonctionnement et garde les
+échéances des transmissions en cours, même si de nouvelles commandes arrivent.
+L'envoi refusé n'est pas mis en file ; les envois suivants peuvent reprendre
+dès qu'un statut ou une expiration libère un identifiant. Un PING refusé ne
+démarre aucune nouvelle mesure RTT ; le timer des PING périodiques reste actif.
 La bibliothèque seule ne crée aucune réémission côté PC : cette politique
 supplémentaire appartient à l'agent `link++`.
+
+En mode UDP, une commande diffusée est normalement envoyée à chaque avion
+vivant. Avec `-udp_broadcast`, `link++` émet un seul datagramme vers
+`-udp_broadcast_addr` et `-udp_uplink_port`, dès lors qu'au moins un avion est
+vivant. Découvrir plusieurs avions ne multiplie pas ce broadcast réseau ;
+sans avion vivant, aucun datagramme n'est émis.
 
 ## 11. Construire un outil générique ou un adaptateur
 

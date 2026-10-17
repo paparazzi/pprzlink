@@ -4,6 +4,13 @@ The C++23 library loads PPRZLINK v2 message definitions from XML at runtime.
 It provides codecs, reactive reception, serial/UDP transports, an optional
 Ivy adapter and the `link++` ground agent.
 
+All receivers share `bind()`, `start()` and `stop()`. On `IvyLink`, `stop()`
+pauses reactive bindings while the bus remains active; use `close()` to end
+the session and return from `run()`. Both Ivy codecs preserve explicit
+floating-point NaN/infinity values, including unavailable camera temperatures.
+XBee callers can combine an explicit radio destination and frame ID through
+`sendMessageToWithId()`; application retries remain the caller's responsibility.
+
 ## Documentation
 
 The manuals are maintained centrally in [`doc/cpp`](../../../doc/cpp/index.rst):
@@ -23,6 +30,10 @@ Boost 1.83+. Ivy support also needs Ivy 3.18+ with its native `ivy-cpp` wrapper
 and pkg-config. Use the matching system `libstdc++` at runtime: the installed
 Ivy wrapper can require symbols absent from an older runtime. Unit conversions
 use an internal table and require no additional unit library.
+
+Value and codec headers share `<pprzlink/BytesBuffer.h>` without pulling in
+`Device.h` or its Asio APIs. The `core` CMake component also contains reactive
+reception and `MemoryDevice`, so it still requires Boost headers and threads.
 
 After an OS or toolchain upgrade, configure a fresh build directory and rebuild
 the library and its applications together. Existing CMake caches and binaries

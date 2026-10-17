@@ -39,7 +39,8 @@ uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
    pas la valeur déjà présente. Les lectures `getField<T>()` restent strictes ;
    `getFieldAs<T>()` demande explicitement une conversion numérique scalaire contrôlée.
 2. `bind()` conserve un abonnement qui reçoit un message et ses métadonnées
-   facultatives. `start()` active la réception réactive et `stop()` l'annule.
+   facultatives. `start()` active la réception réactive et `stop()` la met en
+   pause. Pour Ivy, `close()` termine la session et fait sortir de `run()`.
    Les méthodes de réception des transports par polling ont été retirées.
 3. `subscribeMessage()` et `subscribeSender()` retournent directement
    `ivy::Subscription`. L'appelant conserve le jeton ; sa destruction désabonne.
@@ -372,6 +373,13 @@ lectures de ce récepteur, sans arrêter le contexte Asio partagé. `start()` pe
 le réactiver, en conservant les abonnements. Les callbacks d'un récepteur sont
 sérialisés, y compris lorsque plusieurs threads exécutent le contexte.
 
+Pour `IvyLink`, cette pause concerne les abonnements de `Receiver::bind()`.
+Le bus, ses timers, les envois et les abonnements `subscribeMessage()`,
+`subscribeSender()` ou requête/réponse continuent de fonctionner. `start()`
+réactive les abonnements réactifs conservés. `close()` termine définitivement
+la session Ivy et demande la sortie de `run()` ; une nouvelle session demande
+un nouvel `IvyLink`. Ces opérations peuvent être appelées depuis un callback.
+
 Les références de message/métadonnées et les `span`/`string_view` empruntés sont
 valables pendant le callback. Copiez un `Message` et/ou `ReceiveInfo` pour les
 conserver ; recréez les vues à partir de la copie. Une lambda peut envoyer une
@@ -406,6 +414,23 @@ d'un même datagramme gardent sa source ; les trames incomplètes sont abandonn�
 L'exemple [WorkshopUdp.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopUdp.cpp) propose
 les modes `both`, `emitter` et `receiver` de l'atelier.
 
+Avec XBee, l'adresse radio, l'identifiant PPRZLINK du destinataire, le frame ID
+de suivi et le choix des ACK/retries radio sont indépendants. Pour imposer
+ensemble l'adresse et le frame ID :
+
+```cpp
+radio.sendMessageToWithId(message, pprzlink::XbeeAddress::network(0x0100), 7,
+                          pprzlink::RadioRetries::Enabled);
+```
+
+`sendMessageTo()` choisit lui-même le frame ID ; `sendMessageWithId()` conserve
+le choix de destination fondé sur le message. Un frame ID explicite ne doit
+pas être réutilisé pour un autre message tant que son statut est attendu ;
+zéro supprime la réponse de statut. Un envoi écrit une trame complète ou lève
+une exception. Le suivi des statuts, les délais et les éventuelles nouvelles
+tentatives applicatives restent à la charge de l'appelant ; `RadioRetries`
+sélectionne uniquement les ACK/retries effectués par le modem.
+
 ## Ivy : utiliser la propriété déjà fournie par Ivy C++
 
 `IvyLink::sendMessage()` transmet le texte produit par `serializeMessage()`.
@@ -418,6 +443,14 @@ Le codec écrit directement depuis un tampon local sans flux temporaire par
 champ ; le parseur évite les copies pour les nombres sans séparateurs `_`.
 Le codec `serializeLegacyMessage()` garde son contrat distinct de formatage
 OCaml/XML, notamment les précisions explicitement demandées dans le XML.
+
+Les deux parseurs acceptent aussi `nan` et `inf`, avec signe optionnel et
+leurs variantes majuscules `NAN`/`INF`, pour les scalaires et tableaux `float`
+ou `double`. Les températures non mesurées de `CAMERA_SNAPSHOT_DL` peuvent
+ainsi traverser le relais Ivy de `link++`. Le texte conserve le sens de NaN
+et le signe des infinis ; les bits de charge utile d'un NaN ne sont pas
+préservés. Les champs entiers refusent toujours les valeurs non finies, et
+un nombre tel que `1e1000` reste un dépassement rejeté.
 
 ```cpp
 auto subscription = link.subscribeMessage("CLIENT_ALTITUDE",
@@ -440,11 +473,15 @@ mises à jour sur son propre thread. Ces abonnements natifs restent disponibles 
 la façade commune `bind()` conserve ses propres identifiants et filtres dans le
 récepteur et les alimente depuis une souscription Ivy native.
 
+Un récepteur qui doit quitter `link.run()` après son dernier message appelle
+`link.close()` dans son callback. `link.stop()` suspend seulement les
+abonnements réactifs `bind()` et laisse la boucle Ivy active.
+
 ## Dépendances choisies par le client
 
 | Composant CMake | Contenu |
 | --- | --- |
-| `pprzlink::core` | XML, messages, conversions SI affines, codecs, framing PPRZ/XBee et interface abstraite Device. TinyXML2 et en-têtes Boost ; aucune dépendance Ivy. |
+| `pprzlink::core` | XML, messages, conversions SI affines, codecs, framing PPRZ/XBee, réception réactive, `MemoryDevice` et interface abstraite `Device`. TinyXML2, en-têtes Boost et threads ; aucune dépendance Ivy. |
 | `pprzlink::io` | Série Boost.Asio, fichiers POSIX et UDP ; dépend de `core` et des threads. |
 | `pprzlink::ivy` | IvyLink ; dépend de `core`, Ivy C++ et des threads. |
 
@@ -452,6 +489,11 @@ Les composants sont des archives statiques construites avec PIC. Les cibles
 historiques `pprzlink++` et `pprzlink++_static` restent respectivement partagée
 et statique. Ne pas mélanger les cibles agrégées et les composants dans un même
 client ; choisir l'une des deux interfaces de construction.
+
+Le type `BytesBuffer` est déclaré dans `<pprzlink/BytesBuffer.h>`, indépendamment
+des périphériques et de leurs exécuteurs. Les en-têtes de valeurs et de codecs
+n'incluent plus `Device.h` ni les API Asio par ce chemin. La cible CMake `core`
+contient toujours les mécanismes de réception et dépend des en-têtes Boost.
 
 ```cmake
 find_package(pprzlink++ CONFIG REQUIRED COMPONENTS io)
@@ -573,6 +615,16 @@ cmake --build /tmp/pprzlink-client-build
 `-DCLIENTS_WITH_IVY=OFF` construit les trois clients série/UDP sans rechercher
 Ivy. Le standard C++23 et les dépendances transitives proviennent des cibles
 installées ; le projet client ne les redéclare pas.
+
+## Validation du 17 octobre 2026
+
+La reconstruction sous Ubuntu 26.04 avec GCC 15.2 et Boost 1.90 réussit :
+**31/31 tests passent**. Les régressions couvrent notamment la pause/reprise
+Ivy, les flottants non finis des codecs et le routage du catalogue réel,
+ainsi que les envois XBee à adresse et frame ID explicites.
+Les résultats comparatifs OCaml cités ci-dessous restent historiques :
+l'application OCaml de référence n'a pas été reconstruite avec OCaml 5.4
+pour cette validation.
 
 ## Validation du remplissage multiple
 
