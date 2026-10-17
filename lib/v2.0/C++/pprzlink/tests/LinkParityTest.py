@@ -566,6 +566,44 @@ def udp_broadcast_once(harness):
             require(not select.select([receiver], [], [], .1)[0], 'Revival duplicated a broadcast')
 
 
+def radio_saturation(harness):
+    """An occupied XBee ID table must not terminate the periodic PING task."""
+    wire = SerialWire(xbee=True)
+    try:
+        options = ['-transport', 'xbee', '-ping_period', '250', '-status_period', '50', '-ac_timeout', '0']
+        with harness.session(options, wire) as (agent, peer):
+            # Fill the table before discovering an aircraft, so periodic PINGs
+            # cannot consume IDs during fixture setup. Local TX statuses are
+            # deliberately withheld, including for these radio broadcasts.
+            for _ in range(255):
+                peer.send('ground LINK_BROADCAST -123')
+            frames = []
+            for _ in range(255):
+                frame = wire.frame(1)
+                require(frame is not None, 'Could not fill the XBee ID table')
+                frames.append(frame)
+            require(len({frame[1] for frame in frames}) == 255, 'An outstanding XBee ID was reused')
+            wire.inject(telemetry())
+            peer.wait(lambda text: text == '42 LINK_TEST 7 1.25')
+            peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and int(text.split()[11]) >= 1)
+            require(wire.frame(.05) is None, 'A saturated PING overwrote an outstanding transmission')
+            require(agent.process.poll() is None, 'Saturation stopped the link agent')
+            wire.inject(bytes([42, 0, 1, 5]))
+            report = peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and text.split()[7] == '2')
+            require(report.split()[12] == '9999.00', 'A suppressed PING created a pending RTT measurement')
+
+            released = frames[0][1]
+            os.write(wire.master, api(bytes([0x89, released, 0])))
+            ping = wire.frame(.8)
+            require(ping is not None and ping[1] == released and ping[5:] == bytes([0, 42, 2, 8]),
+                    'Periodic PING did not resume with the released ID')
+            wire.inject(bytes([42, 0, 1, 5]))
+            peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and
+                      text.split()[7] == '3' and 0 <= float(text.split()[12]) < 500)
+    finally:
+        wire.close()
+
+
 def radio(harness, extended=False):
     wire = SerialWire(xbee=True, extended=extended)
     try:
@@ -709,6 +747,8 @@ def main():
                     ping_measurement(harness)
                 if label == 'cpp' and name == 'udp_broadcast':
                     udp_broadcast_once(harness)
+                if label == 'cpp' and name == 'xbee':
+                    radio_saturation(harness)
         if args.ocaml:
             for name, actual in results['cpp'].items():
                 expected = results['ocaml'][name]

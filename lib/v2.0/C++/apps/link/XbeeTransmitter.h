@@ -13,9 +13,11 @@ namespace link_app {
   class XbeeTransmitter {
   public:
     using Clock = std::chrono::steady_clock;
+    enum class SendResult { Sent, NotReady, Saturated };
     XbeeTransmitter(pprzlink::XbeeTransport &transport, int maximumAttempts);
-    /// Return false when initialization suppresses the send.
-    bool send(const pprzlink::Message &message, Clock::time_point now = Clock::now());
+    /// Suppressed sends are not queued; initialization or ID saturation can recover later.
+    /// Device write errors still propagate to the caller.
+    SendResult send(const pprzlink::Message &message, Clock::time_point now = Clock::now());
     void status(const pprzlink::XbeeTransport::TransmitStatus &status, Clock::time_point now = Clock::now());
     std::optional<Clock::time_point> nextDeadline() const;
     void poll(Clock::time_point now = Clock::now());

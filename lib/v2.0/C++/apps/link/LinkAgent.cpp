@@ -191,9 +191,13 @@ namespace link_app {
   bool LinkAgent::sendRadio(const pprzlink::Message &message)
   {
     if (xbee) {
-      const bool sent = xbee->send(message);
-      scheduleTransmission();
-      return sent;
+      const auto result = xbee->send(message);
+      // A skipped send does not change deadlines; keep the expiry timer armed
+      // even while new commands arrive continuously at a saturated transmitter.
+      if (result == XbeeTransmitter::SendResult::Sent) scheduleTransmission();
+      if (result == XbeeTransmitter::SendResult::Saturated)
+        std::cerr << "XBee send skipped: all frame IDs are awaiting a transmit status\n";
+      return result == XbeeTransmitter::SendResult::Sent;
     }
     transport->sendMessage(message);
     return true;

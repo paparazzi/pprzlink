@@ -5,8 +5,10 @@
 #include "XbeeTransmitter.h"
 #include <pprzlink/PprzTransport.h>
 #include <iostream>
+#include <system_error>
 
 using namespace std::chrono_literals;
+using SendResult = link_app::XbeeTransmitter::SendResult;
 
 namespace {
   void testRoundTripTime()
@@ -56,7 +58,8 @@ namespace {
     link_app::XbeeTransmitter sender(radio, 3);
     pprzlink::Message ping(dictionary.getDefinition("PING"));
     ping.setReceiverId(42);
-    require(!sender.send(ping), "A radio still initializing reports that no PING was sent");
+    require(sender.send(ping) == SendResult::NotReady,
+            "A radio still initializing reports that no PING was sent");
     require(wire.outgoing.empty() && !sender.nextDeadline(), "A suppressed PING writes nothing and cannot retry");
   }
 
@@ -120,6 +123,69 @@ namespace {
       }
     }
   }
+
+  void testSaturationRecovery()
+  {
+    tinyxml2::XMLDocument xml;
+    xml.Parse("<protocol><msg_class name='datalink' id='2'><message name='PING' id='8'/></msg_class></protocol>");
+    pprzlink::MessageDictionary dictionary(xml.RootElement());
+    auto device = std::make_unique<MemoryDevice>();
+    auto &wire = *device;
+    pprzlink::XbeeTransport radio(std::move(device), dictionary);
+    link_app::XbeeTransmitter sender(radio, 2);
+    pprzlink::Message ping(dictionary.getDefinition("PING"));
+    ping.setReceiverId(42);
+    const auto start = link_app::XbeeTransmitter::Clock::now();
+    for (int id = 1; id <= 255; ++id) {
+      require(sender.send(ping, start) == SendResult::Sent, "All 255 IDs are initially available");
+      require(wire.outgoing[4] == id, "An outstanding ID must not be overwritten");
+    }
+    wire.outgoing.clear();
+    require(sender.send(ping, start) == SendResult::Saturated, "Saturation is a recoverable send result");
+    require(wire.outgoing.empty(), "A saturated send writes nothing");
+    require(sender.nextDeadline() == start + 5s, "Saturation preserves the expiry deadline");
+
+    sender.status({42, 0}, start + 1s);
+    require(sender.send(ping, start + 1s) == SendResult::Sent, "A status makes an ID available again");
+    require(wire.outgoing[4] == 42, "Only the released ID may be reused");
+    wire.outgoing.clear();
+    require(sender.send(ping, start + 1s) == SendResult::Saturated, "The reused ID is reserved again");
+    sender.poll(start + 5s);
+    require(wire.outgoing.empty(), "Expiry never resends a command with an unknown delivery outcome");
+    require(sender.nextDeadline() == start + 6s, "The newer transmission retains its own expiry");
+    require(sender.send(ping, start + 5s) == SendResult::Sent, "Expired IDs allow subsequent sends");
+    require(wire.outgoing[4] != 42, "A still-outstanding ID remains reserved after other IDs expire");
+  }
+
+  void testWriteFailures()
+  {
+    class FailingDevice : public MemoryDevice {
+    public:
+      bool fail = true;
+      void writeBuffer(const pprzlink::BytesBuffer &bytes) override
+      {
+        if (fail) throw std::system_error(std::make_error_code(std::errc::io_error));
+        MemoryDevice::writeBuffer(bytes);
+      }
+    };
+    tinyxml2::XMLDocument xml;
+    xml.Parse("<protocol><msg_class name='datalink' id='2'><message name='PING' id='8'/></msg_class></protocol>");
+    pprzlink::MessageDictionary dictionary(xml.RootElement());
+    auto device = std::make_unique<FailingDevice>();
+    auto &wire = *device;
+    pprzlink::XbeeTransport radio(std::move(device), dictionary);
+    link_app::XbeeTransmitter sender(radio, 2);
+    pprzlink::Message ping(dictionary.getDefinition("PING"));
+    ping.setReceiverId(42);
+    const auto start = link_app::XbeeTransmitter::Clock::now();
+    expectException<std::system_error>([&] { sender.send(ping, start); });
+    require(!sender.nextDeadline(), "A failed write does not become a pending transmission");
+    wire.fail = false;
+    require(sender.send(ping, start) == SendResult::Sent, "A later successful write is tracked");
+    sender.status({wire.outgoing[4], 1}, start);
+    wire.fail = true;
+    expectException<std::system_error>([&] { sender.poll(start + 250ms); });
+  }
 }
 
 int main()
@@ -128,6 +194,8 @@ int main()
     testRoundTripTime();
     testUnreadyRadio();
     testRoutedDestinations();
+    testSaturationRecovery();
+    testWriteFailures();
     link_app::AircraftRegistry registry;
     const auto receivedAt = link_app::AircraftRegistry::TimePoint{} + 1s;
     require(!registry.isLive(42, 0), "Disabling expiry must not make unknown aircraft live");
@@ -152,7 +220,7 @@ int main()
     pprzlink::Message ping(dictionary.getDefinition("PING"));
     ping.setReceiverId(42);
     const auto start = link_app::XbeeTransmitter::Clock::now();
-    require(sender.send(ping, start), "A ready radio accepts the PING");
+    require(sender.send(ping, start) == SendResult::Sent, "A ready radio accepts the PING");
     const auto original = wire.outgoing;
     sender.status({1, 1}, start);
     sender.status({1, 1}, start); // A duplicated failure does not consume a second attempt.
@@ -163,11 +231,6 @@ int main()
     wire.outgoing.clear();
     sender.poll(start + 1s);
     require(wire.outgoing.empty(), "Configured retry limit must be enforced");
-    for (int i = 0; i < 255; ++i) sender.send(ping, start);
-    expectException<std::runtime_error>([&] { sender.send(ping, start); });
-    sender.status({42, 0}, start);
-    sender.send(ping, start);
-    require(wire.outgoing[4] == 42, "Only released IDs may be reused");
     return 0;
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }
