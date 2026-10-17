@@ -532,6 +532,40 @@ def udp_broadcast(harness):
             return received.hex()
 
 
+def udp_broadcast_once(harness):
+    """C++ sends one network broadcast, even when several aircraft are known."""
+    downlink, uplink = free_port(), free_port()
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
+        receiver.bind(('0.0.0.0', uplink))
+        receiver.settimeout(1)
+        options = ['-udp_port', str(downlink), '-udp_uplink_port', str(uplink),
+                   '-udp_broadcast', '-udp_broadcast_addr', '127.255.255.255',
+                   '-status_period', '60', '-ac_timeout', '500']
+        with harness.session(options, udp=True) as (_, peer):
+            peer.send('ground LINK_BROADCAST -123')
+            require(not select.select([receiver], [], [], .08)[0],
+                    'An empty aircraft registry must not create a broadcast destination')
+            for aircraft in [42, 43]:
+                receiver.sendto(pprz(telemetry(aircraft)), ('127.0.0.1', downlink))
+                peer.wait(lambda text: text == f'{aircraft} LINK_TEST 7 1.25')
+            peer.send('ground LINK_BROADCAST -123')
+            expected = pprz(bytes([0, 255, 2, 44]) + struct.pack('<h', -123))
+            require(receiver.recv(65536) == expected, 'Missing network broadcast')
+            require(not select.select([receiver], [], [], .1)[0],
+                    'One Ivy broadcast was sent multiple times to the same UDP destination')
+            peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and int(text.split()[5]) >= 1)
+            peer.send('ground LINK_BROADCAST -123')
+            require(not select.select([receiver], [], [], .08)[0],
+                    'Expired aircraft must not create a broadcast destination')
+            # Only the second map entry is alive: the broadcast search must skip
+            # the expired first entry and still send exactly once.
+            receiver.sendto(pprz(telemetry(43, value=2)), ('127.0.0.1', downlink))
+            peer.wait(lambda text: text == '43 LINK_TEST 7 2.00')
+            peer.send('ground LINK_BROADCAST -123')
+            require(receiver.recv(65536) == expected, 'No broadcast after the second aircraft revived')
+            require(not select.select([receiver], [], [], .1)[0], 'Revival duplicated a broadcast')
+
+
 def radio(harness, extended=False):
     wire = SerialWire(xbee=True, extended=extended)
     try:
@@ -673,6 +707,8 @@ def main():
                     require(results[label][name]['recovers'], 'Invalid input stopped the C++ Ivy loop')
                 if label == 'cpp' and name == 'ping':
                     ping_measurement(harness)
+                if label == 'cpp' and name == 'udp_broadcast':
+                    udp_broadcast_once(harness)
         if args.ocaml:
             for name, actual in results['cpp'].items():
                 expected = results['ocaml'][name]

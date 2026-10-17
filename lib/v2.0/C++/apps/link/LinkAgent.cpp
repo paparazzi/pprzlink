@@ -182,6 +182,8 @@ namespace link_app {
         destination.port = static_cast<uint16_t>(options.udpUplinkPort);
         if (options.udpBroadcast) destination.address = options.broadcastAddress;
         udp->sendMessage(message, destination);
+        // One network broadcast reaches every live aircraft on this endpoint.
+        if (options.udpBroadcast) break;
       }
     } else sendRadio(message);
   }
