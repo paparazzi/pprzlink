@@ -62,7 +62,7 @@ set(CORE_SOURCES
     pprzlink/XbeeTransport.cpp pprzlink/XbeeModem.cpp)
 set(IO_SOURCES pprzlink/BoostSerialPortDevice.cpp pprzlink/UdpTransport.cpp)
 set(PUBLIC_HEADERS
-    pprzlink/Device.h pprzlink/MemoryDevice.h pprzlink/FieldValue.h pprzlink/BinaryCodec.h pprzlink/TextCodec.h
+    pprzlink/BytesBuffer.h pprzlink/Device.h pprzlink/MemoryDevice.h pprzlink/FieldValue.h pprzlink/BinaryCodec.h pprzlink/TextCodec.h
     pprzlink/IvyMessageCodec.h pprzlink/Message.h pprzlink/MessageDefinition.h
     pprzlink/MessageDictionary.h pprzlink/MessageField.h pprzlink/MessageFieldTypes.h pprzlink/RadioRetries.h
     pprzlink/PprzTransport.h pprzlink/PprzFrameCodec.h pprzlink/TransportStatistics.h

@@ -29,7 +29,7 @@
 #define PPRZLINKCPP_FIELDVALUE_H
 
 #include <pprzlink/MessageField.h>
-#include <pprzlink/Device.h>
+#include <pprzlink/BytesBuffer.h>
 #include <pprzlink/detail/CheckedNumber.h>
 #include <algorithm>
 #include <array>

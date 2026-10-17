@@ -28,9 +28,9 @@
 #ifndef PPRZLINKCPP_DEVICE_H
 #define PPRZLINKCPP_DEVICE_H
 
+#include <pprzlink/BytesBuffer.h>
 #include <cstdint>
 #include <cstddef>
-#include <vector>
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/system/system_error.hpp>
@@ -39,10 +39,6 @@
 #include <stdexcept>
 
 namespace pprzlink {
-
-  /// @brief Owned sequence of raw bytes used by devices and codecs.
-  /// @ingroup transports
-  using BytesBuffer = std::vector<uint8_t>;
 
   /// Byte stream used by a transport. Implementations define their threading contract.
   /// @ingroup transports
