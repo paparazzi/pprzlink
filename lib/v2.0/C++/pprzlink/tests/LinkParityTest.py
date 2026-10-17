@@ -7,6 +7,7 @@ Timing-dependent report fields are checked by bounds, not by byte equality.
 import argparse
 from contextlib import contextmanager
 import json
+import math
 import os
 from pathlib import Path
 import pty
@@ -621,6 +622,20 @@ def production_xml(harness):
             peer.wait(lambda line: line == '42 PONG')
             peer.send('ground SETTING 3 42 2.5')
             require(wire.frame() == expected, 'Real messages.xml routing differs')
+            camera = datalink_class.find("message[@name='CAMERA_SNAPSHOT_DL']")
+            require([(field.get('name'), field.get('type')) for field in camera.findall('field')] ==
+                    [('camera_id', 'uint16'), ('snapshot_image_number', 'uint16'), ('camera_state', 'uint8'),
+                     ('snapshot_valid', 'uint8'), ('array_temp', 'float'), ('lens_temp', 'float'), ('ac_id', 'uint8')],
+                    'Camera snapshot schema changed; update the missing-temperature scenario')
+            peer.send('payload CAMERA_SNAPSHOT_DL 7 12 1 1 nan nan 42')
+            snapshot = wire.frame()
+            require(snapshot is not None and len(snapshot) == 19 and
+                    snapshot[:4] == bytes([0, 42, int(datalink_class.get('id')), int(camera.get('id'))]),
+                    'The production camera command with unavailable temperatures was not forwarded')
+            camera_id, number, state, valid, array_temp, lens_temp, aircraft = struct.unpack('<HHBBffB', snapshot[4:])
+            require((camera_id, number, state, valid, aircraft) == (7, 12, 1, 1, 42) and
+                    math.isnan(array_temp) and math.isnan(lens_temp),
+                    'Camera command fields or NaN temperatures changed on the wire')
             return expected.hex()
     finally:
         wire.close()

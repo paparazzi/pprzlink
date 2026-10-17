@@ -50,6 +50,8 @@ namespace pprzlink::ivy_codec {
   /// Sender, message name and fields in Ivy wire format.
   /// Numeric text is locale-independent; finite floats use shortest round-trippable
   /// representations, including scientific notation when shorter.
+  /// Floating-point NaN/infinity values use explicit text tokens; NaN payload bits
+  /// are not preserved by text serialization.
   /// @param[in] message Populated message; fields are emitted in XML order.
   /// @return Text containing sender, name and field values, without a newline.
   /// @throws std::exception A declared field has no value or a formatting operation fails.
@@ -69,11 +71,13 @@ namespace pprzlink::ivy_codec {
   Message parseLegacyMessageBody(const MessageDefinition &definition, std::string_view sender,
                                 std::string_view body);
   /// Decode captures supplied by a dynamic Ivy binding.
+  /// Float/double scalars and arrays accept nan/inf, optional signs and uppercase
+  /// NAN/INF. Integer fields reject these tokens; numeric overflow remains an error.
   /// @param[in] definition Expected schema copied into the result.
   /// @param[in] sender Sender capture; optional outer double quotes are removed.
   /// @param[in] fields One capture per XML field, in schema order.
   /// @return Populated message with a string sender identifier.
-  /// @throws std::exception Bad arity, types, counts or out-of-range/non-finite text numbers.
+  /// @throws std::exception Bad arity, types, counts or invalid/out-of-range text numbers.
   Message parseFields(const MessageDefinition &definition, std::string_view sender,
                       std::span<const std::string_view> fields);
   /// Match and decode a message body (name and fields, without sender).

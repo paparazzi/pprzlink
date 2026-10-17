@@ -22,7 +22,7 @@
  * @brief Ivy regular expressions and checked field parsing.
  * @ingroup codecs
  *
- * XML types determine capture arity. Numeric parsing checks ranges and rejects non-finite text values; fixed array lengths are checked by FieldValue.
+ * XML types determine capture arity. Numeric parsing checks ranges while preserving explicit floating-point NaN/infinity tokens; fixed array lengths are checked by FieldValue.
  */
 
 #include "IvyMessageCodec.h"
@@ -61,8 +61,8 @@ namespace pprzlink::ivy_codec {
     /// @brief Parse one complete checked numeric token, including legacy separators/bases.
     /// @tparam T Exact XML-selected arithmetic destination type.
     /// @param[in] text Complete token; integer prefixes 0x/0o/0b and underscore separators are supported.
-    /// @return A value within T's range; floating-point text must be finite.
-    /// @throws wrong_message_format Syntax, signedness, bounds or finite-number validation fails.
+    /// @return A value within T's range, or an explicitly spelled floating-point NaN/infinity.
+    /// @throws wrong_message_format Syntax, signedness, bounds or special-number validation fails.
     template<class T>
     T parseNumber(std::string_view text)
     {
@@ -107,7 +107,11 @@ namespace pprzlink::ivy_codec {
       }
       if constexpr (std::is_floating_point_v<T>) {
         if (!std::isfinite(value)) {
-          throw wrong_message_format("Non-finite number: " + std::string(original));
+          const auto magnitude = text.starts_with('-') ? text.substr(1) : text;
+          // These are the forms emitted by to_chars and printf, including %F/%E.
+          // Overflow remains an error above; arbitrary NaN payload syntax is not wire text.
+          if (magnitude != "nan" && magnitude != "NAN" && magnitude != "inf" && magnitude != "INF")
+            throw wrong_message_format("Invalid non-finite number: " + std::string(original));
         }
       }
       return value;
@@ -154,8 +158,8 @@ namespace pprzlink::ivy_codec {
       {BaseType::UINT16, "[+]?[0-9]+"},
       {BaseType::UINT32, "[+]?[0-9]+"},
       {BaseType::UINT64, "[+]?[0-9]+"},
-      {BaseType::FLOAT, R"([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)"},
-      {BaseType::DOUBLE, R"([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)"},
+      {BaseType::FLOAT, R"([+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|nan|NAN|inf|INF))"},
+      {BaseType::DOUBLE, R"([+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|nan|NAN|inf|INF))"},
       {BaseType::STRING, R"((?:"[^"]*"|[^ ]+))"}
     };
     std::ostringstream regexp;
