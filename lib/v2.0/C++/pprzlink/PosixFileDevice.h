@@ -23,6 +23,7 @@ namespace pprzlink {
     /// @param[in] context Execution context that must outlive the device.
     /// @param[in] path File, FIFO or pseudo-terminal path; no serial options are applied.
     /// @throws std::system_error Opening the descriptor fails.
+    /// @throws boost::system::system_error Assigning the descriptor to Asio fails.
     PosixFileDevice(boost::asio::io_context &context, const std::string &path);
     /// @brief Close the owned descriptor.
     ~PosixFileDevice() override;
@@ -33,12 +34,11 @@ namespace pprzlink {
     PosixFileDevice &operator=(const PosixFileDevice &) = delete;
     /// @brief Inspect completed descriptor input without consuming it.
     /// @return Number of bytes ready in the internal input buffer.
-    /// @throws std::system_error A read failure, after buffered data is exhausted.
-    /// @throws std::runtime_error EOF, after buffered data is exhausted.
+    /// @throws boost::system::system_error EOF or a read failure, after buffered data is exhausted.
     size_t availableBytes() override;
     /// @brief Drain input completed by asynchronous descriptor reads.
     /// @return Owned currently available input; empty when no new input is ready.
-    /// @throws std::exception Deferred EOF or read failure after buffered data is exhausted.
+    /// @throws boost::system::system_error Deferred EOF or read failure after buffered data is exhausted.
     BytesBuffer readAll() override;
     /// @brief Complete a descriptor write, waiting up to one second per blocked segment.
     /// @param[in] data Bytes delivered in order; a failure may follow a partial external write.
@@ -50,6 +50,7 @@ namespace pprzlink {
     /// @param[in] callback Readiness observer retained by this device.
     void setReceiveCallback(ReceiveCallback callback) override;
     /// @brief Arm asynchronous descriptor reads on the supplied event loop.
+    /// @throws boost::system::system_error Deferred EOF or read failure after buffered data is exhausted.
     void startReception() override;
     /// @brief Cancel reads without closing the descriptor.
     void stopReception() override;

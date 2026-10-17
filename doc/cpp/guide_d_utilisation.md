@@ -40,14 +40,21 @@ Le parcours est le suivant :
 ### Construire la bibliothèque
 
 La bibliothèque demande C++23, CMake 3.20 ou plus, TinyXML2 et Boost.
-Les conversions SI utilisent une table interne. La plateforme minimale prise en charge par cette branche est Ubuntu 24.04 avec
-GCC 13. Sous Ubuntu 24.04, les dépendances du début de ce guide s'installent
-avec :
+Sous Ubuntu 26.04, utilisez le compilateur natif GCC 15 avec Boost 1.90 et
+TinyXML2 11. Les exigences minimales des sources restent GCC 13 et Boost 1.83 ;
+les anciennes validations Ubuntu 24.04 sont conservées dans la référence.
+Les conversions SI utilisent une table interne. Les dépendances du début de
+ce guide s'installent avec :
 
 ```sh
 # Installe le compilateur C++23, les outils de construction et les dépendances de base.
-sudo apt install git g++-13 cmake libtinyxml2-dev libboost-dev
+sudo apt install git g++ cmake pkg-config libtinyxml2-dev libboost-dev
 ```
+
+Après une mise à niveau du système ou du compilateur, repartez d'un répertoire
+de construction neuf et reconstruisez aussi vos applications. Les anciens caches
+CMake peuvent conserver le compilateur et les versions de dépendances précédents.
+Le répertoire d'atelier ci-dessous permet une construction distincte sous Ubuntu 26.04.
 
 Ivy sera ajouté à l'étape 8. Commencez avec les commandes suivantes **à la
 racine du dépôt pprzlink** :
@@ -55,11 +62,11 @@ racine du dépôt pprzlink** :
 ```sh
 # Repère les sources C++ et choisit le répertoire de travail de l'atelier.
 export PPRZLINK_CPP="$PWD/lib/v2.0/C++"
-export PPRZLINK_ATELIER=/tmp/pprzlink-guide
+export PPRZLINK_ATELIER=/tmp/pprzlink-guide-ubuntu26
 
 # Configure une bibliothèque de débogage, sans Ivy, agent link++ ni tests.
 cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-lib" \
-  -DCMAKE_CXX_COMPILER=g++-13 \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_BUILD_TYPE=Debug \
   -DPPRZLINK_WITH_IVY=OFF \
   -DPPRZLINK_BUILD_LINK=OFF \
@@ -224,8 +231,8 @@ int main(int argc, char **argv)
 Compilez et lancez :
 
 ```sh
-# Configure le projet avec GCC 13 et indique où trouver le SDK installé.
-cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-13 \
+# Configure le projet avec le compilateur système et indique où trouver le SDK installé.
+cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_PREFIX_PATH="$PPRZLINK_ATELIER/sdk"
 # Compile le programme, puis lui fournit le catalogue XML chargé à l'exécution.
 cmake --build build
@@ -1201,14 +1208,14 @@ un répertoire distinct de celui du `make` habituel :
 
 ```sh
 # Configure une construction distincte avec les exemples et l'outil link++.
-cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-pty \
-  -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=Debug \
+cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-pty-ubuntu26 \
+  -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug \
   -DPPRZLINK_BUILD_EXAMPLES=ON -DPPRZLINK_BUILD_LINK=ON -DBUILD_TESTING=OFF
 # Compile uniquement l'outil de gestion de la liaison et l'agent de démonstration.
-cmake --build var/build/pprzlink-pty \
+cmake --build var/build/pprzlink-pty-ubuntu26 \
   --target link++ pty_agent
 # Crée les deux pseudo-terminaux reliés ; relève les noms Port A et Port B affichés.
-./var/build/pprzlink-pty/apps/link/link++ -socat start
+./var/build/pprzlink-pty-ubuntu26/apps/link/link++ -socat start
 ```
 
 Le démarrage affiche **Port A** et **Port B**, par exemple `/dev/pts/12` et
@@ -1217,7 +1224,7 @@ l'identifiant 1 :
 
 ```sh
 # Lance l'agent 1 sur Port A ; remplace /dev/pts/12 par le chemin affiché par start.
-./var/build/pprzlink-pty/pty_agent \
+./var/build/pprzlink-pty-ubuntu26/pty_agent \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
   /dev/pts/12 1
 ```
@@ -1226,7 +1233,7 @@ Dans un second terminal, ouvrez l'autre port avec l'identifiant 2 :
 
 ```sh
 # Lance l'agent 2 sur Port B ; remplace /dev/pts/13 par l'autre chemin affiché.
-./var/build/pprzlink-pty/pty_agent \
+./var/build/pprzlink-pty-ubuntu26/pty_agent \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
   /dev/pts/13 2
 ```
@@ -1249,7 +1256,7 @@ temporaires : utilisez les valeurs réellement affichées par `start`.
 
 ```sh
 # Arrête socat et supprime la liaison virtuelle après l'arrêt des deux agents.
-./var/build/pprzlink-pty/apps/link/link++ -socat stop
+./var/build/pprzlink-pty-ubuntu26/apps/link/link++ -socat stop
 ```
 
 Vous pouvez remplacer `guide_messages.xml` par le `messages.xml` créé à
@@ -1265,14 +1272,14 @@ extrémités. Son troisième argument choisit `c` pour le client demandeur ou
 
 ```sh
 # Compile l'unique exécutable qui contient les deux rôles série.
-cmake --build var/build/pprzlink-pty --target pty_peer
+cmake --build var/build/pprzlink-pty-ubuntu26 --target pty_peer
 ```
 
 Dans le premier terminal :
 
 ```sh
 # Le serveur avion 42 répond sur Port A ; utilise le chemin réellement affiché par socat.
-./var/build/pprzlink-pty/pty_peer \
+./var/build/pprzlink-pty-ubuntu26/pty_peer \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/12 s
 ```
 
@@ -1280,7 +1287,7 @@ Dans le second terminal :
 
 ```sh
 # Le client sol 0 demande une altitude sur Port B et affiche la réponse reçue.
-./var/build/pprzlink-pty/pty_peer \
+./var/build/pprzlink-pty-ubuntu26/pty_peer \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/13 c
 ```
 
@@ -1300,6 +1307,10 @@ appelée lorsqu'un message correspondant arrive.
 Cette branche nécessite Ivy 3.18 ou plus et son interface native C++
 `ivy-cpp`. Le [README](reference.md#build) précise l'installation Ivy utilisée
 pour les validations et la configuration d'un préfixe privé.
+Conservez la `libstdc++` fournie par Ubuntu 26.04 à la compilation et à
+l'exécution : l'interface Ivy installée peut demander des symboles absents d'un
+ancien environnement. GCC 13 reste le minimum pour les sources ; cela ne rend
+pas une interface Ivy précompilée compatible avec toutes les anciennes versions de `libstdc++`.
 
 Une fois ces dépendances installées, vérifiez leur découverte et reconstruisez
 le SDK :
@@ -2125,7 +2136,7 @@ les sources actuelles de pprzlink :
 
 ```sh
 cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-link" \
-  -DCMAKE_CXX_COMPILER=g++-13 \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DPPRZLINK_WITH_IVY=ON \
   -DPPRZLINK_BUILD_LINK=ON \
   -DPPRZLINK_BUILD_EXAMPLES=OFF \
@@ -2138,12 +2149,26 @@ Dans une arborescence Paparazzi, vous pouvez aussi reconstruire le binaire
 utilisé par les outils sol, depuis la racine de Paparazzi :
 
 ```sh
-make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD"
+make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD" \
+  PPRZLINK_CPP_BUILD="$PWD/var/build/pprzlink-cpp-ubuntu26"
 ```
 
 Cette commande reconstruit la bibliothèque et l'agent ensemble à partir du
 sous-module présent, puis copie l'exécutable dans
 `sw/ground_segment/tmtc/link++`.
+Elle utilise le compilateur système par défaut ; `PPRZLINK_CXX` permet de le
+choisir explicitement. Les composants `pprzlink::io` et `pprzlink::ivy` sont liés
+statiquement à l'agent : l'exécutable copié est indépendant du répertoire de
+construction pprzlink. Il utilise encore les bibliothèques partagées système
+Ivy et TinyXML2, ainsi que la bibliothèque d'exécution C++.
+
+Dans `LINK_REPORT`, le temps aller-retour est mesuré avec une horloge monotone.
+Il vaut `9999 ms` avant le premier PONG associé à un PING, puis conserve la
+dernière mesure terminée pendant l'attente des réponses suivantes. Un PONG sans
+PING en attente ne modifie pas cette mesure. L'agent ne crée une attente que
+pour un aéronef encore actif auquel il a envoyé le PING. Le protocole ne contient
+pas de numéro de séquence : un PONG très retardé peut être associé à un PING
+plus récent.
 
 Pour lancer ce binaire depuis la racine de Paparazzi, avec RTS/CTS activé :
 
@@ -2292,6 +2317,15 @@ La lecture `getCTS()` est une capacité optionnelle : son implémentation par
 défaut signale `operation_not_supported`. Un adaptateur qui la propose doit
 renvoyer l'état logique du signal et propager ses erreurs de lecture.
 
+Pour `PosixFileDevice`, un échec d'ouverture POSIX lève `std::system_error` ;
+un échec d'affectation du descripteur à Asio lève
+`boost::system::system_error`. Les erreurs de lecture, y compris la fin de flux
+(EOF), sont signalées après consommation des octets déjà tamponnés par
+`boost::system::system_error`, depuis `availableBytes()`, `readAll()` ou
+`startReception()`. Les erreurs d'écriture ou de `poll()` utilisent
+`std::system_error` ; un délai dépassé ou une indisponibilité terminale
+signalée par `poll()` utilise `std::runtime_error`.
+
 `PprzTransport` et `XbeeTransport` dérivent tous deux de `Transport` : un
 programme peut choisir l'un ou l'autre avec un `std::unique_ptr<Transport>`.
 `UdpTransport` et `IvyLink` ont leurs propres opérations d’envoi, mais les
@@ -2328,6 +2362,11 @@ revanche y être appelé.
 En mode `run()`, une erreur de callback est contrôlée lorsque la boucle rend
 la main. En mode threadé, inspectez aussi `getBus().take_callback_error()`
 pour détecter ces erreurs ; ce résultat suit le contrat d'erreur natif Ivy.
+
+La réception réactive d'`IvyLink`, activée par `start()`, ignore le trafic dont
+le nom de message apparent est absent du dictionnaire. Un message connu dont
+les champs sont malformés reste signalé à `onError()` comme erreur `Decode`.
+Les requêtes et réponses conservent leurs abonnements propres.
 
 ### Séparer le traitement métier de la réception
 
@@ -2434,14 +2473,14 @@ même exécutable dans les deux terminaux :
 
 ```sh
 # Depuis la racine du dépôt Paparazzi, compile le programme UDP avec ses rôles e/r.
-cmake --build var/build/pprzlink-pty --target udp_messages
+cmake --build var/build/pprzlink-pty-ubuntu26 --target udp_messages
 ```
 
 Dans le premier terminal :
 
 ```sh
 # Le rôle r attend un message sur le port UDP local 4242 pendant dix secondes au maximum.
-./var/build/pprzlink-pty/udp_messages \
+./var/build/pprzlink-pty-ubuntu26/udp_messages \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 r
 ```
 
@@ -2449,7 +2488,7 @@ Dans le second terminal :
 
 ```sh
 # Le rôle e remplit tous les champs de CLIENT_SETTING, puis envoie une commande au port 4242.
-./var/build/pprzlink-pty/udp_messages \
+./var/build/pprzlink-pty-ubuntu26/udp_messages \
   sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 e
 ```
 

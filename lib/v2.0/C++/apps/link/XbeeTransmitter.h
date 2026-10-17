@@ -14,7 +14,8 @@ namespace link_app {
   public:
     using Clock = std::chrono::steady_clock;
     XbeeTransmitter(pprzlink::XbeeTransport &transport, int maximumAttempts);
-    void send(const pprzlink::Message &message, Clock::time_point now = Clock::now());
+    /// Return false when initialization suppresses the send.
+    bool send(const pprzlink::Message &message, Clock::time_point now = Clock::now());
     void status(const pprzlink::XbeeTransport::TransmitStatus &status, Clock::time_point now = Clock::now());
     std::optional<Clock::time_point> nextDeadline() const;
     void poll(Clock::time_point now = Clock::now());

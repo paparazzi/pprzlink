@@ -153,6 +153,8 @@ namespace pprzlink {
     /// @throws std::system_error The native loop or a recorded callback error fails.
     void run();
     /// @brief Activate Receiver::bind subscriptions on this bus's event loop.
+    /// Names absent from the dictionary are ignored. Malformed fields of known
+    /// messages are reported through onError() as ReceiveError::Kind::Decode.
     void start() override;
     /// Request stop; safe inside callbacks. Destruction joins the owned thread.
     /// @throws std::system_error The native stop request fails.

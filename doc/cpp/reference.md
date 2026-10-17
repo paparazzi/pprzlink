@@ -4,10 +4,12 @@ The C++ library requires C++23, TinyXML2, Boost 1.83+ (Asio and Bimap) and CMake
 Unit conversion uses an internal affine table and bounded SI-prefix resolution.
 The default build also includes Ivy **3.18 or newer** with its native C++ wrapper
 (`ivy-cpp`) and pkg-config. Set `PPRZLINK_WITH_IVY=OFF` to build without Ivy.
-Ubuntu 24.04 / GCC 13 is the minimum supported platform. The current sources
-have been built and tested with Ubuntu 24.04's GCC 13.3 and official Noble
-dependencies; see [the validation report](validation/VALIDATION_UBUNTU24_GCC13.md).
-Earlier validation also covers GCC 15. Ubuntu 22.04 is no longer targeted.
+On Ubuntu 26.04, use the native GCC 15 toolchain with Boost 1.90 and TinyXML2 11.
+The source minimum remains GCC 13 and Boost 1.83. Earlier validation on Ubuntu
+24.04 used GCC 13.3 and official Noble dependencies; see
+[the validation report](validation/VALIDATION_UBUNTU24_GCC13.md).
+Those reports describe their original environments, rather than the current
+Ubuntu 26.04 installation. Ubuntu 22.04 is no longer targeted.
 For sharing this branch, use [Ivy 3.18.3](https://github.com/alex31/libivy-c/commit/b0bf831702c5bfd1313e83ded62eb14d17198534),
 which includes the cleanup, threading and context-ownership changes validated
 with this library.
@@ -63,14 +65,14 @@ numeric/text parsing, serial cancellation and modem initialization algorithms.
 From the Paparazzi root, generate the HTML and XML reference with Doxygen 1.9.8+:
 
 ```sh
-cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-docs \
-  -DCMAKE_CXX_COMPILER=g++-13 -DPPRZLINK_BUILD_DOCS=ON \
+cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-docs-ubuntu26 \
+  -DCMAKE_CXX_COMPILER=g++ -DPPRZLINK_BUILD_DOCS=ON \
   -DPPRZLINK_WITH_IVY=OFF -DPPRZLINK_BUILD_LINK=OFF \
   -DPPRZLINK_BUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
-cmake --build var/build/pprzlink-docs --target pprzlink_docs
+cmake --build var/build/pprzlink-docs-ubuntu26 --target pprzlink_docs
 ```
 
-Open `var/build/pprzlink-docs/docs/html/index.html`. XML is generated under
+Open `var/build/pprzlink-docs-ubuntu26/docs/html/index.html`. XML is generated under
 `docs/xml` in that build directory. All library `.h`/`.cpp` files are covered,
 including internal helpers and the optional Ivy adapter; tests and applications
 are outside this API reference. Documentation warnings fail the target and are
@@ -88,10 +90,19 @@ Run the following commands from the C++ source directory, `lib/v2.0/C++`:
 # With ivy-c / ivy-c-dev installed, the system pkg-config paths are sufficient.
 pkg-config --modversion ivy-cpp ivy-c
 
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
-ctest --test-dir build --output-on-failure
-cmake --install build --prefix /path/to/install
+cmake -S . -B build-ubuntu26 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-ubuntu26 -j
+ctest --test-dir build-ubuntu26 --output-on-failure
+cmake --install build-ubuntu26 --prefix /path/to/install
+```
+
+After an OS or compiler upgrade, use a fresh build directory, as above, and
+rebuild the library and all its consumers. Do not reuse a CMake cache pointing
+to the previous compiler, Boost or TinyXML2 installation. On Ubuntu 26.04,
+the base development packages are installed with:
+
+```sh
+sudo apt install g++ cmake pkg-config libtinyxml2-dev libboost-dev
 ```
 
 If Ivy is installed in a private prefix, configure its paths before building
@@ -104,9 +115,13 @@ export LD_LIBRARY_PATH="$IVY_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
 
 The build rejects Ivy versions below 3.18. Ensure pkg-config and the runtime
-loader select the same installation. Rebuild the Ivy C++ wrapper with the
-application's compiler when switching toolchains: the GCC 13 and GCC 16 checks
-required matching builds, as recorded in the comparison report.
+loader select the same installation. The installed Ivy C++ wrapper may depend
+on a recent `libstdc++`; keep the system runtime supplied with Ubuntu 26.04
+when building and running these programs. The source minimum GCC 13 does not
+guarantee that a prebuilt Ivy wrapper works with an older C++ runtime. Rebuild
+the wrapper with the selected toolchain when changing its compiler or runtime.
+Earlier GCC 13 and GCC 16 checks required matching wrapper builds, as recorded
+in the comparison report.
 Instructions for building the Ivy packages
 are in [Ivy's Debian README](https://github.com/alex31/libivy-c/blob/b0bf831702c5bfd1313e83ded62eb14d17198534/debian/README).
 Validation results and limitations are recorded in
@@ -114,7 +129,8 @@ Validation results and limitations are recorded in
 [VALIDATION_CLANG22.md](validation/VALIDATION_CLANG22.md). Their temporary paths are
 validation logs, not build prerequisites.
 
-To check the minimum compiler explicitly, use a fresh build directory:
+To check source compatibility with the minimum compiler explicitly, use a fresh
+build directory and an Ivy wrapper compatible with that toolchain/runtime:
 
 ```sh
 cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
@@ -216,12 +232,13 @@ See [the usage guide](guide_d_utilisation.md#convertir-explicitement-les-unités
 for executable examples and the [API notes](API_USAGE.md#champs--unités-si-explicites)
 for the complete contract.
 
-The SI implementation was checked with GCC 13.3 and GCC 16.1. The full 25-test
-suite, including serial/UDP/Ivy clients and `link++`, passed with GCC 13.3 and
+Earlier validation checked the SI implementation with GCC 13.3 and GCC 16.1.
+The full 25-test suite, including serial/UDP/Ivy clients and `link++`, passed with GCC 13.3 and
 the installed Ivy 3.18.3 wrapper. GCC 16 SI tests, the Make build without Ivy,
 installed-SDK clients and warning-free Doxygen generation were also checked.
-The system Ivy wrapper must be rebuilt for GCC 16 before using Ivy programs
-with that compiler, as noted above; the mismatched wrapper crashes at bus creation.
+In that validation environment, the system Ivy wrapper had to be rebuilt for
+GCC 16; the mismatched wrapper crashed at bus creation. This is a historical
+result, not a description of the current Ubuntu 26.04 wrapper.
 The unit test uses the real repository XML as well as fixtures covering native
 wire bytes, scoped aliases, Celsius offsets, integer rounding, arrays and failures.
 Installed CMake consumers can use `find_package(pprzlink++ CONFIG REQUIRED)` and
@@ -243,10 +260,10 @@ Defaults match OCaml, including **9600 baud**, uplink enabled, UDP ports
 
 ```sh
 export PAPARAZZI_HOME=/path/to/paparazzi
-./build-gcc13/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport pprz
-./build-gcc13/apps/link/link++ -udp -udp_port 4242 -udp_uplink_port 4243
-./build-gcc13/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport xbee -hfc
-./build-gcc13/apps/link/link++ -help
+./build-ubuntu26/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport pprz
+./build-ubuntu26/apps/link/link++ -udp -udp_port 4242 -udp_uplink_port 4243
+./build-ubuntu26/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport xbee -hfc
+./build-ubuntu26/apps/link/link++ -help
 ```
 
 The message file is `$PPRZLINK_DIR/messages.xml`, otherwise
@@ -260,15 +277,35 @@ tracks known aircraft, sends PING, receives PONG and publishes LINK_REPORT. It
 supports serial PPRZ/XBee, file/FIFO descriptors, UDP with per-aircraft peers,
 traffic output, local timestamps and redundant-link telemetry encapsulation.
 
+The agent links the static `pprzlink::io` and `pprzlink::ivy` components. A copied
+`link++` executable therefore runs independently of the pprzlink build directory;
+it still needs the system Ivy and TinyXML2 shared libraries and the C++ runtime.
+From the Paparazzi root, build and copy it with a fresh Ubuntu 26.04 directory:
+
+```sh
+make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD" \
+  PPRZLINK_CPP_BUILD="$PWD/var/build/pprzlink-cpp-ubuntu26"
+```
+
+The resulting executable is `sw/ground_segment/tmtc/link++`.
+The make target uses the system `g++` by default; `PPRZLINK_CXX` overrides it.
+
+`LINK_REPORT` round-trip time uses a monotonic clock and starts at `9999 ms`
+until the first PONG associated with a pending PING. Reports retain the last
+completed measurement while waiting for subsequent replies; unsolicited PONGs
+do not change it. Only a PING sent to a live aircraft starts or replaces a
+pending measurement. PING/PONG carry no sequence number, so a delayed PONG can
+be associated with a newer PING.
+
 On Linux, `-socat start` creates two connected virtual serial ports using the
 `socat` executable on PATH. It prints **Port A** and **Port B**, then returns to
 the shell. Both ports are bidirectional and interchangeable: each program opens
 one of them. The socat process runs in the background until `-socat stop`:
 
 ```sh
-./build/apps/link/link++ -socat start
-./build/apps/link/link++ -d /dev/pts/N -transport pprz -s 57600
-./build/apps/link/link++ -socat stop
+./build-ubuntu26/apps/link/link++ -socat start
+./build-ubuntu26/apps/link/link++ -d /dev/pts/N -transport pprz -s 57600
+./build-ubuntu26/apps/link/link++ -socat stop
 ```
 
 Replace `/dev/pts/N` with either printed port. These management commands do
@@ -341,11 +378,11 @@ CTest runs the agent's protocol scenarios without hardware. To run the same
 scenarios against a real OCaml reference as well:
 
 ```sh
-cmake -S . -B build-gcc13 \
-  -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
+cmake -S . -B build-ubuntu26 \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DPPRZLINK_OCAML_REFERENCE=/path/to/link_ocaml
-cmake --build build-gcc13 -j4
-ctest --test-dir build-gcc13 --output-on-failure
+cmake --build build-ubuntu26 -j4
+ctest --test-dir build-ubuntu26 --output-on-failure
 ```
 
 [`build_ocaml_reference.py`](../../lib/v2.0/C++/pprzlink/tests/build_ocaml_reference.py) builds an
@@ -366,8 +403,8 @@ directory (`lib/v2.0/C++`),
 after configuring the dependencies as above:
 
 ```sh
-cmake --build build --target ivy_round_trip
-./build/ivy_round_trip pprzlink/examples/messages.xml
+cmake --build build-ubuntu26 --target ivy_round_trip
+./build-ubuntu26/ivy_round_trip pprzlink/examples/messages.xml
 ```
 
 Expected output:
@@ -609,15 +646,15 @@ example; it does not start an Ivy bridge or replace the full OCaml `link` agent.
 From the C++ source directory (`lib/v2.0/C++`) after the CMake build:
 
 ```sh
-./build/serial_messages -messages /path/to/messages.xml \
+./build-ubuntu26/serial_messages -messages /path/to/messages.xml \
   -d /dev/ttyUSB0 -transport xbee -xbeesan
 
 # With a dictionary containing PING, send to aircraft/radio 42 and listen for 5 s:
-./build/serial_messages -messages /path/to/messages.xml \
+./build-ubuntu26/serial_messages -messages /path/to/messages.xml \
   -d /dev/ttyUSB0 -transport xbee \
   -send "PING" -sender 0 -receiver 42 -duration 5 -xbeesan
 
-./build/serial_messages --help
+./build-ubuntu26/serial_messages --help
 ```
 
 `-xbee-dest` and `-xbee-dest64` override the radio destination independently of
@@ -687,6 +724,11 @@ uses `bind_raw`, then builds a `pprzlink::Message` from those definitions.
 dynamic interface. Numeric conversions check syntax and range; strings and
 arrays keep the PprzLink wire format. Request replies preserve the request ID,
 and a reply subscription is canceled before invoking its one-shot callback.
+
+Reactive reception through `start()` ignores Ivy traffic whose apparent message
+name is absent from the dictionary. A malformed body for a known message still
+reports `ReceiveError::Kind::Decode` through `onError()`. Request/reply APIs keep
+their own subscriptions and matching rules.
 
 Every `IvyLink` owns an independent `ivy::Bus`. Several links can use the same
 bus address or separate addresses in one process:
@@ -887,6 +929,14 @@ destructors. A transport takes a non-null `std::unique_ptr<Device>` and destroys
 device when it is destroyed; passing an empty pointer throws. It borrows its
 dictionary, which must outlive it. Calls on one transport must be serialized
 by the application.
+
+`PosixFileDevice` reports a failed POSIX `open()` with `std::system_error`, and
+a failed Asio descriptor assignment with `boost::system::system_error`.
+Receive failures, including EOF, are deferred until buffered input is drained
+and then throw `boost::system::system_error` from `availableBytes()`, `readAll()`
+or `startReception()`. Its synchronous write/poll failures use
+`std::system_error`; a readiness timeout or terminal condition reported by
+`poll()` uses `std::runtime_error`.
 
 `getDevice()` returns a borrowed reference (const for a const transport), valid until
 transport destruction. Do not delete the device or give it to another owner.

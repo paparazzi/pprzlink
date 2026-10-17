@@ -95,8 +95,14 @@ namespace pprzlink {
     auto notification = guarded([this](std::string_view sender, std::string_view body) {
       std::optional<Message> message;
       try {
-        const auto &definition = dictionary.getDefinition(std::string(body.substr(0, body.find(' '))));
-        message = ivy_codec::parseMessageBody(definition, sender, body);
+        const MessageDefinition *definition;
+        try {
+          definition = &dictionary.getDefinition(std::string(body.substr(0, body.find(' '))));
+        } catch (const no_such_message &) {
+          // Other Ivy applications and request envelopes share this bus.
+          return;
+        }
+        message = ivy_codec::parseMessageBody(*definition, sender, body);
       } catch (...) { reportError(std::current_exception(), ReceiveError::Kind::Decode); return; }
       try { deliver(*message, ReceiveInfo{}); } catch (...) { stop(); throw; }
     });

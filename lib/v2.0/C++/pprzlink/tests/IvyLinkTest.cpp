@@ -144,6 +144,73 @@ namespace {
     std::cout << "XML field conversions, aircraft routing and round trips passed\n";
   }
 
+  void testReactiveSharedTraffic(const MessageDictionary &dict, const std::string &domain)
+  {
+    std::atomic<int> all{0}, selected{0}, scoped{0}, decodeErrors{0}, answered{0}, replies{0};
+    std::atomic<bool> wrongError{false};
+    IvyLink receiver(dict, "shared-rx", domain);
+    receiver.bind(pprzlink::ALL, [&](const Message &) { ++all; });
+    receiver.bind("BYTE", {.sender = "42"}, [&](const Message &) { ++selected; });
+    auto ordinary = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { ++scoped; });
+    receiver.onError([&](const pprzlink::ReceiveError &error) {
+      if (error.kind != pprzlink::ReceiveError::Kind::Decode ||
+          error.message.find("BYTE") == std::string::npos) wrongError = true;
+      ++decodeErrors;
+    });
+    auto deadline = receiver.getBus().bind_event(
+      [&](std::chrono::milliseconds) { receiver.stop(); }, ivy::after(4s));
+    require(deadline.has_value(), "Shared traffic deadline registration");
+    std::exception_ptr loopFailure;
+    std::jthread runner([&] {
+      try { receiver.run(); }
+      catch (...) { loopFailure = std::current_exception(); }
+    });
+    waitFor([&] { return receiver.isRunning(); }, "run implicitly starts reactive reception");
+
+    // These real peers announce '<application> ready' after run() has started.
+    IvyLink server(dict, "shared-server", domain, true);
+    auto answerer = server.subscribeRequestAnswerer(dict.getDefinition("ANSWER_REQ"),
+      [&](std::string, Message request) {
+        Message answer(dict.getDefinition("ANSWER"));
+        answer.setSenderId(std::string("response-source"));
+        answer.addField("value", field<uint32_t>(request, "value") + 1);
+        ++answered;
+        return answer;
+      });
+    IvyLink sender(dict, "shared-tx", domain, true);
+    waitBindings(sender, "shared-rx", 2);
+    waitBindings(server, "shared-rx", 2);
+    waitBindings(sender, "shared-server", 1);
+
+    Message request(dict.getDefinition("ANSWER_REQ"));
+    request.setSenderId(std::string("request-source"));
+    request.addField("value", uint32_t{41});
+    sender.sendRequest(request, [&](std::string source, Message answer) {
+      require(source == "response-source" && field<uint32_t>(answer, "value") == 42,
+              "Shared bus request/reply remains correlated");
+      ++replies;
+    });
+    sendRaw(sender, "foreign UNKNOWN payload");
+    sendRaw(sender, "42 BYTE not-a-number");
+    sendRaw(sender, "42 EMPTY");
+    sendRaw(sender, "42 BYTE 7");
+    sendRaw(sender, "43 BYTE 8");
+    waitFor([&] { return all == 3 && selected == 1 && scoped == 1 && answered == 1 && replies == 1; },
+            "ordinary, filtered, scoped and request callbacks on a shared bus");
+
+    // Sent after the requester received its reply: on the server's connection
+    // this marker follows the correlated reply, so all traffic has been seen.
+    sendRaw(server, "barrier EMPTY");
+    waitFor([&] { return all == 4 && scoped == 2; }, "reply processed before final ordinary message");
+    receiver.stop();
+    runner.join();
+    if (loopFailure) std::rethrow_exception(loopFailure);
+    require(decodeErrors == 1 && !wrongError,
+            "Only malformed known fields report Decode; ready, unknown and request traffic are ignored");
+    require(sender.getBus().take_callback_error().has_value(), "Shared sender callbacks remain valid");
+    require(server.getBus().take_callback_error().has_value(), "Shared answerer callbacks remain valid");
+  }
+
   void testCompactNumbers(const MessageDictionary &dict, const std::string &domain)
   {
     std::atomic<bool> received{false};
@@ -391,6 +458,7 @@ int main()
     const auto domainA = "127.255.255.255:" + std::to_string(port);
     const auto domainB = "127.255.255.255:" + std::to_string(port + 1);
     testReactive(dict, domainA);
+    testReactiveSharedTraffic(dict, domainA);
     testMessages(dict, domainA);
     testCompactNumbers(dict, domainA);
     testRequests(dict, domainA);

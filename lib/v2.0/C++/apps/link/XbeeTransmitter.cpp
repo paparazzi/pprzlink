@@ -8,9 +8,9 @@ namespace link_app {
   XbeeTransmitter::XbeeTransmitter(pprzlink::XbeeTransport &transport, int maximumAttempts)
     : transport(transport), maximumAttempts(maximumAttempts) {}
 
-  void XbeeTransmitter::send(const pprzlink::Message &message, Clock::time_point now)
+  bool XbeeTransmitter::send(const pprzlink::Message &message, Clock::time_point now)
   {
-    if (!transport.isReady()) return; // OCaml also suppresses sends during initialization.
+    if (!transport.isReady()) return false; // OCaml also suppresses sends during initialization.
     for (unsigned int count = 0; count < 255; ++count) {
       const uint8_t id = nextId;
       nextId = nextId == 255 ? 1 : static_cast<uint8_t>(nextId + 1);
@@ -18,7 +18,7 @@ namespace link_app {
       // The chosen destination controls MAC ACKs: broadcast never requests one.
       transport.sendMessageWithId(message, id, pprzlink::RadioRetries::Enabled);
       pending[id] = Pending{message, 1, now + 5s, std::nullopt};
-      return;
+      return true;
     }
     throw std::runtime_error("All XBee frame IDs are awaiting a transmit status");
   }

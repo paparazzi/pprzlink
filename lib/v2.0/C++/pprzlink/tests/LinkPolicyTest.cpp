@@ -9,6 +9,57 @@
 using namespace std::chrono_literals;
 
 namespace {
+  void testRoundTripTime()
+  {
+    using Registry = link_app::AircraftRegistry;
+    const auto start = Registry::TimePoint{};
+    Registry registry;
+    const auto reportHasRtt = [&](std::string_view value) {
+      return registry.reports(-1, 1000, 0).front().ends_with(value);
+    };
+
+    registry.received(42, 13, 0, false, start, std::nullopt);
+    require(reportHasRtt(" 9999.00"), "RTT is unknown until a PING/PONG completes");
+    registry.received(42, 8, 0, true, start, std::nullopt);
+    require(reportHasRtt(" 9999.00"), "An unsolicited PONG cannot create a measurement");
+
+    registry.pinged(42, start);
+    require(reportHasRtt(" 9999.00"), "The first pending PING has no RTT yet");
+    registry.received(42, 13, 0, false, start + 20ms, std::nullopt);
+    require(reportHasRtt(" 9999.00"), "Ordinary telemetry does not complete a PING");
+    registry.received(42, 8, 0, true, start + 25ms, std::nullopt);
+    require(reportHasRtt(" 25.00"), "A PONG records the completed monotonic RTT");
+    registry.received(42, 8, 0, true, start + 100ms, std::nullopt);
+    require(reportHasRtt(" 25.00"), "A duplicate PONG cannot change the last completed RTT");
+
+    registry.pinged(42, start + 1s);
+    require(reportHasRtt(" 25.00"), "A new pending PING preserves the last completed RTT");
+    registry.pinged(42, start + 2s);
+    require(reportHasRtt(" 25.00"), "A missing PONG preserves the last completed RTT");
+    registry.received(42, 8, 0, true, start + 2080ms, std::nullopt);
+    require(reportHasRtt(" 80.00"), "The next PONG measures from the latest accepted PING");
+
+    registry.received(43, 8, 0, true, start + 3s, std::nullopt);
+    require(registry.reports(-1, 1000, 3).back().ends_with(" 9999.00"),
+            "Another aircraft cannot reuse a completed RTT");
+  }
+
+  void testUnreadyRadio()
+  {
+    tinyxml2::XMLDocument xml;
+    xml.Parse("<protocol><msg_class name='datalink' id='2'><message name='PING' id='8'/></msg_class></protocol>");
+    pprzlink::MessageDictionary dictionary(xml.RootElement());
+    auto device = std::make_unique<MemoryDevice>();
+    auto &wire = *device;
+    pprzlink::XbeeTransport radio(std::move(device), dictionary);
+    radio.startInitialization({});
+    link_app::XbeeTransmitter sender(radio, 3);
+    pprzlink::Message ping(dictionary.getDefinition("PING"));
+    ping.setReceiverId(42);
+    require(!sender.send(ping), "A radio still initializing reports that no PING was sent");
+    require(wire.outgoing.empty() && !sender.nextDeadline(), "A suppressed PING writes nothing and cannot retry");
+  }
+
   void testRoutedDestinations()
   {
     for (const auto *attribute : {"", " link='forwarded'", " link='broadcasted'"}) {
@@ -74,13 +125,16 @@ namespace {
 int main()
 {
   try {
+    testRoundTripTime();
+    testUnreadyRadio();
     testRoutedDestinations();
     link_app::AircraftRegistry registry;
+    const auto receivedAt = link_app::AircraftRegistry::TimePoint{} + 1s;
     require(!registry.isLive(42, 0), "Disabling expiry must not make unknown aircraft live");
-    registry.received(42, 13, 1, false, 1, std::nullopt);
+    registry.received(42, 13, 1, false, receivedAt, std::nullopt);
     registry.transmitted(42);
-    registry.pinged(42, 1);
-    registry.received(42, 8, 1, true, 1.025, std::nullopt);
+    registry.pinged(42, receivedAt);
+    registry.received(42, 8, 1, true, receivedAt + 25ms, std::nullopt);
     auto report = registry.reports(7, 1000, 2);
     require(report == std::vector<std::string>{"link LINK_REPORT 42 7 2 0 21 2 1 21.0 2.0 1 25.00"}, "Report semantics");
     registry.age(1000);
@@ -98,7 +152,7 @@ int main()
     pprzlink::Message ping(dictionary.getDefinition("PING"));
     ping.setReceiverId(42);
     const auto start = link_app::XbeeTransmitter::Clock::now();
-    sender.send(ping, start);
+    require(sender.send(ping, start), "A ready radio accepts the PING");
     const auto original = wire.outgoing;
     sender.status({1, 1}, start);
     sender.status({1, 1}, start); // A duplicated failure does not consume a second attempt.

@@ -141,7 +141,8 @@ namespace link_app {
     // (where it stays zero). The library exposes XBee errors separately.
     const uint64_t errors = udp ? udp->getStatistics().checksumErrors
       : (options.transport == "pprz" ? transport->getStatistics().checksumErrors : 0);
-    aircraft.received(id, frameSize, errors, message.getDefinition().getName() == "PONG", wallTime(), std::move(packet.udpPeer));
+    aircraft.received(id, frameSize, errors, message.getDefinition().getName() == "PONG",
+                      AircraftRegistry::Clock::now(), std::move(packet.udpPeer));
   }
 
   void LinkAgent::uplink(pprzlink::Message message, bool broadcast)
@@ -156,9 +157,9 @@ namespace link_app {
     }
   }
 
-  void LinkAgent::sendTarget(pprzlink::Message &message, uint8_t id)
+  bool LinkAgent::sendTarget(pprzlink::Message &message, uint8_t id)
   {
-    if (!aircraft.isLive(id, options.aircraftTimeout)) return;
+    if (!aircraft.isLive(id, options.aircraftTimeout)) return false;
     message.setReceiverId(id);
     aircraft.transmitted(id);
     if (udp) {
@@ -166,7 +167,8 @@ namespace link_app {
       destination.port = static_cast<uint16_t>(options.udpUplinkPort);
       if (options.udpBroadcast) destination.address = options.broadcastAddress;
       udp->sendMessage(message, destination);
-    } else sendRadio(message);
+    } else return sendRadio(message);
+    return true;
   }
 
   void LinkAgent::sendBroadcast(pprzlink::Message &message)
@@ -184,10 +186,15 @@ namespace link_app {
     } else sendRadio(message);
   }
 
-  void LinkAgent::sendRadio(const pprzlink::Message &message)
+  bool LinkAgent::sendRadio(const pprzlink::Message &message)
   {
-    if (xbee) { xbee->send(message); scheduleTransmission(); }
-    else transport->sendMessage(message);
+    if (xbee) {
+      const bool sent = xbee->send(message);
+      scheduleTransmission();
+      return sent;
+    }
+    transport->sendMessage(message);
+    return true;
   }
 
   void LinkAgent::publish(std::string text, std::optional<uint8_t> sender)
@@ -247,8 +254,8 @@ namespace link_app {
         (void)state;
         pprzlink::Message ping(dictionary.getDefinition("PING"));
         ping.setSenderId(uint8_t{0});
-        sendTarget(ping, id);
-        aircraft.pinged(id, wallTime());
+        const auto sentAt = AircraftRegistry::Clock::now();
+        if (sendTarget(ping, id)) aircraft.pinged(id, sentAt);
       }
       schedulePing(std::chrono::milliseconds(options.pingPeriod));
     });

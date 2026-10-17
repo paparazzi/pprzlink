@@ -431,6 +431,49 @@ def ping(harness):
         wire.close()
 
 
+def ping_measurement(harness):
+    """C++ RTT policy deliberately differs from the legacy timestamp subtraction."""
+    wire = SerialWire()
+    try:
+        with harness.session(['-ping_period', '400', '-status_period', '100', '-ac_timeout', '2000'], wire) as (_, peer):
+            wire.inject(telemetry())
+            peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and text.split()[12] == '9999.00')
+            wire.inject(bytes([42, 0, 1, 5]))
+            peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and
+                      text.split()[7] == '2' and text.split()[12] == '9999.00')
+
+            require(wire.frame(1.2) == bytes([0, 42, 2, 8]), 'No first PING for the RTT policy check')
+            start = len(peer.lines)
+            pending = peer.wait(lambda text: text.startswith('link LINK_REPORT 42 '), start=start)
+            require(pending.split()[12] == '9999.00', 'A pending PING changed the initial RTT')
+            wire.inject(bytes([42, 0, 1, 5]))
+            completed = peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and text.split()[7] == '3')
+            rtt = completed.split()[12]
+            require(0 <= float(rtt) < 400, f'Invalid completed RTT: {completed}')
+
+            require(wire.frame(.6) == bytes([0, 42, 2, 8]), 'No next PING for the RTT policy check')
+            start = len(peer.lines)
+            pending = peer.wait(lambda text: text.startswith('link LINK_REPORT 42 '), start=start)
+            require(pending.split()[12] == rtt, 'The next pending PING discarded the last completed RTT')
+    finally:
+        wire.close()
+
+    wire = SerialWire()
+    try:
+        with harness.session(['-ping_period', '200', '-status_period', '60', '-ac_timeout', '200'], wire) as (_, peer):
+            wire.inject(telemetry())
+            peer.wait(lambda text: text == '42 LINK_TEST 7 1.25')
+            require(wire.frame(1) is None, 'An expired aircraft received a PING')
+            # No PING was sent. A PONG must not use a timestamp from a skipped
+            # timer tick, even though receiving it makes the aircraft live again.
+            wire.inject(bytes([42, 0, 1, 5]))
+            report = peer.wait(lambda text: text.startswith('link LINK_REPORT 42 ') and text.split()[7] == '2')
+            require(report.split()[11:13] == ['0', '9999.00'],
+                    f'A skipped PING created a measurement or changed TX accounting: {report}')
+    finally:
+        wire.close()
+
+
 def redundant(harness):
     wire = SerialWire()
     try:
@@ -613,6 +656,8 @@ def main():
                     serial_open_errors(harness)
                 if label == 'cpp' and name == 'command_error':
                     require(results[label][name]['recovers'], 'Invalid input stopped the C++ Ivy loop')
+                if label == 'cpp' and name == 'ping':
+                    ping_measurement(harness)
         if args.ocaml:
             for name, actual in results['cpp'].items():
                 expected = results['ocaml'][name]

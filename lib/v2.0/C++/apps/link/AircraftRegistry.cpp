@@ -4,7 +4,7 @@
 
 namespace link_app {
   void AircraftRegistry::received(uint8_t id, size_t bytes, uint64_t errors, bool pong,
-                                  double now, std::optional<pprzlink::UdpEndpoint> peer)
+                                  TimePoint now, std::optional<pprzlink::UdpEndpoint> peer)
   {
     auto [entry, inserted] = aircraft.try_emplace(id);
     auto &state = entry->second;
@@ -13,7 +13,10 @@ namespace link_app {
     ++state.receivedMessages;
     state.receiveErrors = errors;
     state.millisecondsSinceReceive = 0;
-    if (pong) state.lastPong = now;
+    if (pong && state.pendingPing) {
+      state.lastRoundTripTime = now - *state.pendingPing;
+      state.pendingPing.reset();
+    }
   }
 
   bool AircraftRegistry::isLive(uint8_t id, int timeout) const
@@ -24,7 +27,7 @@ namespace link_app {
   }
 
   void AircraftRegistry::transmitted(uint8_t id) { ++aircraft.at(id).transmittedMessages; }
-  void AircraftRegistry::pinged(uint8_t id, double now) { aircraft.at(id).lastPing = now; }
+  void AircraftRegistry::pinged(uint8_t id, TimePoint now) { aircraft.at(id).pendingPing = now; }
   void AircraftRegistry::broadcast()
   {
     // Preserve OCaml's accounting: broadcasts count for every known aircraft.
@@ -47,7 +50,7 @@ namespace link_app {
       messages.push_back(std::format("link LINK_REPORT {} {} {} {} {} {} {} {:.1f} {:.1f} {} {:.2f}",
         id, linkId, runTime, state.millisecondsSinceReceive / 1000,
         state.receivedBytes, state.receivedMessages, state.receiveErrors,
-        byteRate, messageRate, state.transmittedMessages, 1000 * (state.lastPong - state.lastPing)));
+        byteRate, messageRate, state.transmittedMessages, state.lastRoundTripTime.count()));
       state.previousBytes = state.receivedBytes;
       state.previousMessages = state.receivedMessages;
     }

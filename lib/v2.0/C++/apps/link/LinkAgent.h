@@ -19,9 +19,9 @@ namespace link_app {
     void openChannel();
     void received(pprzlink::ReceivedMessage packet);
     void uplink(pprzlink::Message message, bool broadcast);
-    void sendTarget(pprzlink::Message &message, uint8_t id);
+    bool sendTarget(pprzlink::Message &message, uint8_t id);
     void sendBroadcast(pprzlink::Message &message);
-    void sendRadio(const pprzlink::Message &message);
+    bool sendRadio(const pprzlink::Message &message);
     void publish(std::string text, std::optional<uint8_t> telemetrySender = std::nullopt);
     void scheduleTransmission();
     void scheduleStatus();
