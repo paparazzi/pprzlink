@@ -199,6 +199,89 @@ namespace {
     }
   }
 
+  void testTypedAddressWithFrameId(const MessageDictionary &dictionary)
+  {
+    using Retries = XbeeTransport::RadioRetries;
+    struct CountingDevice : MemoryDevice {
+      size_t writes = 0;
+      void writeBuffer(const BytesBuffer &bytes) override
+      {
+        ++writes;
+        MemoryDevice::writeBuffer(bytes);
+      }
+    };
+    struct Destination {
+      XbeeAddress address;
+      BytesBuffer bytes;
+    };
+    const std::array destinations{
+      Destination{XbeeAddress::network(0x0100), {1, 0}},
+      Destination{XbeeAddress::network(0xffff), {0xff, 0xff}},
+      Destination{XbeeAddress::ieee(0x0100), {0, 0, 0, 0, 0, 0, 1, 0}},
+      Destination{XbeeAddress::ieee(0x0013a200405291ab), {0, 0x13, 0xa2, 0, 0x40, 0x52, 0x91, 0xab}},
+      Destination{XbeeAddress::ieee(0xffff), {0, 0, 0, 0, 0, 0, 0xff, 0xff}}
+    };
+    const BytesBuffer payload{42, 7, 0x31, 1, 123};
+    for (const auto api : {XbeeTransport::Api::Legacy802154, XbeeTransport::Api::Series868}) {
+      auto owner = std::make_unique<CountingDevice>();
+      auto &device = *owner;
+      XbeeTransport transport(std::move(owner), dictionary, api);
+      transport.setSanityChecksEnabled(true);
+      Message message(dictionary.getDefinition("BYTE"));
+      message.setField("value", 123);
+      message.setSenderId(42);
+      message.setReceiverId(7);
+      message.setComponentId(3);
+      const bool extended = api == XbeeTransport::Api::Series868;
+      for (const auto &destination : destinations) {
+        const bool network = destination.address.kind() == XbeeAddress::Kind::Network;
+        for (const uint8_t id : {0, 77, 255}) {
+          for (const auto retries : {Retries::Enabled, Retries::Disabled}) {
+            const auto writes = device.writes;
+            if (extended && network) {
+              const auto previousId = transport.getLastFrameId();
+              expectException<std::invalid_argument>([&] {
+                transport.sendMessageToWithId(message, destination.address, id, retries);
+              });
+              require(device.writes == writes && transport.getLastFrameId() == previousId,
+                      "Explicit frame ID cannot bypass the Series868 address restriction");
+              continue;
+            }
+            BytesBuffer header{extended ? uint8_t{0x10} : (network ? uint8_t{1} : uint8_t{0}), id};
+            append(header, destination.bytes);
+            if (extended) append(header, {0xff, 0xfe, 0});
+            header.push_back(retries == Retries::Disabled ? 1 : 0);
+            append(header, payload);
+            const auto expected = frame(header);
+            const auto sent = transport.sendMessageToWithId(message, destination.address, id, retries);
+            require(device.writes == writes + 1 && sent == expected.size() && device.outgoing == expected &&
+                    transport.getLastFrameId() == id,
+                    "Explicit radio destination, frame ID and retries preserve the PPRZLINK receiver and wire frame");
+          }
+        }
+      }
+
+      const auto destination = XbeeAddress::ieee(0x0013a200405291ab);
+      transport.sendMessageToWithId(message, destination, 42);
+      const auto original = device.outgoing;
+      require(original[extended ? 16 : 13] == 0 && transport.getLastFrameId() == 42,
+              "Explicit address and ID retain Enabled as the default radio retry policy");
+      transport.sendMessageToWithId(message, destination, 42);
+      require(device.outgoing == original, "A caller can resend the same frame to an explicit IEEE destination");
+      const auto writes = device.writes;
+      expectException<std::invalid_argument>([&] {
+        transport.sendMessageToWithId(message, destination, 9, static_cast<Retries>(99));
+      });
+      Message missing(dictionary.getDefinition("BYTE"));
+      expectException<field_has_no_value>([&] { transport.sendMessageToWithId(missing, destination, 9); });
+      require(device.writes == writes && transport.getLastFrameId() == 42,
+              "Rejected retry options and payloads do not write or change the last successful frame ID");
+      transport.startInitialization();
+      expectException<std::logic_error>([&] { transport.sendMessageToWithId(message, destination, 9); });
+      require(device.writes == writes, "Explicit addressing and ID cannot bypass initialization gating");
+    }
+  }
+
   void testRadioRetries(const MessageDictionary &dictionary)
   {
     using Retries = XbeeTransport::RadioRetries;
@@ -495,6 +578,7 @@ int main()
     testSending(dictionary);
     testAddressFactories();
     testTypedAddressSending(dictionary);
+    testTypedAddressWithFrameId(dictionary);
     testRadioRetries(dictionary);
     testReception(dictionary);
     testCorruption(dictionary);

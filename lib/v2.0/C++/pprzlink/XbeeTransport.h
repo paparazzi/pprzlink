@@ -142,6 +142,18 @@ namespace pprzlink {
     /// @throws std::exception Readiness, payload validation, encoding or I/O failure.
     size_t sendMessageTo(const Message &message, XbeeAddress destination,
                         RadioRetries radioRetries = RadioRetries::Enabled);
+    /// @brief Send to an explicit radio destination with a caller-owned frame ID.
+    /// Destination, status tracking and radio ACK/retries are independent; the
+    /// PPRZLINK receiver is unchanged. Do not reuse an outstanding ID for a different message.
+    /// @param[in] message Populated PPRZLINK message.
+    /// @param[in] destination Network/IEEE destination; Series868 requires IEEE addressing.
+    /// @param[in] frameId Explicit radio frame ID; zero disables status responses.
+    /// @param[in] radioRetries Radio ACK/retry choice; Enabled preserves normal transmit options.
+    /// @return Complete AP=1 frame bytes written, not delivery confirmation.
+    /// @throws std::invalid_argument A network destination is used with Series868, or the retry enum is invalid.
+    /// @throws std::exception Readiness, payload validation, encoding or I/O failure.
+    size_t sendMessageToWithId(const Message &message, XbeeAddress destination, uint8_t frameId,
+                              RadioRetries radioRetries = RadioRetries::Enabled);
     /// Compatibility wrapper for sendMessageTo(message, XbeeAddress::network(destination), radioRetries).
     /// @param[in] message Populated PPRZLINK message.
     /// @param[in] destination Explicit sixteen-bit radio address.
