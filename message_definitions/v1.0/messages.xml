@@ -7,6 +7,9 @@
     <message name="AUTOPILOT_VERSION" id="1">
       <field name="version" type="uint32">version encoded as: MAJOR * 10000 + MINOR * 100 + PATCH</field>
       <field name="desc" type="char[]">version description as string from paparazzi_version</field>
+      <field name="sha1" type="uint8[20]">full git commit hash of the build</field>
+      <field name="build_time" type="uint32" unit="s">build time as UTC unix timestamp, 0 if unknown</field>
+      <field name="mcu_uid" type="uint8[]">unique hardware ID: STM32 UID (12 bytes), Linux board serial or MAC address, PC machine ID in simulation; empty if not available</field>
     </message>
 
     <message name="ALIVE" id="2">
