@@ -356,14 +356,10 @@ frontières et ses adresses, comme le fait UDP.
 
 ### Sur Ivy : oui, sous forme d'un Message complet
 
-La signature publique du callback est :
-
-```cpp
-using messageCallback_t = std::function<void(std::string, pprzlink::Message)>;
-```
-
-Le premier argument est l'expéditeur, le second le message décodé avec tous ses
-champs. Exemple de fonction qui reçoit un `SETTING`, affiche ses trois champs
+Comme les autres transports, Ivy utilise `bind()` avec un callback qui emprunte
+un `const Message&` et, facultativement, un `const ReceiveInfo&`. Le message
+contient tous ses champs et l'expéditeur textuel dans `getSenderId()`.
+Exemple de fonction qui reçoit un `SETTING`, affiche ses trois champs
 puis arrête sa boucle :
 
 ```cpp
@@ -377,8 +373,9 @@ void receiveOneSetting(const std::string& messagesPath)
     pprzlink::MessageDictionary dictionary(messagesPath);
     pprzlink::IvyLink link(dictionary, "settings-monitor");
 
-    auto subscription = link.subscribeMessage("SETTING",
-        [&link](std::string sender, pprzlink::Message message) {
+    link.bind("SETTING",
+        [&link](const pprzlink::Message &message) {
+            const auto &sender = std::get<std::string>(message.getSenderId());
             const auto index = message.getField<std::uint8_t>("index");
             const auto aircraft = message.getField<std::uint8_t>("ac_id");
             const auto value = message.getField<float>("value");
@@ -397,13 +394,13 @@ Les trois `getField()` lisent un objet déjà décodé. Ils ne déclenchent aucu
 échange supplémentaire. Le décodage de tous les champs précède le callback ;
 un message mal formé ne lui est pas fourni partiellement.
 
-La variable `subscription` possède directement un `ivy::Subscription` de la
-bibliothèque Ivy C++. Il faut la conserver : sa destruction désabonne.
-L'appelant n'a pas à gérer un identifiant numérique ni à écrire une expression
-régulière. La connaissance du XML et la construction du `Message` sont les
-services ajoutés par pprzlink++ au-dessus d'Ivy.
+Le lien conserve le callback jusqu'à `unbind(id)` ou sa destruction. Il faut
+copier le message pour le garder après l'invocation. Ivy crée un abonnement par
+nom distinct ; tout binding `ALL` les remplace par un abonnement large. Les
+filtres sont ensuite appliqués localement par le même dispatcher que les autres
+transports. `bind(pprzlink::ALL, {.sender = "42"}, callback)` sélectionne les
+messages d'un expéditeur. Aucun binding ne signifie aucun abonnement de réception.
 
-`subscribeSender()` permet de recevoir les messages d'un expéditeur.
 `sendRequest()` et `subscribeRequestAnswerer()` traitent les échanges Ivy
 requête/réponse ; leurs callbacks reçoivent également des messages complets.
 Les requêtes sont reconnues par le suffixe `_REQ` et utilisent `sendRequest()`

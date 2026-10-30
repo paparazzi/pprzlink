@@ -39,8 +39,9 @@ uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
 2. `bind()` conserve un abonnement qui reçoit un message et ses métadonnées
    facultatives. `start()` active la réception réactive et `stop()` la met en
    pause. Pour Ivy, `close()` termine la session et fait sortir de `run()`.
-3. `subscribeMessage()` et `subscribeSender()` retournent directement
-   `ivy::Subscription`. L'appelant conserve le jeton ; sa destruction désabonne.
+3. La réception ordinaire Ivy utilise aussi `bind()` et `unbind(id)`. Les callbacks
+   empruntent le message ; le lien conserve les abonnements. Seuls les répondeurs
+   `subscribeRequestAnswerer()` retournent un jeton `ivy::Subscription`.
 4. Les composants CMake `core`, `io` et `ivy` permettent de choisir les
    dépendances. Les cibles `pprzlink++` et `pprzlink++_static` les regroupent.
 
@@ -367,8 +368,8 @@ le réactiver, en conservant les abonnements. Les callbacks d'un récepteur sont
 sérialisés, y compris lorsque plusieurs threads exécutent le contexte.
 
 Pour `IvyLink`, cette pause concerne les abonnements de `Receiver::bind()`.
-Le bus, ses timers, les envois et les abonnements `subscribeMessage()`,
-`subscribeSender()` ou requête/réponse continuent de fonctionner. `start()`
+Le bus, ses timers, les envois et les abonnements requête/réponse
+continuent de fonctionner. `start()`
 réactive les abonnements réactifs conservés. `close()` termine définitivement
 la session Ivy et demande la sortie de `run()` ; une nouvelle session demande
 un nouvel `IvyLink`. Ces opérations peuvent être appelées depuis un callback.
@@ -445,25 +446,29 @@ préservés. Les champs entiers refusent toujours les valeurs non finies, et
 un nombre tel que `1e1000` reste un dépassement rejeté.
 
 ```cpp
-auto subscription = link.subscribeMessage("CLIENT_ALTITUDE",
-    [](std::string sender, pprzlink::Message message) {
+auto binding = link.bind("CLIENT_ALTITUDE",
+    [](const pprzlink::Message &message) {
         const double altitude = message.getFieldSI("altitude"); // Mètres SI.
-        // Traiter altitude et sender.
+        const auto &sender = std::get<std::string>(message.getSenderId());
+        // Traiter altitude et sender pendant le callback.
     });
+link.start(); // Avec un thread Ivy détenu par le lien ; run() appelle start() sinon.
+// Plus tard : link.unbind(binding).
 ```
 
-Le type retourné est directement `ivy::Subscription`. Il est déplaçable,
-non copiable, désabonné à sa destruction. `subscribeSender()` fournit le même
-contrat pour un expéditeur ; `subscribeRequestAnswerer()` pour un répondeur.
-L'API à identifiants numériques délègue aux mêmes mécanismes.
+Le lien conserve le callback ; l'identifiant retourné sert uniquement à
+`unbind()`. Sa destruction n'annule pas l'abonnement. Copiez le `Message` pour
+le conserver après le callback. `bind(pprzlink::ALL, {.sender = "42"}, callback)`
+sélectionne les messages d'un expéditeur textuel.
 
-Conserver le jeton aussi longtemps que l'abonnement est souhaité. Un callback
-déjà commencé peut finir après le désabonnement : son état capturé doit rester
-vivant. Les callbacks exécutent sur la boucle Ivy ; l'exemple utilise la boucle
-sur le thread appelant. Une interface graphique doit encore transférer les
-mises à jour sur son propre thread. Ces abonnements natifs restent disponibles ;
-la façade commune `bind()` conserve ses propres identifiants et filtres dans le
-récepteur et les alimente depuis une souscription Ivy native.
+Ivy crée un abonnement natif par nom distinct. Un binding `ALL` les remplace
+par un seul abonnement large ; son retrait rétablit les abonnements nommés.
+Les filtres supplémentaires restent locaux. Les changements sont annoncés aux
+pairs de façon asynchrone et peuvent entraîner une brève perte de messages.
+
+Les callbacks s'exécutent sur le contexte Asio fourni, ou sur la boucle Ivy
+sans contexte. `subscribeRequestAnswerer()` conserve son contrat de jeton
+`ivy::Subscription` ; les requêtes utilisent leurs propres abonnements.
 
 Un récepteur qui doit quitter `link.run()` après son dernier message appelle
 `link.close()` dans son callback. `link.stop()` suspend seulement les

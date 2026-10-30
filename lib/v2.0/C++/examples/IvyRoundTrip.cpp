@@ -61,11 +61,12 @@ int main(int argc, char **argv)
     const auto receiverName = "example-receiver-" + suffix;
     // true démarre une boucle Ivy sur un thread détenu par le lien ; aucun appel à run() n'est requis.
     pprzlink::IvyLink receiver(dictionary, receiverName, domain, true);
-    // Conserve le jeton subscription : sa destruction désabonne le callback.
-    auto subscription = receiver.subscribeMessage(definition, [&](std::string, pprzlink::Message message) {
-      // Le callback reçoit son propre Message et en transfère les valeurs vers le future.
-      received.set_value(std::move(message));
+    // Le lien conserve le callback ; le message est emprunté pendant son invocation.
+    receiver.bind("EXAMPLE_ALTITUDE", [&](const pprzlink::Message &message) {
+      // Copie le message pour que le future le conserve après le callback.
+      received.set_value(message);
     });
+    receiver.start();
 
     // Le second lien possède aussi son thread ; les deux applications utilisent le même domaine.
     pprzlink::IvyLink sender(dictionary, "example-sender-" + suffix, domain, true);

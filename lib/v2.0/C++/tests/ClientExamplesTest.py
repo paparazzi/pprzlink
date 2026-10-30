@@ -166,7 +166,7 @@ def main():
     if args.ivy:
         require(args.bus is not None, 'Ivy testing requires the test peer')
         ivy_receiver(args.ivy, args.bus, dictionary)
-        print('Ivy receiver: scoped subscription and SI field read passed', flush=True)
+        print('Ivy receiver: common binding and SI field read passed', flush=True)
 
     # Run the same applications with another wire representation. SI call sites
     # still provide/display metres while XML selects int32 millimetres.

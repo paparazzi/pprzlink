@@ -22,7 +22,7 @@
  * @brief Ivy bindings, request correlation and callback lifetime management.
  * @ingroup ivy
  *
- * Subscription ownership is retained behind legacy IDs or returned as scoped tokens. Request replies are one-shot and correlated by a process-wide sequence.
+ * Ordinary messages use Receiver bindings. Request subscriptions are retained behind IDs or scoped tokens; replies are one-shot and correlated by a process-wide sequence.
  */
 
 #include <pprzlink/IvyLink.h>
@@ -222,50 +222,6 @@ namespace pprzlink {
     auto subscription = checked(std::move(result));
     std::lock_guard lock(subscriptionsMutex);
     subscriptions.emplace(id, std::move(subscription));
-  }
-
-  long IvyLink::BindMessage(const MessageDefinition &def, messageCallback_t cb)
-  {
-    return storeSubscription(subscribeMessage(def, std::move(cb)));
-  }
-
-  ivy::Subscription IvyLink::subscribeMessage(std::string_view name, messageCallback_t cb)
-  {
-    return subscribeMessage(dictionary.getDefinition(std::string(name)), std::move(cb));
-  }
-
-  ivy::Subscription IvyLink::subscribeMessage(const MessageDefinition &def, messageCallback_t cb)
-  {
-    const auto regexp = "^([^ ]*) " + ivy_codec::messageRegexp(def);
-    return checked(bus.bind_raw(
-      [def, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
-        if (args.empty()) {
-          throw wrong_message_format("Missing sender in " + def.getName());
-        }
-        auto msg = ivy_codec::parseFields(def, args.front(), args.subspan(1));
-        cb(ivy_codec::unquote(args.front()), std::move(msg));
-      }, ivy::runtime_regexp(regexp)));
-  }
-
-  long IvyLink::BindOnSrcAc(std::string ac_id, messageCallback_t cb)
-  {
-    return storeSubscription(subscribeSender(std::move(ac_id), std::move(cb)));
-  }
-
-  ivy::Subscription IvyLink::subscribeSender(std::string ac_id, messageCallback_t cb)
-  {
-    const auto regexp = "^(" + ivy_codec::escapeRegexp(ac_id) + ") (.*)$";
-    return checked(bus.bind_raw(
-      [this, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
-        if (args.size() != 2) {
-          throw wrong_message_format("Missing sender or message body");
-        }
-        const auto sender = args[0];
-        const auto body = args[1];
-        const auto &def = dictionary.getDefinition(std::string(body.substr(0, body.find(' '))));
-        auto msg = ivy_codec::parseMessageBody(def, sender, body);
-        cb(ivy_codec::unquote(sender), std::move(msg));
-      }, ivy::runtime_regexp(regexp)));
   }
 
   void IvyLink::UnbindMessage(long bindId)

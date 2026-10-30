@@ -188,10 +188,8 @@ namespace {
       require(context.get_executor().running_in_this_thread() && std::this_thread::get_id() == thread,
               "Application callback runs on supplied context");
     };
-    int scoped = 0, legacy = 0, source = 0, reactive = 0, errors = 0, answers = 0;
-    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { checkContext(); ++scoped; });
-    receiver.BindMessage(dict.getDefinition("EMPTY"), [&](std::string, Message) { checkContext(); ++legacy; });
-    auto senderSubscription = receiver.subscribeSender("42", [&](std::string, Message) { checkContext(); ++source; });
+    int source = 0, reactive = 0, errors = 0, answers = 0;
+    receiver.bind(pprzlink::ALL, {.sender = "42"}, [&](const Message &) { checkContext(); ++source; });
     receiver.bind("EMPTY", {.where = [&](const Message &) { checkContext(); return true; }},
                   [&](const Message &) { checkContext(); ++reactive; });
     receiver.onError([&](const pprzlink::ReceiveError &error) {
@@ -212,7 +210,7 @@ namespace {
       ++barriers;
     }, ivy::runtime_regexp("^SYNC$"));
     require(marker.has_value(), "Asio test marker");
-    waitBindings(sender, "asio-rx", 6);
+    waitBindings(sender, "asio-rx", 3);
     sendRaw(sender, "42 EMPTY");
     sendRaw(sender, "broken EMPTY invalid");
     for (uint32_t value = 0; value < 3; ++value) {
@@ -228,11 +226,11 @@ namespace {
     }
     sendRaw(sender, "SYNC");
     waitFor([&] { return barriers == 1; }, "Ivy progresses without servicing Asio answerers");
-    require(scoped == 0 && legacy == 0 && source == 0 && reactive == 0 && answers == 0 && errors == 0,
+    require(source == 0 && reactive == 0 && answers == 0 && errors == 0,
             "Callbacks are deferred until context runs");
     waitFor([&] {
       context.poll();
-      return scoped == 1 && legacy == 1 && source == 1 && reactive == 1 && errors == 1 && answers == 3;
+      return source == 1 && reactive == 1 && errors == 1 && answers == 3;
     }, "All SDK callback APIs dispatched on Asio");
 
     // Closing from an answerer suppresses its reply and all later queued work.
@@ -242,7 +240,7 @@ namespace {
       answer.setSenderId(std::string("server"));
       return answer;
     });
-    waitBindings(sender, "asio-rx", 7);
+    waitBindings(sender, "asio-rx", 4);
     Message request(dict.getDefinition("EMPTY_REQ"));
     request.setSenderId(std::string("client"));
     sender.sendRequest(request, [&](std::string, Message) { throw std::runtime_error("Closed answerer replied"); });
@@ -250,7 +248,7 @@ namespace {
     sendRaw(sender, "SYNC");
     waitFor([&] { return barriers == 2; }, "Queued close and message");
     context.poll();
-    require(scoped == 1 && legacy == 1 && source == 1 && reactive == 1, "Close drops later queued callbacks");
+    require(source == 1 && reactive == 1, "Close drops later queued callbacks");
     sender.close();
     context.run(); // Work guards are released by close().
   }
@@ -262,12 +260,13 @@ namespace {
     IvyLink sender(dict, "asio-threads-tx", domain, true);
     std::atomic<int> calls{0}, active{0};
     std::atomic<bool> valid{true};
-    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) {
+    receiver.bind("EMPTY", [&](const Message &) {
       if (!context.get_executor().running_in_this_thread() || active.fetch_add(1) != 0) valid = false;
       std::this_thread::sleep_for(1ms);
       --active;
       ++calls;
     });
+    receiver.start();
     waitBindings(sender, "asio-threads-rx", 1);
     std::jthread first([&] { context.run(); });
     std::jthread second([&] { context.run(); });
@@ -286,7 +285,7 @@ namespace {
     IvyLink receiver(context, dict, "asio-errors-rx", domain);
     IvyLink sender(dict, "asio-errors-tx", domain, true);
     int observed = 0;
-    auto subscription = receiver.subscribeMessage("EMPTY", [&, count = 0](std::string, Message) mutable {
+    receiver.bind("EMPTY", [&, count = 0](const Message &) mutable {
       require(context.get_executor().running_in_this_thread(), "Throwing callback runs on context");
       observed = ++count;
       if (count == 2) throw std::runtime_error("application failure");
@@ -294,6 +293,7 @@ namespace {
     auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("ANSWER_REQ"), [&](std::string, Message) {
       return Message(dict.getDefinition("EMPTY")); // Wrong answer must fail on Asio.
     });
+    receiver.start();
     waitBindings(sender, "asio-errors-rx", 2);
     sendRaw(sender, "42 EMPTY"); sendRaw(sender, "42 EMPTY");
     bool failed = false;
@@ -327,7 +327,8 @@ namespace {
     int calls = 0;
     std::atomic<int> barriers{0};
     auto receiver = std::make_unique<IvyLink>(context, dict, "asio-shutdown-rx", domain);
-    auto observer = receiver->subscribeMessage("EMPTY", [&](std::string, Message) { ++calls; });
+    receiver->bind("EMPTY", [&](const Message &) { ++calls; });
+    receiver->start();
     auto answerer = receiver->subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
       ++calls; return Message(dict.getDefinition("EMPTY"));
     });
@@ -344,7 +345,7 @@ namespace {
     waitFor([&] { return barriers == 1; }, "Answer pending on stopped context");
     context.stop();
     receiver.reset(); // Must join Ivy without servicing the pending answer.
-    require(!observer.is_bound() && !answerer.is_bound(), "Scoped tokens safely outlive Asio link");
+    require(!answerer.is_bound(), "Request answerer token safely outlives Asio link");
     context.restart();
     context.run();
     require(calls == 0, "Destroying link suppresses queued observers and replies after context restart");
@@ -381,8 +382,7 @@ namespace {
     std::atomic<int> decoded{0}, aircraft{0}, empty{0}, singles{0};
     // Callback state is declared before the buses so it outlives their threads.
     IvyLink receiver(dict, "messages-rx", domain, true);
-    const auto valuesId = receiver.BindMessage(dict.getDefinition("VALUES"), [&](std::string sender, Message msg) {
-      require(sender == "42", "Sender callback argument");
+    const auto valuesId = receiver.bind("VALUES", [&](const Message &msg) {
       require(std::get<std::string>(msg.getSenderId()) == "42", "Message sender");
       require(field<char>(msg, "character") == 'Z', "char");
       require(field<int8_t>(msg, "i8") == -128, "int8");
@@ -400,29 +400,30 @@ namespace {
       require(field<std::vector<float>>(msg, "blank").empty(), "empty array");
       ++decoded;
     });
-    receiver.BindOnSrcAc("plane.1", [&](std::string sender, Message msg) {
-      require(sender == "plane.1", "Literal aircraft ID");
+    receiver.bind(pprzlink::ALL, {.sender = "plane.1"}, [&](const Message &msg) {
+      require(std::get<std::string>(msg.getSenderId()) == "plane.1", "Literal aircraft ID");
       require(field<std::string>(msg, "text") == "100% ready", "Aircraft quoted fields");
       require(field<std::vector<int16_t>>(msg, "array").size() == 2, "Aircraft array");
       ++aircraft;
     });
-    receiver.BindMessage(dict.getDefinition("EMPTY"), [&](std::string, Message msg) {
+    receiver.bind("EMPTY", [&](const Message &msg) {
       require(msg.getNbValues() == 0, "Fieldless message");
       ++empty;
     });
-    receiver.BindMessage(dict.getDefinition("SINGLE"), [&](std::string, Message msg) {
+    receiver.bind("SINGLE", [&](const Message &msg) {
       require(field<std::vector<int8_t>>(msg, "values") == std::vector<int8_t>({-1}), "Single element array");
       require(field<std::string>(msg, "text").empty(), "Empty quoted string");
       ++singles;
     });
     IvyLink sender(dict, "messages-tx", domain, true);
-    waitBindings(sender, "messages-rx", 4);
+    receiver.start();
+    waitBindings(sender, "messages-rx", 1);
     const std::string payload = " VALUES Z -128 -32768 -2147483648 255 65535 4294967295 1.25e2 -2.5e-2 \"100% ready\" \"a b\" -2,3 0,255 ";
     sendRaw(sender, "42" + payload);
     // Temporarily cancel the generic VALUES binding before testing aircraft routing.
     waitFor([&] { return decoded == 1; }, "dynamic field conversions");
-    receiver.UnbindMessage(valuesId);
-    waitBindings(sender, "messages-rx", 3);
+    receiver.unbind(valuesId);
+    waitBindings(sender, "messages-rx", 1);
     sendRaw(sender, "planeX1" + payload); // A dot in an aircraft ID is not a regexp wildcard.
     sendRaw(sender, "plane.1" + payload);
     Message noFields(dict.getDefinition("EMPTY"));
@@ -441,12 +442,12 @@ namespace {
 
   void testReactiveSharedTraffic(const MessageDictionary &dict, const std::string &domain)
   {
-    std::atomic<int> all{0}, selected{0}, scoped{0}, decodeErrors{0}, answered{0}, replies{0};
+    std::atomic<int> all{0}, selected{0}, empty{0}, decodeErrors{0}, answered{0}, replies{0};
     std::atomic<bool> wrongError{false};
     IvyLink receiver(dict, "shared-rx", domain);
     receiver.bind(pprzlink::ALL, [&](const Message &) { ++all; });
     receiver.bind("BYTE", {.sender = "42"}, [&](const Message &) { ++selected; });
-    auto ordinary = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { ++scoped; });
+    receiver.bind("EMPTY", [&](const Message &) { ++empty; });
     receiver.onError([&](const pprzlink::ReceiveError &error) {
       if (error.kind != pprzlink::ReceiveError::Kind::Decode ||
           error.message.find("BYTE") == std::string::npos) wrongError = true;
@@ -473,8 +474,8 @@ namespace {
         return answer;
       });
     IvyLink sender(dict, "shared-tx", domain, true);
-    waitBindings(sender, "shared-rx", 2);
-    waitBindings(server, "shared-rx", 2);
+    waitBindings(sender, "shared-rx", 1);
+    waitBindings(server, "shared-rx", 1);
     waitBindings(sender, "shared-server", 1);
 
     Message request(dict.getDefinition("ANSWER_REQ"));
@@ -490,13 +491,13 @@ namespace {
     sendRaw(sender, "42 EMPTY");
     sendRaw(sender, "42 BYTE 7");
     sendRaw(sender, "43 BYTE 8");
-    waitFor([&] { return all == 3 && selected == 1 && scoped == 1 && answered == 1 && replies == 1; },
-            "ordinary, filtered, scoped and request callbacks on a shared bus");
+    waitFor([&] { return all == 3 && selected == 1 && empty == 1 && answered == 1 && replies == 1; },
+            "ordinary, filtered and request callbacks on a shared bus");
 
     // Sent after the requester received its reply: on the server's connection
     // this marker follows the correlated reply, so all traffic has been seen.
     sendRaw(server, "barrier EMPTY");
-    waitFor([&] { return all == 4 && scoped == 2; }, "reply processed before final ordinary message");
+    waitFor([&] { return all == 4 && empty == 2; }, "reply processed before final ordinary message");
     receiver.close();
     runner.join();
     if (loopFailure) std::rethrow_exception(loopFailure);
@@ -515,8 +516,8 @@ namespace {
                                    std::numeric_limits<float>::max()};
     const auto &definition = dict.getDefinition("COMPACT");
     IvyLink receiver(dict, "compact-rx", domain, true);
-    receiver.BindMessage(definition, [&](std::string sender, Message msg) {
-      require(sender == "42", "Compact message sender");
+    receiver.bind(definition.getName(), [&](const Message &msg) {
+      require(std::get<std::string>(msg.getSenderId()) == "42", "Compact message sender");
       require(std::bit_cast<uint32_t>(msg.getField<float>("f")) == std::bit_cast<uint32_t>(altitude),
               "Float precision survives the real Ivy bus");
       require(std::bit_cast<uint64_t>(msg.getField<double>("d")) == std::bit_cast<uint64_t>(precise),
@@ -529,6 +530,7 @@ namespace {
       received = true;
     });
     IvyLink sender(dict, "compact-tx", domain, true);
+    receiver.start();
     waitBindings(sender, "compact-rx", 1);
     Message outgoing(definition);
     outgoing.setSenderId(42);
@@ -607,10 +609,11 @@ namespace {
     std::atomic<int> firstCount{0}, secondCount{0}, selfCount{0};
     auto first = std::make_unique<IvyLink>(dict, "isolation-a", domainA, true);
     IvyLink second(dict, "isolation-b", domainB, true);
-    first->BindMessage(dict.getDefinition("EMPTY"), [&](std::string, Message) { ++firstCount; });
-    second.BindMessage(dict.getDefinition("EMPTY"), [&](std::string, Message) { ++secondCount; });
+    first->bind("EMPTY", [&](const Message &) { ++firstCount; });
+    second.bind("EMPTY", [&](const Message &) { ++secondCount; });
     IvyLink txA(dict, "isolation-tx-a", domainA, true);
     IvyLink txB(dict, "isolation-tx-b", domainB, true);
+    first->start(); second.start();
     waitBindings(txA, "isolation-a", 1);
     waitBindings(txB, "isolation-b", 1);
     sendRaw(txA, "42 EMPTY");
@@ -619,9 +622,9 @@ namespace {
     first.reset(); // Must stop/join only this context.
     sendRaw(txB, "42 EMPTY");
     waitFor([&] { return secondCount == 1; }, "surviving bus after another link's destruction");
-    std::atomic<long> selfId{0};
-    selfId = second.BindMessage(dict.getDefinition("SINGLE"), [&](std::string, Message) {
-      second.UnbindMessage(selfId);
+    std::atomic<pprzlink::Receiver::BindingId> selfId{0};
+    selfId = second.bind("SINGLE", [&](const Message &) {
+      second.unbind(selfId);
       ++selfCount;
     });
     waitBindings(txB, "isolation-b", 2);
@@ -634,9 +637,9 @@ namespace {
         Message message(dict.getDefinition("EMPTY"));
         message.setSenderId(uint8_t{42});
         for (int i = 0; i < 25; ++i) {
-          const auto id = second.BindMessage(dict.getDefinition("SINGLE"), [](std::string, Message) {});
+          const auto id = second.bind("SINGLE", [](const Message &) {});
           txB.sendMessage(message);
-          second.UnbindMessage(id);
+          second.unbind(id);
         }
       });
     }
@@ -662,21 +665,32 @@ namespace {
     }
     require(sendFailed, "Stopped-bus send surfaces Ivy error");
 
-    std::atomic<int> invalidDelivered{0};
+    std::atomic<int> delivered{0}, decodeErrors{0};
     IvyLink receiver(dict, "range-rx", domain, true);
-    receiver.BindMessage(dict.getDefinition("BYTE"), [&](std::string, Message) { ++invalidDelivered; });
+    receiver.bind("BYTE", [&](const Message &) { ++delivered; });
+    receiver.onError([&](const pprzlink::ReceiveError &error) {
+      require(error.kind == pprzlink::ReceiveError::Kind::Decode, "Range failure is a decode error");
+      ++decodeErrors;
+    });
+    receiver.start();
     IvyLink sender(dict, "range-tx", domain, true);
     waitBindings(sender, "range-rx", 1);
     sendRaw(sender, "42 BYTE 256");
-    waitFor([&] { return receiver.getBus().state() == IVY_CTX_STOPPED; }, "conversion failure stops bus");
-    require(invalidDelivered == 0, "Out-of-range uint8 must not wrap");
+    waitFor([&] { return decodeErrors == 1; }, "conversion failure reported through onError");
+    require(delivered == 0 && receiver.isRunning(), "Out-of-range uint8 is skipped without stopping reception");
+    sendRaw(sender, "42 BYTE 7");
+    waitFor([&] { return delivered == 1; }, "valid input after range failure");
+    receiver.bind("EMPTY", [](const Message &) { throw std::runtime_error("application failure"); });
+    waitBindings(sender, "range-rx", 2);
+    sendRaw(sender, "42 EMPTY");
+    waitFor([&] { return receiver.getBus().state() == IVY_CTX_STOPPED; }, "application failure stops native bus");
     require(!receiver.getBus().take_callback_error(), "Callback failure is observable");
     std::cout << "Manual loop, stopped-bus errors and range validation passed\n";
   }
 
   void testPauseResume(const MessageDictionary &dict, const std::string &domain, bool threaded)
   {
-    std::atomic<int> selected{0}, all{0}, scoped{0}, ticks{0};
+    std::atomic<int> selected{0}, all{0}, answered{0}, replies{0}, ticks{0};
     std::exception_ptr loopFailure;
     const std::string name = threaded ? "pause-threaded" : "pause-manual";
     IvyLink receiver(dict, name, domain, threaded);
@@ -685,7 +699,12 @@ namespace {
       if (++selected == 1) generic.stop(); // Callback-side pause suppresses later bindings.
     });
     generic.bind(pprzlink::ALL, [&](const Message &) { ++all; });
-    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { ++scoped; });
+    auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+      ++answered;
+      Message answer(dict.getDefinition("EMPTY"));
+      answer.setSenderId(std::string("server"));
+      return answer;
+    });
     auto timer = receiver.getBus().bind_event([&](std::chrono::milliseconds) { ++ticks; }, ivy::every(5ms));
     auto deadline = receiver.getBus().bind_event(
       [&](std::chrono::milliseconds) { receiver.close(); }, ivy::after(4s));
@@ -705,7 +724,10 @@ namespace {
     const int before = ticks.load();
     sendRaw(sender, "42 BYTE 8");
     sendRaw(sender, "42 EMPTY");
-    waitFor([&] { return scoped == 1 && ticks > before; }, "native subscriptions and timers survive pause");
+    Message request(dict.getDefinition("EMPTY_REQ"));
+    request.setSenderId(std::string("client"));
+    sender.sendRequest(request, [&](std::string, Message) { ++replies; });
+    waitFor([&] { return answered == 1 && replies == 1 && ticks > before; }, "requests and timers survive pause");
     require(selected == 1 && all == 0, "A paused receiver never dispatches its bindings");
 
     generic.start();
@@ -733,31 +755,11 @@ namespace {
     require(receiver.getBus().take_callback_error().has_value(), "Pause/resume callbacks remain valid");
   }
 
-  void testOwnedSubscriptions(const MessageDictionary &dict, const std::string &domain)
+  void testOwnedRequestSubscriptions(const MessageDictionary &dict, const std::string &domain)
   {
-    std::atomic<int> messages{0}, fromSender{0}, answers{0};
+    std::atomic<int> answers{0};
     IvyLink receiver(dict, "owned-rx", domain, true);
     IvyLink sender(dict, "owned-tx", domain, true);
-    {
-      auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { ++messages; });
-      auto moved = std::move(subscription);
-      require(!subscription.is_bound() && moved.is_bound(), "Moving transfers native Ivy ownership");
-      waitBindings(sender, "owned-rx", 1);
-      sendRaw(sender, "42 EMPTY");
-      waitFor([&] { return messages == 1; }, "owned message callback");
-    }
-    waitBindings(sender, "owned-rx", 0); // Scope exit really removed the remote subscription.
-    {
-      auto subscription = receiver.subscribeSender("plane.1", [&](std::string source, Message) {
-        require(source == "plane.1", "Literal sender selector");
-        ++fromSender;
-      });
-      waitBindings(sender, "owned-rx", 1);
-      sendRaw(sender, "plane.1 EMPTY");
-      waitFor([&] { return fromSender == 1; }, "owned sender callback");
-      require(subscription.unbind().has_value(), "Explicit native cancellation");
-    }
-    waitBindings(sender, "owned-rx", 0);
     {
       auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
         Message answer(dict.getDefinition("EMPTY"));
@@ -775,7 +777,9 @@ namespace {
     ivy::Subscription surviving;
     {
       IvyLink temporary(dict, "owned-temporary", domain, true);
-      surviving = temporary.subscribeMessage("EMPTY", [](std::string, Message) {});
+      surviving = temporary.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+        return Message(dict.getDefinition("EMPTY"));
+      });
       require(surviving.is_bound(), "Subscription starts active");
     }
     require(!surviving.is_bound() && surviving.unbind().has_value(), "Token safely outlives its link");
@@ -826,7 +830,7 @@ int main()
     testLifecycleAndErrors(dict, domainA);
     testPauseResume(dict, domainA, false);
     testPauseResume(dict, domainA, true);
-    testOwnedSubscriptions(dict, domainA);
+    testOwnedRequestSubscriptions(dict, domainA);
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

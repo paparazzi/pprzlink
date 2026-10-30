@@ -38,12 +38,12 @@ namespace {
         bool received = false;
         // Sans argument true, la boucle Ivy sera exécutée par link.run() sur ce thread.
         pprzlink::IvyLink link(dictionary, "guide-recepteur", domain);
-        // Conserve le jeton : sa destruction désabonne le callback.
+        // Le lien conserve le callback jusqu’à unbind() ou sa destruction.
         // [&] permet de modifier received et d'arrêter link pendant toute l'attente.
-        auto subscription = link.subscribeMessage("GUIDE_ALTITUDE",
-            [&](std::string sender, pprzlink::Message message) {
+        link.bind("GUIDE_ALTITUDE",
+            [&](const pprzlink::Message &message) {
                 // Le callback reçoit un message complet ; son expéditeur Ivy est textuel.
-                std::cout << "Altitude de " << sender << " : "
+                std::cout << "Altitude de " << std::get<std::string>(message.getSenderId()) << " : "
                           << message.getFieldSI("altitude") << " m" << std::endl;
                 received = true;
                 link.close();
@@ -56,7 +56,7 @@ namespace {
         std::cout << "Récepteur prêt sur Ivy (" << domain
                   << ", attente de 10 secondes)" << std::endl;
         // Traite messages et timer sur ce thread, jusqu'à link.close().
-        // subscription et timeout restent vivants pendant tout run().
+        // Le lien conserve le callback et timeout conserve le timer pendant run().
         link.run();
         if (!received) std::cerr << "Aucune altitude reçue\n";
         return received ? 0 : 1;

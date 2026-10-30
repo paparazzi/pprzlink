@@ -1380,12 +1380,12 @@ namespace {
         bool received = false;
         // Sans argument true, la boucle Ivy sera exécutée par link.run() sur ce thread.
         pprzlink::IvyLink link(dictionary, "guide-recepteur", domain);
-        // Conserve le jeton : sa destruction désabonne le callback.
+        // Le lien conserve le callback jusqu’à unbind() ou sa destruction.
         // [&] permet de modifier received et d'arrêter link pendant toute l'attente.
-        auto subscription = link.subscribeMessage("GUIDE_ALTITUDE",
-            [&](std::string sender, pprzlink::Message message) {
+        link.bind("GUIDE_ALTITUDE",
+            [&](const pprzlink::Message &message) {
                 // Le callback reçoit un message complet ; son expéditeur Ivy est textuel.
-                std::cout << "Altitude de " << sender << " : "
+                std::cout << "Altitude de " << std::get<std::string>(message.getSenderId()) << " : "
                           << message.getFieldSI("altitude") << " m" << std::endl;
                 received = true;
                 link.close();
@@ -1398,7 +1398,7 @@ namespace {
         std::cout << "Récepteur prêt sur Ivy (" << domain
                   << ", attente de 10 secondes)" << std::endl;
         // Traite messages et timer sur ce thread, jusqu'à link.close().
-        // subscription et timeout restent vivants pendant tout run().
+        // Le lien conserve le callback et timeout conserve le timer pendant run().
         link.run();
         if (!received) std::cerr << "Aucune altitude reçue\n";
         return received ? 0 : 1;
@@ -1449,10 +1449,11 @@ int main(int argc, char **argv)
 }
 ```
 
-La fonction `receive()` utilise `subscribeMessage()`. Son callback reçoit
-**un message complet**, avec les champs déjà décodés, et le nom textuel de
-l'expéditeur dans `sender`. Conservez `subscription` pendant toute la durée
-souhaitée de l'abonnement : sa destruction désabonne le callback.
+La fonction `receive()` utilise `bind()`, comme les autres transports. Son
+callback emprunte **un message complet**, avec les champs déjà décodés et
+l'expéditeur textuel accessible par `message.getSenderId()`. Le lien conserve
+le callback jusqu'à `unbind(id)` ou sa destruction ; copiez le message si vous
+souhaitez le conserver après l'invocation.
 
 `link.run()` traite les événements sur le thread appelant. Le callback appelle
 `close()` après la première altitude ; le timer fait de même si aucun message
@@ -1461,8 +1462,8 @@ de `run()`. Le jeton du timer reste vivant dans `timeout` pendant toute l'attent
 
 Pour une pause temporaire des abonnements enregistrés avec `bind()`, utilisez
 `stop()`, puis `start()` pour reprendre avec les mêmes bindings. Pendant cette
-pause, les abonnements natifs `subscribeMessage()` et les requêtes restent
-actifs, ainsi que les envois et les timers : la boucle Ivy continue de tourner.
+pause, les requêtes, les envois et les timers restent actifs : la boucle Ivy
+continue de tourner.
 `close()` termine la session définitivement ; pour en ouvrir une autre, créez
 un nouvel `IvyLink`. Ces deux méthodes peuvent être appelées depuis un callback.
 

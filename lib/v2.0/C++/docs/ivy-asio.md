@@ -6,9 +6,10 @@ Without a context, callbacks run on the native Ivy loop.
 ```cpp
 boost::asio::io_context context;
 pprzlink::IvyLink link(context, dictionary, "my application", domain);
-auto token = link.subscribeMessage("ALIVE", [](std::string sender, pprzlink::Message message) {
+link.bind("ALIVE", [](const pprzlink::Message &message) {
   // Runs on a thread servicing context.
 });
+link.start();
 context.run(); // link.close() releases the link's work guard.
 ```
 
@@ -17,12 +18,12 @@ last argument, `threadedIvy=false`, lets an application retain control of the Iv
 loop and its error reporting. `getBus()` is a native API: its callbacks are
 not redirected to Asio.
 
-All SDK message subscriptions, legacy bindings, request reply callbacks,
-request answerers, and Receiver callbacks/predicates/error handlers execute on
+Receiver callbacks/predicates/error handlers, request reply callbacks and
+request answerers execute on
 the supplied context. They are serialized per link even when several threads
 service that context. The SDK creates no Asio thread. SDK callback and reply
 validation/send exceptions propagate to the caller of `context.run()` (or
-`poll()`). Parsing by native subscriptions still reports failures through Ivy;
+`poll()`). Request parsing on the native loop still reports failures through Ivy;
 Receiver decoding and its error notification run on Asio.
 
 For a request, Ivy copies the decoded request and correlation ID into a queued
@@ -42,11 +43,16 @@ Destruction cancels delivery before joining the owned Ivy thread. This works
 even if the context was stopped with pending replies, since Ivy never waits for
 Asio. Restarting the context later only drains inert handlers.
 
-Unbinding native/scoped/legacy subscriptions prevents further native delivery,
-but an SDK callback already posted can still execute. Its captured application
-state must survive those invocations or a call to `close()`. Queued captures may
-remain allocated until the context drains or is destroyed. Receiver bindings
-continue to use Receiver's own cancellation and start/stop generation checks.
-`stop()` only pauses Receiver reception; it does not close the bus or cancel
-independent subscriptions/answerers. Finish external calls and externally owned
-Ivy loops before destroying the link, and never destroy it from a callback.
+Ordinary messages use only the common Receiver `bind()`/`unbind(id)` API.
+The link retains callbacks; discarding the returned ID does not unsubscribe.
+Message and metadata references are borrowed for the call, so copy them before
+retaining them. Receiver bindings use their own cancellation and start/stop
+generation checks, suppressing queued delivery after removal or a pause.
+
+Canceling a request subscription prevents further native delivery, but an already
+posted reply callback can still execute. Its captured state must survive those
+invocations or a call to `close()`. Queued captures may remain allocated until the
+context drains or is destroyed. `stop()` only pauses Receiver reception; it does
+not close the bus or cancel request subscriptions/answerers. Finish external calls
+and externally owned Ivy loops before destroying the link, and never destroy it
+from a callback.

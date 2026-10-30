@@ -557,12 +557,29 @@ stores all current settings and requires waiting for the acknowledgement.
 `IvyLink` uses `<Ivy/ivy.hpp>` and `libivy-cpp` directly.
 Binding IDs are opaque and local to each link.
 
-Use `subscribeMessage(definitionOrName, callback)`,
-`subscribeSender(sender, callback)` and `subscribeRequestAnswerer(definition, callback)`.
-They return Ivy's own move-only `ivy::Subscription`; retain it while subscribed,
-then let destruction unsubscribe or call `unbind()` explicitly. The legacy
-ID-based entry points delegate to the same implementation. Unbinding does not
-wait for a callback already executing; its captured state must remain alive.
+Use the common `bind(name, callback)` and `bind(ALL, filter, callback)` APIs for
+ordinary messages, as with the other transports. Callbacks borrow a `const Message&`
+and optionally `const ReceiveInfo&`; the Ivy sender is available through
+`message.getSenderId()`. The link retains bindings until `unbind(id)` or destruction;
+`BindingId` is an ordinary integer and discarding it does not unsubscribe.
+
+The previous Ivy-specific ordinary-message entry points have been removed:
+
+| Previous entry point | Replacement |
+| --- | --- |
+| `subscribeMessage(name, callback)` | `bind(name, callback)` |
+| `subscribeMessage(definition, callback)` / `BindMessage(definition, callback)` | `bind(definition.getName(), callback)` |
+| `subscribeSender(sender, callback)` / `BindOnSrcAc(sender, callback)` | `bind(pprzlink::ALL, {.sender = sender}, callback)` |
+
+Update callbacks to accept `const Message&`, copy messages before retaining them,
+and use `unbind(id)` rather than token destruction for cancellation. Call `start()`
+when using an owned Ivy thread; `run()` starts reception automatically.
+
+Requests are separate: `sendRequest()`, `subscribeRequestAnswerer()` and
+`registerRequestAnswerer()` remain Ivy-specific. Retain the `ivy::Subscription`
+returned by `subscribeRequestAnswerer()`; its destruction unsubscribes.
+`UnbindMessage()` cancels IDs returned by `sendRequest()` or
+`registerRequestAnswerer()` and is not used for ordinary `bind()` IDs.
 
 Message definitions and field types are loaded at runtime from XML. Reception
 uses `bind_raw`, then builds a `pprzlink::Message` from those definitions.
@@ -592,18 +609,19 @@ bus address or separate addresses in one process:
 ```cpp
 pprzlink::IvyLink first(dictionary, "first", "127.255.255.255:2010", true);
 pprzlink::IvyLink second(dictionary, "second", "127.255.255.255:2011", true);
-auto aliveSubscription = first.subscribeMessage("ALIVE",
-    [](std::string sender, pprzlink::Message message) {
+first.bind("ALIVE",
+    [](const pprzlink::Message &message) {
         // Fields are decoded according to the XML definition.
     });
+first.start();
 ```
 
 `threadedIvy=true` owns an `ivy::LoopThread`; destruction stops and joins it
 before releasing subscriptions and the bus. Without an Asio context, the default
 is `false`: call `link.run()` to run its native loop on the calling thread. `link.stop()`
 pauses only reception through `Receiver::bind()`, preserving those bindings
-for `link.start()`. Native/scoped subscriptions (`subscribeMessage()`, requests
-and their legacy counterparts), sends and bus timers remain active while paused;
+for `link.start()`. Request subscriptions, native `getBus()` subscriptions, sends
+and bus timers remain active while paused;
 `stop()` does not return from `run()`.
 
 Call `link.close()` to end the Ivy session and request return from `run()`.
@@ -616,7 +634,7 @@ Sends and binding changes can be called from multiple threads. Application
 callback state shared with other threads needs synchronization. The dictionary
 must outlive the link, and all external callers/event loops must finish before destruction.
 Never destroy a link from its callback. Unbinding permits an already executing
-callback to finish; Ivy keeps its captures alive until then.
+callback to finish; the receiver keeps its captures alive until then.
 
 Synchronous Ivy errors throw `std::system_error`. Ivy catches exceptions from
 callbacks, records an error and stops that bus. `run()` checks this error on
