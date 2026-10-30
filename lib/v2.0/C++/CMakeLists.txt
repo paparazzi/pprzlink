@@ -64,7 +64,7 @@ set(PUBLIC_HEADERS
     pprzlink/MessageDictionary.h pprzlink/MessageField.h pprzlink/MessageFieldTypes.h pprzlink/RadioRetries.h
     pprzlink/PprzTransport.h pprzlink/PprzFrameCodec.h pprzlink/TransportStatistics.h
     pprzlink/XbeeAddress.h pprzlink/XbeeTransport.h pprzlink/XbeeModem.h pprzlink/Transport.h
-    pprzlink/ReceivedMessage.h pprzlink/Receiver.h pprzlink/BoostSerialPortDevice.h pprzlink/UdpTransport.h)
+    pprzlink/ReceivedMessage.h pprzlink/Receiver.h pprzlink/RequestReply.h pprzlink/BoostSerialPortDevice.h pprzlink/UdpTransport.h)
 if(UNIX)
     list(APPEND IO_SOURCES pprzlink/PosixFileDevice.cpp)
     list(APPEND PUBLIC_HEADERS pprzlink/PosixFileDevice.h)

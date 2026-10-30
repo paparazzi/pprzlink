@@ -401,8 +401,9 @@ filtres sont ensuite appliqués localement par le même dispatcher que les autre
 transports. `bind(pprzlink::ALL, {.sender = "42"}, callback)` sélectionne les
 messages d'un expéditeur. Aucun binding ne signifie aucun abonnement de réception.
 
-`sendRequest()` et `subscribeRequestAnswerer()` traitent les échanges Ivy
-requête/réponse ; leurs callbacks reçoivent également des messages complets.
+L'interface commune `RequestReply` expose `sendRequest()` / `cancelRequest()` et
+`bindRequest()` / `unbindRequest()`. Seul Ivy l'implémente actuellement. Ses
+callbacks empruntent également des messages complets, avec métadonnées facultatives.
 Les requêtes sont reconnues par le suffixe `_REQ` et utilisent `sendRequest()`
 au lieu de `sendMessage()`.
 

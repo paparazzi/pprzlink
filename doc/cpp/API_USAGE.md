@@ -40,8 +40,8 @@ uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
    facultatives. `start()` active la réception réactive et `stop()` la met en
    pause. Pour Ivy, `close()` termine la session et fait sortir de `run()`.
 3. La réception ordinaire Ivy utilise aussi `bind()` et `unbind(id)`. Les callbacks
-   empruntent le message ; le lien conserve les abonnements. Seuls les répondeurs
-   `subscribeRequestAnswerer()` retournent un jeton `ivy::Subscription`.
+   empruntent le message ; le lien conserve les abonnements. Les requêtes utilisent
+   la capacité commune `RequestReply`, actuellement implémentée uniquement par Ivy.
 4. Les composants CMake `core`, `io` et `ivy` permettent de choisir les
    dépendances. Les cibles `pprzlink++` et `pprzlink++_static` les regroupent.
 
@@ -467,8 +467,13 @@ Les filtres supplémentaires restent locaux. Les changements sont annoncés aux
 pairs de façon asynchrone et peuvent entraîner une brève perte de messages.
 
 Les callbacks s'exécutent sur le contexte Asio fourni, ou sur la boucle Ivy
-sans contexte. `subscribeRequestAnswerer()` conserve son contrat de jeton
-`ivy::Subscription` ; les requêtes utilisent leurs propres abonnements.
+sans contexte. La capacité `RequestReply` utilise `sendRequest()` et
+`cancelRequest()` pour une réponse unique, `bindRequest()` et `unbindRequest()`
+pour un répondeur persistant. Les IDs sont de simples valeurs ; leur destruction
+ne désabonne pas. Les callbacks empruntent le message et, facultativement, ses
+métadonnées. L'annulation supprime aussi les invocations en attente. Aucun délai
+maximal n'est imposé ; les requêtes restent actives pendant `stop()`. Seul Ivy
+implémente cette interface pour le moment.
 
 Un récepteur qui doit quitter `link.run()` après son dernier message appelle
 `link.close()` dans son callback. `link.stop()` suspend seulement les

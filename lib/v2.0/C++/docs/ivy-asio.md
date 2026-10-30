@@ -49,9 +49,11 @@ Message and metadata references are borrowed for the call, so copy them before
 retaining them. Receiver bindings use their own cancellation and start/stop
 generation checks, suppressing queued delivery after removal or a pause.
 
-Canceling a request subscription prevents further native delivery, but an already
-posted reply callback can still execute. Its captured state must survive those
-invocations or a call to `close()`. Queued captures may remain allocated until the
+The optional `RequestReply` interface uses `sendRequest()` / `cancelRequest()`
+and `bindRequest()` / `unbindRequest()`, with receiver-owned integer IDs and
+borrowed messages/optional metadata. Currently only Ivy implements this interface.
+Cancellation suppresses already queued replies and answerer invocations; a callback
+already executing may finish. Queued captures may remain allocated until the
 context drains or is destroyed. `stop()` only pauses Receiver reception; it does
 not close the bus or cancel request subscriptions/answerers. Finish external calls
 and externally owned Ivy loops before destroying the link, and never destroy it

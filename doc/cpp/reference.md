@@ -575,11 +575,38 @@ Update callbacks to accept `const Message&`, copy messages before retaining them
 and use `unbind(id)` rather than token destruction for cancellation. Call `start()`
 when using an owned Ivy thread; `run()` starts reception automatically.
 
-Requests are separate: `sendRequest()`, `subscribeRequestAnswerer()` and
-`registerRequestAnswerer()` remain Ivy-specific. Retain the `ivy::Subscription`
-returned by `subscribeRequestAnswerer()`; its destruction unsubscribes.
-`UnbindMessage()` cancels IDs returned by `sendRequest()` or
-`registerRequestAnswerer()` and is not used for ordinary `bind()` IDs.
+Requests use the optional, transport-independent `RequestReply` interface, declared
+in `<pprzlink/RequestReply.h>`. Currently only `IvyLink` implements it; other
+transports do not expose unsupported request methods.
+
+```cpp
+pprzlink::RequestReply &requests = link;
+auto handler = requests.bindRequest("CONFIG_REQ",
+    [&](const pprzlink::Message &request) {
+        return makeConfigAnswer(request);
+    });
+auto pending = requests.sendRequest(request,
+    [](const pprzlink::Message &answer, const pprzlink::ReceiveInfo &info) {
+        // Borrowed answer and optional transport metadata.
+    });
+// If no longer needed:
+requests.cancelRequest(pending);
+requests.unbindRequest(handler);
+```
+
+Both callback forms accept `const Message&` with an optional `const ReceiveInfo&`.
+The implementation owns requests and persistent answerers; discarding their integer
+IDs has no effect. The first valid correlated answer completes a request before
+invoking its callback. There is no automatic timeout. Canceling a request or
+unbinding an answerer suppresses queued delivery; an already executing callback
+may finish. Unknown/completed IDs are harmless. `stop()` leaves this capability
+active; `close()` or destruction cancels it. Registration, send and validation
+failures throw synchronously; application callback exceptions reach the event loop.
+Ivy supplies empty metadata and retains its existing `_REQ` naming and correlation
+format internally. Future adapters must provide actual correlation and reply routing.
+
+The old request entry points using `ivy::Subscription` or `UnbindMessage()` have
+been replaced by `bindRequest()` / `unbindRequest()` and `cancelRequest()`.
 
 Message definitions and field types are loaded at runtime from XML. Reception
 uses `bind_raw`, then builds a `pprzlink::Message` from those definitions.

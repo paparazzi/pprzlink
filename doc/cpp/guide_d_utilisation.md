@@ -1530,8 +1530,9 @@ messages dont le nom se termine par `_REQ`.
 
 Notre XML contient déjà `GUIDE_ALTITUDE_REQ`. La réponse attendue est
 `GUIDE_ALTITUDE`, c'est-à-dire le même nom sans le suffixe `_REQ`. Ce
-mécanisme est propre à l'adaptateur Ivy présenté ici ; un couple PING/PONG
-sur série demande sa propre logique applicative.
+format est propre à Ivy. L'interface commune `RequestReply` est actuellement
+implémentée uniquement par Ivy ; un couple PING/PONG sur série demande encore
+sa propre logique applicative.
 
 ### Transformer le récepteur en répondeur
 
@@ -1539,10 +1540,10 @@ Reprenez le programme unique de l'étape 8. Dans sa fonction `receive()`,
 remplacez uniquement l'abonnement à `GUIDE_ALTITUDE` par :
 
 ```cpp
-// Conserve l'abonnement jusqu'à sa destruction ; le lien associe chaque demande à sa réponse.
-auto subscription = link.subscribeRequestAnswerer(
-    dictionary.getDefinition("GUIDE_ALTITUDE_REQ"),
-    [&](std::string sender, pprzlink::Message request) {
+// Le lien conserve le répondeur ; conservez l’ID retourné si vous souhaitez appeler unbindRequest().
+link.bindRequest("GUIDE_ALTITUDE_REQ",
+    [&](const pprzlink::Message &request) {
+        const auto &sender = std::get<std::string>(request.getSenderId());
         (void)request; // Cette requête n'a aucun champ.
         std::cout << "Demande reçue de " << sender << std::endl;
         pprzlink::Message answer(dictionary.getDefinition("GUIDE_ALTITUDE"));
@@ -1581,9 +1582,9 @@ Remplacez les deux lignes d'envoi `link.sendMessage(altitude)` et d'affichage
 
 ```cpp
 // Installe l'abonnement à la réponse avant l'envoi et renvoie son identifiant d'annulation.
-const long pending = link.sendRequest(request,
+const auto pending = link.sendRequest(request,
     // Capture le shared_ptr par valeur : le callback possède une référence à la promesse.
-    [result](std::string, pprzlink::Message answer) {
+    [result](const pprzlink::Message &answer) {
         try {
             // Rend le future prêt en lui fournissant l'altitude SI depuis le thread Ivy.
             result->set_value(answer.getFieldSI("altitude"));
@@ -1596,7 +1597,7 @@ const long pending = link.sendRequest(request,
 // Attend au plus trois secondes sur le thread principal ; la boucle Ivy tourne sur son propre thread.
 if (future.wait_for(std::chrono::seconds(3)) != std::future_status::ready) {
     // Supprime l'attente de réponse, sans interrompre un callback qui aurait déjà commencé.
-    link.UnbindMessage(pending);
+    link.cancelRequest(pending);
     throw std::runtime_error("La requête est restée sans réponse");
 }
 // Consomme le résultat une seule fois ; une exception transmise par la promesse est relancée ici.
@@ -1610,7 +1611,7 @@ joue le demandeur et doit afficher `Altitude demandée : 123.5 m`.
 `sendRequest()` installe l'attente puis envoie la demande. À la première
 réponse valide, cette attente est automatiquement supprimée. La bibliothèque
 ne fixe pas de délai maximal : ici, le programme attend trois secondes puis
-annule l'abonnement avec `UnbindMessage()` si nécessaire.
+annule l'abonnement avec `cancelRequest()` si nécessaire.
 
 Le callback s'exécute sur le thread Ivy de l'émetteur. La paire
 `std::promise` / `std::future` transmet le résultat au thread principal.

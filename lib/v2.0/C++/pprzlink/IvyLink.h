@@ -33,6 +33,7 @@
 #include <pprzlink/Message.h>
 #include <pprzlink/MessageDictionary.h>
 #include <pprzlink/Receiver.h>
+#include <pprzlink/RequestReply.h>
 #include <boost/asio/io_context.hpp>
 #include <atomic>
 #include <cstdint>
@@ -45,13 +46,6 @@
 
 namespace pprzlink {
 
-  /// @brief Request reply observer receiving sender text and an owned decoded message on the selected event loop.
-  /// @ingroup ivy
-  using messageCallback_t = std::function<void(std::string, Message)>;
-  /// @brief Request handler receiving sender/request values and returning its reply message.
-  /// @ingroup ivy
-  using answererCallback_t = std::function<Message(std::string, Message)>;
-
   /** Owns an independent Ivy bus. The dictionary must outlive the link.
    * @ingroup ivy
    * Use the inherited Receiver::bind() and Receiver::unbind() for ordinary messages.
@@ -61,9 +55,8 @@ namespace pprzlink {
    * answerers are posted there and serialized per link. Native getBus() callbacks
    * still run on Ivy. The context and dictionary must outlive the link.
    * In Asio mode, close() suppresses queued callbacks and waits for active
-   * callbacks on other threads; no callback starts after it returns. Canceling a request can
-   * leave already posted reply callbacks queued. Keep their captured state alive until
-   * close() or until those invocations finish. Queued captures may survive until the
+   * callbacks on other threads; no callback starts after it returns. Canceling a request
+   * suppresses queued delivery; an already executing invocation may finish. Queued captures may survive until the
    * context drains or is destroyed, but cannot access a closed/destroyed link.
    * Receiver decode failures reach onError(); application callback/reply errors propagate
    * from context.run(). Native request decode errors remain available through
@@ -72,7 +65,7 @@ namespace pprzlink {
    * for replies from its callbacks. A work guard keeps context.run() running until close().
    * Destroy the link after external callers/loops have finished, never from a callback.
    */
-  class IvyLink : public Receiver {
+  class IvyLink : public Receiver, public RequestReply {
   public:
     /** Start a bus, optionally running its event loop on an owned thread.
      * With threadedIvy=false, call run() to service this bus.
@@ -112,38 +105,15 @@ namespace pprzlink {
     /// @return This operation is deleted and cannot return.
     IvyLink& operator=(IvyLink&&) = delete;
 
-    /// @brief Answer requests of one schema using a scoped subscription.
-    /// @param[in] definition Request schema whose name ends with _REQ.
-    /// @param[in] callback Handler returning the corresponding message without the _REQ suffix.
-    /// @return Owned answerer token; keep captured state alive through active callbacks.
-    /// @throws message_is_not_request The schema is not a request.
-    /// @throws std::system_error Binding fails; callback/reply errors reach the selected event loop.
-    [[nodiscard]] ivy::Subscription subscribeRequestAnswerer(const MessageDefinition &definition,
-                                                            answererCallback_t callback);
-
-    /// @brief Cancel a request reply or a link-owned request answerer.
-    /// An already executing callback may finish after return.
-    /// @param[in] bindId ID returned by sendRequest() or registerRequestAnswerer(); unknown IDs are harmless.
-    /// @throws std::system_error Native unbinding fails.
-    void UnbindMessage(long bindId);
+    /// Cancel a pending request, suppressing queued reply delivery. Unknown IDs are harmless.
+    void cancelRequest(RequestId id) override;
+    /// Remove a persistent answerer, suppressing queued invocations. Unknown IDs are harmless.
+    void unbindRequest(HandlerId id) override;
     /// @brief Publish an ordinary populated message on this bus.
     /// @param[in] msg Non-request message to serialize in standard Ivy syntax.
     /// @throws message_is_request The schema ends with _REQ; use sendRequest().
     /// @throws std::exception Field formatting or native sending fails.
     void sendMessage(const Message &msg);
-    /// @brief Send a request and register a one-shot correlated reply subscription.
-    /// @param[in] msg Populated _REQ message; the answer schema must exist without that suffix.
-    /// @param[in] cb Observer called after unbinding the reply subscription.
-    /// @return Binding ID; call UnbindMessage() to cancel an unanswered request. No timeout is imposed.
-    /// @throws std::exception Invalid request/schema, binding, formatting or native sending fails.
-    long sendRequest(const Message &msg, messageCallback_t cb);
-    /// @brief Retain a legacy ID-owned request answerer in this link.
-    /// @param[in] def Request schema whose name ends with _REQ.
-    /// @param[in] cb Handler returning the corresponding answer Message.
-    /// @return Binding ID accepted by UnbindMessage().
-    /// @throws std::exception Invalid request schema or native binding failure.
-    long registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb);
-
     /// Run the loop on this thread until close() or a terminal bus error.
     /// Only valid when constructed with threadedIvy=false; stop() pauses reception
     /// without ending this loop.
@@ -177,12 +147,16 @@ namespace pprzlink {
     std::shared_ptr<DispatchState> dispatchState;
     IvyLink(boost::asio::io_context *context, const MessageDictionary &dict,
             std::string appName, std::string domain, bool threadedIvy);
-    messageCallback_t dispatchCallback(messageCallback_t callback) const;
     const MessageDictionary &dictionary;
     ivy::Bus bus;
-    std::mutex subscriptionsMutex;
-    std::map<long, ivy::Subscription> subscriptions;
-    std::atomic<long> nextBindId{1};
+    /// Owned request registration and gate for already queued application work.
+    struct RequestSubscription {
+      ivy::Subscription token; ///< Native registration.
+      std::shared_ptr<bool> active; ///< Protected by DispatchState::mutex.
+    };
+    std::map<RequestId, RequestSubscription> pendingRequests;
+    std::map<HandlerId, RequestSubscription> requestHandlers;
+    uint64_t nextRequestId = 1; ///< Shared local ID sequence, protected by DispatchState::mutex.
     /// @brief Native subscription and cancellation gate for already posted notifications.
     struct ReceiverSubscription {
       ivy::Subscription token; ///< Owned native binding.
@@ -193,8 +167,8 @@ namespace pprzlink {
     // Declared last: stop/join before destroying subscriptions or the bus.
     std::optional<ivy::LoopThread> loop;
 
-    long storeSubscription(ivy::Subscription subscription);
-    void storeSubscription(long id, ivy::Bus::BindResult result);
+    RequestId sendRequestImpl(const Message &request, ReplyCallback callback) override;
+    HandlerId bindRequestImpl(std::string_view name, AnswerCallback callback) override;
     void bindingsChanged() override;
     ReceiverSubscription bindReceiver(const std::optional<std::string> &name);
   };

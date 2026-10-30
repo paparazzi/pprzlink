@@ -196,7 +196,7 @@ namespace {
       checkContext(); require(error.kind == pprzlink::ReceiveError::Kind::Decode, "Asio decode error"); ++errors;
     });
     receiver.start();
-    receiver.registerRequestAnswerer(dict.getDefinition("ANSWER_REQ"), [&](std::string, Message request) {
+    receiver.bindRequest("ANSWER_REQ", [&](const Message &request) {
       checkContext();
       Message answer(dict.getDefinition("ANSWER"));
       answer.setSenderId(std::string("server"));
@@ -217,7 +217,8 @@ namespace {
       Message request(dict.getDefinition("ANSWER_REQ"));
       request.setSenderId(std::string("client"));
       request.addField("value", value);
-      sender.sendRequest(request, [&, value](std::string from, Message reply) {
+      sender.sendRequest(request, [&, value](const Message &reply) {
+        const auto &from = std::get<std::string>(reply.getSenderId());
         checkContext();
         require(from == "server" && field<uint32_t>(reply, "value") == value + 10,
                 "Asio concurrent request correlation");
@@ -234,7 +235,7 @@ namespace {
     }, "All SDK callback APIs dispatched on Asio");
 
     // Closing from an answerer suppresses its reply and all later queued work.
-    auto closing = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+    receiver.bindRequest("EMPTY_REQ", [&](const Message &) {
       checkContext(); receiver.close();
       Message answer(dict.getDefinition("EMPTY"));
       answer.setSenderId(std::string("server"));
@@ -243,7 +244,7 @@ namespace {
     waitBindings(sender, "asio-rx", 4);
     Message request(dict.getDefinition("EMPTY_REQ"));
     request.setSenderId(std::string("client"));
-    sender.sendRequest(request, [&](std::string, Message) { throw std::runtime_error("Closed answerer replied"); });
+    sender.sendRequest(request, [&](const Message &) { throw std::runtime_error("Closed answerer replied"); });
     sendRaw(sender, "42 EMPTY");
     sendRaw(sender, "SYNC");
     waitFor([&] { return barriers == 2; }, "Queued close and message");
@@ -290,7 +291,7 @@ namespace {
       observed = ++count;
       if (count == 2) throw std::runtime_error("application failure");
     });
-    auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("ANSWER_REQ"), [&](std::string, Message) {
+    receiver.bindRequest("ANSWER_REQ", [&](const Message &) {
       return Message(dict.getDefinition("EMPTY")); // Wrong answer must fail on Asio.
     });
     receiver.start();
@@ -308,7 +309,7 @@ namespace {
     require(observed == 2, "Mutable callback state survives successive posted invocations");
     Message request(dict.getDefinition("ANSWER_REQ"));
     request.setSenderId(std::string("client")); request.addField("value", uint32_t{1});
-    sender.sendRequest(request, [](std::string, Message) {});
+    sender.sendRequest(request, [](const Message &) {});
     failed = false;
     waitFor([&] {
       try { context.poll(); }
@@ -329,7 +330,7 @@ namespace {
     auto receiver = std::make_unique<IvyLink>(context, dict, "asio-shutdown-rx", domain);
     receiver->bind("EMPTY", [&](const Message &) { ++calls; });
     receiver->start();
-    auto answerer = receiver->subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+    receiver->bindRequest("EMPTY_REQ", [&](const Message &) {
       ++calls; return Message(dict.getDefinition("EMPTY"));
     });
     auto marker = receiver->getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view>) {
@@ -339,13 +340,12 @@ namespace {
     waitBindings(sender, "asio-shutdown-rx", 3);
     Message request(dict.getDefinition("EMPTY_REQ"));
     request.setSenderId(std::string("client"));
-    sender.sendRequest(request, [&](std::string, Message) { ++calls; });
+    sender.sendRequest(request, [&](const Message &) { ++calls; });
     sendRaw(sender, "42 EMPTY");
     sendRaw(sender, "SYNC");
     waitFor([&] { return barriers == 1; }, "Answer pending on stopped context");
     context.stop();
     receiver.reset(); // Must join Ivy without servicing the pending answer.
-    require(!answerer.is_bound(), "Request answerer token safely outlives Asio link");
     context.restart();
     context.run();
     require(calls == 0, "Destroying link suppresses queued observers and replies after context restart");
@@ -465,8 +465,8 @@ namespace {
 
     // These real peers announce '<application> ready' after run() has started.
     IvyLink server(dict, "shared-server", domain, true);
-    auto answerer = server.subscribeRequestAnswerer(dict.getDefinition("ANSWER_REQ"),
-      [&](std::string, Message request) {
+    server.bindRequest("ANSWER_REQ",
+      [&](const Message &request) {
         Message answer(dict.getDefinition("ANSWER"));
         answer.setSenderId(std::string("response-source"));
         answer.addField("value", field<uint32_t>(request, "value") + 1);
@@ -481,7 +481,8 @@ namespace {
     Message request(dict.getDefinition("ANSWER_REQ"));
     request.setSenderId(std::string("request-source"));
     request.addField("value", uint32_t{41});
-    sender.sendRequest(request, [&](std::string source, Message answer) {
+    sender.sendRequest(request, [&](const Message &answer) {
+      const auto &source = std::get<std::string>(answer.getSenderId());
       require(source == "response-source" && field<uint32_t>(answer, "value") == 42,
               "Shared bus request/reply remains correlated");
       ++replies;
@@ -543,8 +544,9 @@ namespace {
   {
     std::atomic<int> replies{0}, answered{0}, emptyReplies{0};
     IvyLink server(dict, "request-server", domain, true);
-    const auto answerId = server.registerRequestAnswerer(dict.getDefinition("ANSWER_REQ"),
-      [&](std::string sender, Message request) {
+    const auto answerId = server.bindRequest("ANSWER_REQ",
+      [&](const Message &request) {
+        const auto &sender = std::get<std::string>(request.getSenderId());
         require(sender == "client", "Request sender");
         require(std::get<std::string>(request.getSenderId()) == sender, "Request message sender");
         Message answer(dict.getDefinition("ANSWER"));
@@ -554,7 +556,7 @@ namespace {
         return answer;
       });
     require(answerId > 0, "Answerer returns a usable subscription ID");
-    server.registerRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+    server.bindRequest("EMPTY_REQ", [&](const Message &) {
       Message answer(dict.getDefinition("EMPTY"));
       answer.setSenderId(std::string("server"));
       return answer;
@@ -568,7 +570,8 @@ namespace {
         Message request(dict.getDefinition("ANSWER_REQ"));
         request.setSenderId(std::string("client"));
         request.addField("value", base + i);
-        client.sendRequest(request, [&, expected = base + i + 1](std::string sender, Message answer) {
+        client.sendRequest(request, [&, expected = base + i + 1](const Message &answer) {
+          const auto &sender = std::get<std::string>(answer.getSenderId());
           require(sender == "server", "Reply sender");
           require(field<uint32_t>(answer, "value") == expected, "Reply matched to correct request");
           ++replies;
@@ -585,23 +588,109 @@ namespace {
     waitBindings(server, "request-second", 0);
     Message emptyRequest(dict.getDefinition("EMPTY_REQ"));
     emptyRequest.setSenderId(std::string("client"));
-    first.sendRequest(emptyRequest, [&](std::string, Message) { ++emptyReplies; });
+    first.sendRequest(emptyRequest, [&](const Message &) { ++emptyReplies; });
     waitFor([&] { return emptyReplies == 1; }, "fieldless request and answer");
-    server.UnbindMessage(answerId);
+    server.unbindRequest(answerId);
     waitBindings(first, "request-server", 1);
     Message request(dict.getDefinition("ANSWER_REQ"));
     request.setSenderId(std::string("client"));
     request.addField("value", uint32_t{1});
-    const auto canceled = first.sendRequest(request, [](std::string, Message) {
+    const auto canceled = first.sendRequest(request, [](const Message &) {
       throw std::runtime_error("Canceled request delivered");
     });
-    first.UnbindMessage(canceled);
-    first.UnbindMessage(canceled);
+    first.cancelRequest(canceled);
+    first.cancelRequest(canceled);
     waitBindings(server, "request-first", 0);
     require(first.getBus().take_callback_error().has_value(), "First client callback error");
     require(second.getBus().take_callback_error().has_value(), "Second client callback error");
     require(server.getBus().take_callback_error().has_value(), "Answerer callback error");
     std::cout << "Concurrent requests, correlation and cancellation passed\n";
+  }
+
+  void testRequestInterface(const MessageDictionary &dict, const std::string &domain)
+  {
+    boost::asio::io_context context;
+    int replies = 0, handlers = 0;
+    std::atomic<int> barriers{0}, completed{0};
+    IvyLink client(context, dict, "interface-client", domain);
+    IvyLink peer(dict, "interface-peer", domain, true);
+    pprzlink::RequestReply &requests = client;
+    pprzlink::RequestReply &peerRequests = peer;
+    auto marker = client.getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view>) {
+      ++barriers;
+    }, "^SYNC$");
+    auto responder = peer.getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view> args) {
+      // Two answers for the same ID must still complete only once.
+      sendRaw(peer, std::string(args[0]) + " server EMPTY");
+      sendRaw(peer, std::string(args[0]) + " server EMPTY");
+      sendRaw(peer, "SYNC");
+    }, "^client ([^ ]*) EMPTY_REQ *$");
+    require(marker.has_value() && responder.has_value(), "Request interface markers");
+    waitBindings(client, "interface-peer", 1);
+    Message request(dict.getDefinition("EMPTY_REQ"));
+    request.setSenderId(std::string("client"));
+    auto receive = [&](const Message &answer, const pprzlink::ReceiveInfo &info) {
+      require(answer.getDefinition().getName() == "EMPTY" && info.frameSize == 0 && !info.udpPeer && !info.xbee,
+              "Common reply metadata");
+      ++replies;
+    };
+    const auto canceled = requests.sendRequest(request, receive);
+    waitFor([&] { return barriers == 1; }, "answers queued before cancellation");
+    requests.cancelRequest(canceled);
+    requests.cancelRequest(canceled);
+    context.poll();
+    require(replies == 0, "Cancellation suppresses already queued answers");
+    const auto pending = requests.sendRequest(request, receive);
+    waitFor([&] { return barriers == 2; }, "duplicate answers queued");
+    context.poll();
+    require(replies == 1, "Only the first queued answer completes the request");
+    requests.cancelRequest(pending); // Completed IDs are harmless.
+
+    auto answer = [&](const Message &, const pprzlink::ReceiveInfo &info) {
+      require(info.frameSize == 0 && !info.udpPeer && !info.xbee, "Common request metadata");
+      ++handlers;
+      Message result(dict.getDefinition("EMPTY"));
+      result.setSenderId(std::string("client"));
+      return result;
+    };
+    const auto removed = requests.bindRequest("EMPTY_REQ", answer);
+    waitBindings(peer, "interface-client", 2);
+    request.setSenderId(std::string("peer"));
+    const auto ignored = peerRequests.sendRequest(request, [&](const Message &) { ++completed; });
+    sendRaw(peer, "SYNC");
+    waitFor([&] { return barriers == 3; }, "handler invocation queued");
+    requests.unbindRequest(removed);
+    context.poll();
+    require(handlers == 0 && completed == 0, "Unbinding suppresses queued answerer invocation");
+    peerRequests.cancelRequest(ignored);
+    const auto handler = requests.bindRequest("EMPTY_REQ", answer);
+    waitBindings(peer, "interface-client", 2);
+    peerRequests.sendRequest(request, [&](const Message &) { ++completed; });
+    waitFor([&] { context.poll(); return completed == 1; }, "common answerer routes response");
+    require(handlers == 1, "Persistent common answerer invoked");
+    requests.unbindRequest(handler);
+    bool refused = false;
+    try { requests.bindRequest("EMPTY_REQ", pprzlink::RequestReply::AnswerCallback{}); }
+    catch (const std::invalid_argument &) { refused = true; }
+    require(refused, "Empty answerer rejected before registration");
+    refused = false;
+    try { requests.sendRequest(request, pprzlink::RequestReply::ReplyCallback{}); }
+    catch (const std::invalid_argument &) { refused = true; }
+    require(refused, "Empty reply observer rejected before sending");
+    Message incomplete(dict.getDefinition("ANSWER_REQ"));
+    incomplete.setSenderId(std::string("client"));
+    refused = false;
+    try { requests.sendRequest(incomplete, receive); }
+    catch (const std::exception &) { refused = true; }
+    require(refused, "Unpopulated request fails synchronously");
+    waitBindings(peer, "interface-client", 1); // Failed send leaves only the SYNC marker.
+    client.close();
+    peer.close();
+    bool closed = false;
+    try { requests.sendRequest(request, receive); }
+    catch (const std::system_error &) { closed = true; }
+    require(closed, "Closed request capability rejects new requests");
+    context.run();
   }
 
   void testIsolation(const MessageDictionary &dict, const std::string &domainA, const std::string &domainB)
@@ -699,7 +788,7 @@ namespace {
       if (++selected == 1) generic.stop(); // Callback-side pause suppresses later bindings.
     });
     generic.bind(pprzlink::ALL, [&](const Message &) { ++all; });
-    auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+    receiver.bindRequest("EMPTY_REQ", [&](const Message &) {
       ++answered;
       Message answer(dict.getDefinition("EMPTY"));
       answer.setSenderId(std::string("server"));
@@ -726,7 +815,7 @@ namespace {
     sendRaw(sender, "42 EMPTY");
     Message request(dict.getDefinition("EMPTY_REQ"));
     request.setSenderId(std::string("client"));
-    sender.sendRequest(request, [&](std::string, Message) { ++replies; });
+    sender.sendRequest(request, [&](const Message &) { ++replies; });
     waitFor([&] { return answered == 1 && replies == 1 && ticks > before; }, "requests and timers survive pause");
     require(selected == 1 && all == 0, "A paused receiver never dispatches its bindings");
 
@@ -761,7 +850,7 @@ namespace {
     IvyLink receiver(dict, "owned-rx", domain, true);
     IvyLink sender(dict, "owned-tx", domain, true);
     {
-      auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+      const auto handler = receiver.bindRequest("EMPTY_REQ", [&](const Message &) {
         Message answer(dict.getDefinition("EMPTY"));
         answer.setSenderId(std::string("server"));
         return answer;
@@ -769,20 +858,13 @@ namespace {
       waitBindings(sender, "owned-rx", 1);
       Message request(dict.getDefinition("EMPTY_REQ"));
       request.setSenderId(std::string("client"));
-      sender.sendRequest(request, [&](std::string, Message) { ++answers; });
-      waitFor([&] { return answers == 1; }, "owned answerer with legacy request API");
+      sender.sendRequest(request, [&](const Message &) { ++answers; });
+      waitFor([&] { return answers == 1; }, "receiver-owned request answerer");
+      receiver.unbindRequest(handler);
+      receiver.unbindRequest(handler);
     }
     waitBindings(sender, "owned-rx", 0);
 
-    ivy::Subscription surviving;
-    {
-      IvyLink temporary(dict, "owned-temporary", domain, true);
-      surviving = temporary.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
-        return Message(dict.getDefinition("EMPTY"));
-      });
-      require(surviving.is_bound(), "Subscription starts active");
-    }
-    require(!surviving.is_bound() && surviving.unbind().has_value(), "Token safely outlives its link");
     require(receiver.getBus().take_callback_error().has_value(), "Owned callbacks remain valid");
   }
 }
@@ -826,6 +908,7 @@ int main()
     testMessages(dict, domainA);
     testCompactNumbers(dict, domainA);
     testRequests(dict, domainA);
+    testRequestInterface(dict, domainA);
     testIsolation(dict, domainA, domainB);
     testLifecycleAndErrors(dict, domainA);
     testPauseResume(dict, domainA, false);

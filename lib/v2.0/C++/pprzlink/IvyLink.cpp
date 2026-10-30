@@ -22,7 +22,7 @@
  * @brief Ivy bindings, request correlation and callback lifetime management.
  * @ingroup ivy
  *
- * Ordinary messages use Receiver bindings. Request subscriptions are retained behind IDs or scoped tokens; replies are one-shot and correlated by a process-wide sequence.
+ * Ordinary messages use Receiver bindings. Request subscriptions are retained behind local IDs; replies are one-shot and correlated by a process-wide sequence.
  */
 
 #include <pprzlink/IvyLink.h>
@@ -70,7 +70,11 @@ namespace pprzlink {
 
     void submit(std::function<void()> callback)
     {
-      if (!context) { callback(); return; }
+      if (!context) {
+        std::lock_guard lock(mutex);
+        if (open) callback();
+        return;
+      }
       if (!open) return;
       boost::asio::post(*context, [state = shared_from_this(), callback = std::move(callback)] {
         std::lock_guard lock(state->mutex);
@@ -84,15 +88,6 @@ namespace pprzlink {
       work.reset();
     }
   };
-
-  messageCallback_t IvyLink::dispatchCallback(messageCallback_t callback) const
-  {
-    return [state = dispatchState, callback = std::make_shared<messageCallback_t>(std::move(callback))](std::string sender, Message message) {
-      state->submit([callback, sender = std::move(sender), message = std::move(message)]() mutable {
-        (*callback)(std::move(sender), std::move(message));
-      });
-    };
-  }
 
   IvyLink::IvyLink(boost::asio::io_context &context, const MessageDictionary &dict,
                    std::string appName, std::string domain, bool threadedIvy)
@@ -142,6 +137,11 @@ namespace pprzlink {
   void IvyLink::close()
   {
     dispatchState->close();
+    {
+      std::lock_guard requestLock(dispatchState->mutex);
+      pendingRequests.clear();
+      requestHandlers.clear();
+    }
     auto lock = lockReceiver();
     stop();
     checked(bus.request_stop());
@@ -209,31 +209,23 @@ namespace pprzlink {
     return {std::move(token), std::move(active)};
   }
 
-  long IvyLink::storeSubscription(ivy::Subscription subscription)
+  void IvyLink::cancelRequest(RequestId id)
   {
-    const long id = nextBindId++;
-    std::lock_guard lock(subscriptionsMutex);
-    subscriptions.emplace(id, std::move(subscription));
-    return id;
-  }
-
-  void IvyLink::storeSubscription(long id, ivy::Bus::BindResult result)
-  {
-    auto subscription = checked(std::move(result));
-    std::lock_guard lock(subscriptionsMutex);
-    subscriptions.emplace(id, std::move(subscription));
-  }
-
-  void IvyLink::UnbindMessage(long bindId)
-  {
-    decltype(subscriptions)::node_type subscription;
-    {
-      std::lock_guard lock(subscriptionsMutex);
-      subscription = subscriptions.extract(bindId);
+    std::lock_guard lock(dispatchState->mutex);
+    auto entry = pendingRequests.extract(id);
+    if (!entry.empty()) {
+      *entry.mapped().active = false;
+      checked(entry.mapped().token.unbind());
     }
-    // Native unbind and capture destruction can call back into this link.
-    if (!subscription.empty()) {
-      checked(subscription.mapped().unbind());
+  }
+
+  void IvyLink::unbindRequest(HandlerId id)
+  {
+    std::lock_guard lock(dispatchState->mutex);
+    auto entry = requestHandlers.extract(id);
+    if (!entry.empty()) {
+      *entry.mapped().active = false;
+      checked(entry.mapped().token.unbind());
     }
   }
 
@@ -246,72 +238,68 @@ namespace pprzlink {
     checked(bus.send(ivy_codec::serializeMessage(msg)));
   }
 
-  /// @details Install the answer binding before sending. A process-wide sequence
-  /// and PID correlate the reply, and the callback unbinds its token before
-  /// invoking user code. Failure to send rolls back the installed subscription.
-  long IvyLink::sendRequest(const Message &msg, messageCallback_t cb)
+  RequestReply::RequestId IvyLink::sendRequestImpl(const Message &msg, ReplyCallback callback)
   {
+    std::lock_guard lock(dispatchState->mutex);
+    if (!dispatchState->open) throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
     const auto &def = msg.getDefinition();
-    if (!def.isRequest()) {
-      throw message_is_not_request("Message " + def.getName() + " is not a request message");
-    }
+    if (!def.isRequest()) throw message_is_not_request("Message " + def.getName() + " is not a request message");
     const auto answer = dictionary.getDefinition(def.getName().substr(0, def.getName().size() - 4));
-    // Unique across all links in this process, including recreated links.
     static std::atomic<unsigned long long> requestNumber{0};
     const auto requestId = std::to_string(getpid()) + "_" + std::to_string(requestNumber++);
     const auto regexp = "^" + requestId + " ([^ ]*) " + ivy_codec::messageRegexp(answer);
-    const long id = nextBindId++;
-    auto result = bus.bind_raw(
-      [this, answer, id, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
-        if (args.empty()) {
-          throw wrong_message_format("Missing request answer sender");
-        }
+    const auto id = nextRequestId++;
+    auto active = std::make_shared<bool>(false);
+    auto token = checked(bus.bind_raw(
+      [this, state = dispatchState, answer, id, active, callback = std::move(callback)]
+      (IvyClientPtr, std::span<const std::string_view> args) {
+        if (args.empty()) throw wrong_message_format("Missing request answer sender");
         auto reply = ivy_codec::parseFields(answer, args.front(), args.subspan(1));
-        UnbindMessage(id); // One-shot, also when the application callback throws.
-        cb(ivy_codec::unquote(args.front()), std::move(reply));
-      }, ivy::runtime_regexp(regexp));
-    storeSubscription(id, std::move(result));
+        state->submit([this, id, active, callback, reply = std::move(reply)] {
+          if (!*active) return;
+          cancelRequest(id); // First queued answer wins, even when the callback throws.
+          callback(reply, ReceiveInfo{});
+        });
+      }, ivy::runtime_regexp(regexp)));
+    pendingRequests.emplace(id, RequestSubscription{std::move(token), active});
+    *active = true;
     try {
       auto request = ivy_codec::serializeMessage(msg);
       request.insert(request.find(' ') + 1, requestId + " ");
       checked(bus.send(request));
-    } catch (...) {
-      UnbindMessage(id);
-      throw;
-    }
+    } catch (...) { cancelRequest(id); throw; }
     return id;
   }
 
-  long IvyLink::registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb)
+  RequestReply::HandlerId IvyLink::bindRequestImpl(std::string_view name, AnswerCallback callback)
   {
-    return storeSubscription(subscribeRequestAnswerer(def, std::move(cb)));
-  }
-
-  ivy::Subscription IvyLink::subscribeRequestAnswerer(const MessageDefinition &def, answererCallback_t cb)
-  {
-    if (!def.isRequest()) {
-      throw message_is_not_request("Message " + def.getName() + " is not a request message");
-    }
+    std::lock_guard lock(dispatchState->mutex);
+    if (!dispatchState->open) throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
+    const auto def = dictionary.getDefinition(std::string(name));
+    if (!def.isRequest()) throw message_is_not_request("Message " + def.getName() + " is not a request message");
     const auto answerName = def.getName().substr(0, def.getName().size() - 4);
+    (void)dictionary.getDefinition(answerName);
     const auto regexp = "^([^ ]*) ([^ ]*) " + ivy_codec::messageRegexp(def);
-    return checked(bus.bind_raw(
-      [this, state = dispatchState, def, answerName, cb = std::make_shared<answererCallback_t>(std::move(cb))]
+    const auto id = nextRequestId++;
+    auto active = std::make_shared<bool>(false);
+    auto token = checked(bus.bind_raw(
+      [this, state = dispatchState, def, answerName, active,
+       callback = std::make_shared<AnswerCallback>(std::move(callback))]
       (IvyClientPtr, std::span<const std::string_view> args) {
-        if (args.size() < 2) {
-          throw wrong_message_format("Missing request sender or ID");
-        }
+        if (args.size() < 2) throw wrong_message_format("Missing request sender or ID");
         auto request = ivy_codec::parseFields(def, args[0], args.subspan(2));
-        state->submit([this, state, def, answerName, cb, sender = ivy_codec::unquote(args[0]),
-                       requestId = std::string(args[1]), request = std::move(request)]() mutable {
-          auto answer = (*cb)(std::move(sender), std::move(request));
-          if (state->context && !state->open) return; // Answerer may have closed the link.
-          if (answer.getDefinition().getName() != answerName) {
-            throw wrong_answer_to_request("Wrong answer " + answer.getDefinition().getName() +
-                                          " to request " + def.getName());
-          }
+        state->submit([this, state, answerName, callback, active,
+                       requestId = std::string(args[1]), request = std::move(request)] {
+          if (!*active) return;
+          auto answer = (*callback)(request, ReceiveInfo{});
+          if (!state->open) return;
+          if (answer.getDefinition().getName() != answerName)
+            throw wrong_answer_to_request("Wrong answer " + answer.getDefinition().getName() + " to request " + answerName + "_REQ");
           checked(bus.send(requestId + " " + ivy_codec::serializeMessage(answer)));
         });
       }, ivy::runtime_regexp(regexp)));
+    requestHandlers.emplace(id, RequestSubscription{std::move(token), active});
+    *active = true;
+    return id;
   }
-
 }
