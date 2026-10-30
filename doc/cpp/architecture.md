@@ -630,15 +630,15 @@ pas Ivy. La construction sans Ivy est également disponible.
 
 Les exemples exécutables à relire pour évaluer l'API sont :
 
-- [`IvyReceiver.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/IvyReceiver.cpp) pour l'abonnement
+- [`IvyReceiver.cpp`](../../lib/v2.0/C++/examples/clients/IvyReceiver.cpp) pour l'abonnement
   et les lectures de champs ;
-- [`WorkshopIvy.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopIvy.cpp) pour choisir
+- [`WorkshopIvy.cpp`](../../lib/v2.0/C++/examples/clients/WorkshopIvy.cpp) pour choisir
   l'émission ou la réception Ivy avec le même programme ;
-- [`SerialAircraft.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) pour
+- [`SerialAircraft.cpp`](../../lib/v2.0/C++/examples/clients/SerialAircraft.cpp) pour
   choisir le client sol ou le serveur avion et échanger PING/altitude/PONG ;
-- [`PtyPeer.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) pour choisir le client
+- [`PtyPeer.cpp`](../../lib/v2.0/C++/examples/clients/PtyPeer.cpp) pour choisir le client
   demandeur ou le serveur répondeur sur une liaison série ;
-- [`UdpMessages.cpp`](../../lib/v2.0/C++/pprzlink/examples/clients/UdpMessages.cpp) pour choisir
+- [`UdpMessages.cpp`](../../lib/v2.0/C++/examples/clients/UdpMessages.cpp) pour choisir
   l'émission d'une commande complète ou la réception avec son origine réseau.
 
 Les instructions de compilation et d'utilisation se trouvent dans

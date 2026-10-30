@@ -397,7 +397,7 @@ cmake --build build-ubuntu26 -j4
 ctest --test-dir build-ubuntu26 --output-on-failure
 ```
 
-[`build_ocaml_reference.py`](../../lib/v2.0/C++/pprzlink/tests/build_ocaml_reference.py) builds an
+[`build_ocaml_reference.py`](../../lib/v2.0/C++/tests/build_ocaml_reference.py) builds an
 isolated reference from Paparazzi and Ivy OCaml sources. The comparison report
 documents its dependencies and exact invocation. The Ubuntu 24.04/GCC 13 CI
 workflow runs the independent agent scenarios; differential tests additionally
@@ -405,8 +405,8 @@ require this OCaml executable.
 
 ## Complete example
 
-[`IvyRoundTrip.cpp`](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) loads
-[`messages.xml`](../../lib/v2.0/C++/pprzlink/examples/messages.xml), subscribes to `EXAMPLE_ALTITUDE`,
+[`IvyRoundTrip.cpp`](../../lib/v2.0/C++/examples/IvyRoundTrip.cpp) loads
+[`messages.xml`](../../lib/v2.0/C++/examples/messages.xml), subscribes to `EXAMPLE_ALTITUDE`,
 creates a message with altitude `123.5f`, sends it and reads the received value.
 It runs two Ivy links in one process, using their owned event-loop threads.
 
@@ -416,7 +416,7 @@ after configuring the dependencies as above:
 
 ```sh
 cmake --build build-ubuntu26 --target ivy_round_trip
-./build-ubuntu26/ivy_round_trip pprzlink/examples/messages.xml
+./build-ubuntu26/ivy_round_trip examples/messages.xml
 ```
 
 Expected output:

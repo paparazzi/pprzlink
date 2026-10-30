@@ -255,7 +255,7 @@ Après installation d'OCaml 4.14, de `libxml-light-ocaml-dev`,
 
 ```sh
 # Depuis lib/v2.0/C++ ; IVY_PREFIX et PAPARAZZI_SRC désignent les installations.
-python3 pprzlink/tests/build_ocaml_reference.py \
+python3 tests/build_ocaml_reference.py \
   --paparazzi "$PAPARAZZI_SRC" \
   --ivy-ocaml /path/to/ivy-ocaml-sources \
   --ivy-prefix "$IVY_PREFIX" \
@@ -269,7 +269,7 @@ cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
 cmake --build build-gcc13 -j4
 ctest --test-dir build-gcc13 --output-on-failure
 
-python3 pprzlink/tests/LinkParityTest.py \
+python3 tests/LinkParityTest.py \
   --cpp build-gcc13/apps/link/link++ \
   --ocaml /tmp/link-ocaml-reference/link_ocaml \
   --bus build-gcc13/link_test_bus --output /tmp/link-comparison.json

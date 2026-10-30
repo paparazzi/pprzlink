@@ -451,7 +451,7 @@ ni le tableau de sortie d'une lecture ne sont remplacés. Le champ
 `axes` du catalogue initial n'a pas d'unité ; ajoutez une unité correspondant
 à vos mesures dans le XML avant d'utiliser une lecture SI.
 
-L'exemple autonome [SIUnits.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SIUnits.cpp) fournit
+L'exemple autonome [SIUnits.cpp](../../lib/v2.0/C++/examples/clients/SIUnits.cpp) fournit
 ce XML et vérifie aussi l'encodage puis le décodage natif. Il se lance sans
 matériel ni réseau :
 
@@ -909,12 +909,12 @@ ses deux champs : le mécanisme de transport reste identique.
 
 ### Les trois modes de l'atelier
 
-L'exemple [WorkshopUdp.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopUdp.cpp) propose
+L'exemple [WorkshopUdp.cpp](../../lib/v2.0/C++/examples/clients/WorkshopUdp.cpp) propose
 `both`, `emitter` et `receiver`. Pour l'utiliser comme `main.cpp` :
 
 ```sh
 # Utilise l'exemple complet comme programme de l'atelier, puis le recompile.
-cp "$PPRZLINK_CPP/pprzlink/examples/clients/WorkshopUdp.cpp" main.cpp
+cp "$PPRZLINK_CPP/examples/clients/WorkshopUdp.cpp" main.cpp
 cmake --build build
 # Le mode both réunit l'émetteur et le récepteur dans un même processus.
 ./build/atelier messages.xml both
@@ -1172,14 +1172,14 @@ appliqué à votre avion. Vérifiez le type de message et les informations
 d'adressage attendues par votre application.
 
 Pour tester les deux côtés avec le même programme, utilisez
-[SerialAircraft.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) et son
+[SerialAircraft.cpp](../../lib/v2.0/C++/examples/clients/SerialAircraft.cpp) et son
 catalogue `client_messages.xml`. Son troisième argument choisit `s` pour le
 **serveur avion 42**, ou `c` pour le **client sol 0**. Dans un premier terminal :
 
 ```sh
 # Le serveur répond au premier PING par une altitude de 123,5 m, puis par PONG.
 "$PPRZLINK_ATELIER/build-lib/serial_aircraft" \
-  "$PPRZLINK_CPP/pprzlink/examples/clients/client_messages.xml" /dev/ttyUSB0 s
+  "$PPRZLINK_CPP/examples/clients/client_messages.xml" /dev/ttyUSB0 s
 ```
 
 Dans le second terminal :
@@ -1187,7 +1187,7 @@ Dans le second terminal :
 ```sh
 # Le client envoie le PING et attend l'altitude et le PONG sur l'autre port relié.
 "$PPRZLINK_ATELIER/build-lib/serial_aircraft" \
-  "$PPRZLINK_CPP/pprzlink/examples/clients/client_messages.xml" /dev/ttyUSB1 c
+  "$PPRZLINK_CPP/examples/clients/client_messages.xml" /dev/ttyUSB1 c
 ```
 
 Les ports doivent être distincts et reliés, comme dans l'exemple précédent.
@@ -1203,12 +1203,12 @@ Il sert ici à gérer la liaison : les deux instances de l'atelier utilisent
 directement la bibliothèque, sans lancer l'agent de télémétrie ni le bus Ivy.
 Le programme `socat` doit être installé et accessible sur PATH.
 
-L'exemple [PtyAgent.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyAgent.cpp) est symétrique :
+L'exemple [PtyAgent.cpp](../../lib/v2.0/C++/examples/clients/PtyAgent.cpp) est symétrique :
 le **même programme** tourne dans les deux processus. Chaque instance publie
 `GUIDE_ALTITUDE` une fois par seconde et affiche les altitudes qu'elle reçoit.
 Elle fait tourner son contexte Asio et utilise uniquement les en-têtes publics
 de `pprzlink::io`. La copie du catalogue de l'atelier s'appelle
-[guide_messages.xml](../../lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml).
+[guide_messages.xml](../../lib/v2.0/C++/examples/clients/guide_messages.xml).
 
 Les noms **Port A** et **Port B** sont des étiquettes. Les deux extrémités
 lisent et écrivent ; aucune n'est réservée au sol, à l'avion, au demandeur ou
@@ -1236,7 +1236,7 @@ l'identifiant 1 :
 ```sh
 # Lance l'agent 1 sur Port A ; remplace /dev/pts/12 par le chemin affiché par start.
 ./var/build/pprzlink-pty-ubuntu26/pty_agent \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/guide_messages.xml \
   /dev/pts/12 1
 ```
 
@@ -1245,7 +1245,7 @@ Dans un second terminal, ouvrez l'autre port avec l'identifiant 2 :
 ```sh
 # Lance l'agent 2 sur Port B ; remplace /dev/pts/13 par l'autre chemin affiché.
 ./var/build/pprzlink-pty-ubuntu26/pty_agent \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml \
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/guide_messages.xml \
   /dev/pts/13 2
 ```
 
@@ -1277,7 +1277,7 @@ décrit dans [API_USAGE.md](API_USAGE.md). Il se lie uniquement à
 `pprzlink::io`, sans Ivy.
 
 Pour travailler spécifiquement la requête et la réponse, utilisez le même
-programme [PtyPeer.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) aux deux
+programme [PtyPeer.cpp](../../lib/v2.0/C++/examples/clients/PtyPeer.cpp) aux deux
 extrémités. Son troisième argument choisit `c` pour le client demandeur ou
 `s` pour le serveur répondeur. Depuis la racine du dépôt Paparazzi :
 
@@ -1291,7 +1291,7 @@ Dans le premier terminal :
 ```sh
 # Le serveur avion 42 répond sur Port A ; utilise le chemin réellement affiché par socat.
 ./var/build/pprzlink-pty-ubuntu26/pty_peer \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/12 s
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/guide_messages.xml /dev/pts/12 s
 ```
 
 Dans le second terminal :
@@ -1299,7 +1299,7 @@ Dans le second terminal :
 ```sh
 # Le client sol 0 demande une altitude sur Port B et affiche la réponse reçue.
 ./var/build/pprzlink-pty-ubuntu26/pty_peer \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/guide_messages.xml /dev/pts/13 c
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/guide_messages.xml /dev/pts/13 c
 ```
 
 Les deux rôles échangent `GUIDE_ALTITUDE_REQ` et `GUIDE_ALTITUDE`, puis
@@ -1351,7 +1351,7 @@ Le domaine Ivy est facultatif ; sa valeur par défaut est
 `127.255.255.255:2010`.
 
 Remplacez tout `main.cpp` par le programme suivant. Il est également disponible
-dans [WorkshopIvy.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/WorkshopIvy.cpp) :
+dans [WorkshopIvy.cpp](../../lib/v2.0/C++/examples/clients/WorkshopIvy.cpp) :
 
 ```cpp
 // SPDX-License-Identifier: LGPL-3.0-or-later
@@ -1532,7 +1532,7 @@ Enfin, le format texte Ivy n'encode pas les destinataire et composant de
 l'en-tête binaire. `setReceiverId()` ne sélectionne donc pas un destinataire
 sur le bus Ivy. Le contenu XML et les règles de l'application déterminent
 comment traiter une commande. L'exemple
-[IvyRoundTrip.cpp](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) réunit aussi deux liens
+[IvyRoundTrip.cpp](../../lib/v2.0/C++/examples/IvyRoundTrip.cpp) réunit aussi deux liens
 Ivy dans un même processus pour un échange autonome.
 
 ## 9. Faire une requête et attendre sa réponse
@@ -2503,13 +2503,13 @@ au bus Ivy et applique ces règles.
 
 Pour poursuivre avec des exemples déjà intégrés au dépôt :
 
-- [IvyRoundTrip.cpp](../../lib/v2.0/C++/pprzlink/examples/IvyRoundTrip.cpp) échange une altitude
+- [IvyRoundTrip.cpp](../../lib/v2.0/C++/examples/IvyRoundTrip.cpp) échange une altitude
   entre deux liens Ivy et attend la découverte de l'abonnement.
-- [SerialAircraft.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/SerialAircraft.cpp) choisit le
+- [SerialAircraft.cpp](../../lib/v2.0/C++/examples/clients/SerialAircraft.cpp) choisit le
   rôle client ou serveur pour échanger PING, une altitude et PONG sur série.
-- [PtyPeer.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/PtyPeer.cpp) choisit le client demandeur
+- [PtyPeer.cpp](../../lib/v2.0/C++/examples/clients/PtyPeer.cpp) choisit le client demandeur
   ou le serveur répondeur sur une liaison série physique ou virtuelle.
-- [UdpMessages.cpp](../../lib/v2.0/C++/pprzlink/examples/clients/UdpMessages.cpp) choisit l'émission
+- [UdpMessages.cpp](../../lib/v2.0/C++/examples/clients/UdpMessages.cpp) choisit l'émission
   d'une commande UDP ou la réception avec affichage de l'origine réseau.
 
 Pour ce dernier exemple, utilisez le catalogue `client_messages.xml` et le
@@ -2525,7 +2525,7 @@ Dans le premier terminal :
 ```sh
 # Le rôle r attend un message sur le port UDP local 4242 pendant dix secondes au maximum.
 ./var/build/pprzlink-pty-ubuntu26/udp_messages \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 r
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/client_messages.xml 4242 r
 ```
 
 Dans le second terminal :
@@ -2533,7 +2533,7 @@ Dans le second terminal :
 ```sh
 # Le rôle e remplit tous les champs de CLIENT_SETTING, puis envoie une commande au port 4242.
 ./var/build/pprzlink-pty-ubuntu26/udp_messages \
-  sw/ext/pprzlink/lib/v2.0/C++/pprzlink/examples/clients/client_messages.xml 4242 e
+  sw/ext/pprzlink/lib/v2.0/C++/examples/clients/client_messages.xml 4242 e
 ```
 
 Le récepteur affiche l'adresse et le port source, la taille de la trame et

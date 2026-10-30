@@ -136,7 +136,7 @@ reste à déclencher après publication ; les commandes sont validées localemen
 
 1. Recompiler un link OCaml de référence dans un environnement compatible.
    Le vieux binaire présent était incompatible avec le runtime OCaml local.
-   Le script `pprzlink/tests/build_ocaml_reference.py` fournit maintenant une
+   Le script `tests/build_ocaml_reference.py` fournit maintenant une
    référence recompilée, avec `link.ml` et ses transports inchangés.
 2. Capturer son aide et vérifier les 24 options du tableau, leurs défauts et les
    combinaisons utilisées dans `conf/tools`, les sessions et scripts Paparazzi.

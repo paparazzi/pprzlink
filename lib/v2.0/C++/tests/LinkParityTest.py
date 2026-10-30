@@ -675,7 +675,7 @@ def cli(harness):
 
 
 def production_xml(harness):
-    directory = Path(__file__).resolve().parents[5] / 'message_definitions/v1.0'
+    directory = Path(__file__).resolve().parents[4] / 'message_definitions/v1.0'
     root = ET.parse(directory / 'messages.xml').getroot()
     telemetry_class = root.find("msg_class[@name='telemetry']")
     datalink_class = root.find("msg_class[@name='datalink']")

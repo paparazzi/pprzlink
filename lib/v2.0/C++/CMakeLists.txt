@@ -6,7 +6,7 @@ include(CMakePackageConfigHelpers)
 option(BUILD_TESTING "Build the tests" OFF)
 include(CTest)
 option(PPRZLINK_WITH_IVY "Build the optional Ivy adapter" ON)
-option(PPRZLINK_BUILD_EXAMPLES "Build the public API examples" ON)
+option(PPRZLINK_BUILD_EXAMPLES "Build the public API examples" OFF)
 option(PPRZLINK_BUILD_DOCS "Add the Doxygen documentation target" OFF)
 
 if(PPRZLINK_BUILD_DOCS)
@@ -16,7 +16,7 @@ if(PPRZLINK_BUILD_DOCS)
     set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/docs")
     set(DOXYGEN_RECURSIVE YES)
     set(DOXYGEN_FILE_PATTERNS "*.h" "*.cpp" "*.dox")
-    set(DOXYGEN_EXCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests" "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/examples")
+    set(DOXYGEN_EXCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_SOURCE_DIR}/examples")
     set(DOXYGEN_EXTRACT_ALL NO)
     set(DOXYGEN_EXTRACT_PRIVATE NO)
     set(DOXYGEN_EXTRACT_STATIC NO)
@@ -146,7 +146,7 @@ configure_package_config_file(cmake/pprzlink++Config.cmake.in
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pprzlink++Config.cmake" DESTINATION ${PPRZLINK_CMAKE_INSTALL_DIR})
 
 if(PPRZLINK_BUILD_EXAMPLES)
-    add_subdirectory(pprzlink/examples)
+    add_subdirectory(examples)
 endif()
 if(BUILD_TESTING)
     if(PPRZLINK_BUILD_EXAMPLES)
@@ -154,12 +154,12 @@ if(BUILD_TESTING)
         set_tests_properties(si_units_example PROPERTIES TIMEOUT 15)
     endif()
     if(PPRZLINK_WITH_IVY AND UNIX)
-        add_executable(link_test_bus pprzlink/tests/LinkTestBus.cpp)
+        add_executable(link_test_bus tests/LinkTestBus.cpp)
         target_link_libraries(link_test_bus PRIVATE pprzlink++)
         target_compile_options(link_test_bus PRIVATE -Wall -Wextra -Werror)
     endif()
     function(add_pprzlink_test name source)
-        add_executable(${name}_test pprzlink/tests/${source})
+        add_executable(${name}_test tests/${source})
         target_link_libraries(${name}_test PRIVATE pprzlink::core)
         target_compile_options(${name}_test PRIVATE -Wall -Wextra -Werror)
         add_test(NAME ${name} COMMAND ${name}_test ${ARGN})
@@ -168,7 +168,7 @@ if(BUILD_TESTING)
 
     if(PPRZLINK_BUILD_EXAMPLES AND PPRZLINK_WITH_IVY)
         add_test(NAME ivy_round_trip COMMAND ivy_round_trip
-                 "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/examples/messages.xml")
+                 "${CMAKE_CURRENT_SOURCE_DIR}/examples/messages.xml")
         set_tests_properties(ivy_round_trip PROPERTIES TIMEOUT 15)
     endif()
 
@@ -180,7 +180,7 @@ if(BUILD_TESTING)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME field_arguments_compile COMMAND ${Python3_EXECUTABLE}
-                 "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/FieldArgumentsCompileTest.py"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/FieldArgumentsCompileTest.py"
                  --compiler "${CMAKE_CXX_COMPILER}"
                  --include-dirs "$<TARGET_PROPERTY:field_conversion_test,INCLUDE_DIRECTORIES>")
         set_tests_properties(field_arguments_compile PROPERTIES TIMEOUT 60)
@@ -214,31 +214,31 @@ if(BUILD_TESTING)
         if(PPRZLINK_BUILD_EXAMPLES)
             find_package(Python3 REQUIRED COMPONENTS Interpreter)
             add_test(NAME pty_peers COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyPeersTest.py"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PtyPeersTest.py"
                      --peer $<TARGET_FILE:pty_peer>)
             set_tests_properties(pty_peers PROPERTIES TIMEOUT 20)
             add_test(NAME udp_messages COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/UdpMessagesTest.py"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/UdpMessagesTest.py"
                      $<TARGET_FILE:udp_messages>)
             set_tests_properties(udp_messages PROPERTIES TIMEOUT 15)
             add_test(NAME pty_agents COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyAgentsTest.py"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PtyAgentsTest.py"
                      --agent $<TARGET_FILE:pty_agent>)
             set_tests_properties(pty_agents PROPERTIES TIMEOUT 30)
             add_test(NAME serial_messages COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/SerialMessagesTest.py"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/SerialMessagesTest.py"
                      $<TARGET_FILE:serial_messages>)
             set_tests_properties(serial_messages PROPERTIES TIMEOUT 30)
             set(client_ivy_args)
             if(PPRZLINK_WITH_IVY)
                 list(APPEND client_ivy_args --ivy $<TARGET_FILE:ivy_receiver> --bus $<TARGET_FILE:link_test_bus>)
                 add_test(NAME workshop_ivy COMMAND ${Python3_EXECUTABLE}
-                         "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/WorkshopIvyTest.py"
+                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/WorkshopIvyTest.py"
                          $<TARGET_FILE:workshop_ivy>)
                 set_tests_properties(workshop_ivy PROPERTIES TIMEOUT 30)
             endif()
             add_test(NAME client_examples COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/ClientExamplesTest.py"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/ClientExamplesTest.py"
                      --serial $<TARGET_FILE:serial_aircraft> --udp $<TARGET_FILE:udp_recorder>
                      --udp-setting $<TARGET_FILE:udp_setting_sender> ${client_ivy_args})
             set_tests_properties(client_examples PROPERTIES TIMEOUT 40)
