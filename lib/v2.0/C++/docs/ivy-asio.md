@@ -1,11 +1,7 @@
 # IvyLink with an application Asio context
 
-Keep Asio integration optional. Requiring a context would break existing Ivy
-applications, including callers that drive `run()` themselves. It would also
-require those applications to service another event loop. Boost is already an
-SDK dependency, so mandatory integration would not simplify dependency handling.
-One constructor overload and one shared dispatch gate cover both modes without
-separate subscription or request APIs.
+Pass an application-owned Asio context to run SDK callbacks on that context.
+Without a context, callbacks run on the native Ivy loop.
 
 ```cpp
 boost::asio::io_context context;
@@ -18,9 +14,8 @@ context.run(); // link.close() releases the link's work guard.
 
 The context-first constructor owns an Ivy loop thread by default. Its optional
 last argument, `threadedIvy=false`, lets an application retain control of the Ivy
-loop and its error reporting. Existing constructors keep their native execution
-behavior and defaults. `getBus()` remains a native API: its callbacks are not
-redirected to Asio.
+loop and its error reporting. `getBus()` is a native API: its callbacks are
+not redirected to Asio.
 
 All SDK message subscriptions, legacy bindings, request reply callbacks,
 request answerers, and Receiver callbacks/predicates/error handlers execute on
@@ -31,12 +26,11 @@ validation/send exceptions propagate to the caller of `context.run()` (or
 Receiver decoding and its error notification run on Asio.
 
 For a request, Ivy copies the decoded request and correlation ID into a queued
-handler and returns immediately. The handler calls the existing answerer,
+handler and returns immediately. The handler calls the answerer,
 validates its answer schema, and sends the correlated reply using Ivy's
-thread-safe send API. Neither a future nor a synchronous handoff is necessary.
-Multiple requests may be pending, each retaining its own ID. Outgoing requests
-still bind before sending and remove their one-shot reply binding before
-posting the callback. Synchronous waits for an answer on the application context
+thread-safe send API. Multiple requests may be pending, each retaining its own
+ID. Outgoing requests bind before sending and remove their one-shot reply
+binding before posting the callback. Synchronous waits for an answer on the application context
 can prevent its callbacks from progressing and must be avoided.
 
 The dictionary and context must outlive the link. A shared lifetime gate stops
@@ -56,10 +50,3 @@ continue to use Receiver's own cancellation and start/stop generation checks.
 `stop()` only pauses Receiver reception; it does not close the bus or cancel
 independent subscriptions/answerers. Finish external calls and externally owned
 Ivy loops before destroying the link, and never destroy it from a callback.
-
-The ground server can construct its link as
-`link(context, dictionary, "Paparazzi server", endpoint, false)` and keep its
-existing worker for native loop error reporting. It can pass callbacks and
-answerers directly to the SDK, remove its dispatch wrapper, reply future, mutex,
-and pending task, and call `link.close()` before joining the worker. Its peer
-name, wire protocol, and request correlation remain unchanged.

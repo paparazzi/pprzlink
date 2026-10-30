@@ -9,7 +9,7 @@ Il suppose que vous savez compiler un programme C++ et connaissez les
 variables, les fonctions et les classes. Les notions particulières à la
 bibliothèque sont introduites au moment où elles deviennent utiles.
 
-Les exemples suivent **l'API C++ présente dans cette branche**, dans
+Les exemples utilisent la bibliothèque C++ dans
 `lib/v2.0/C++`, avec le protocole PPRZLINK v2. Ils utilisent un petit catalogue
 XML propre au guide. Ce catalogue sert à expérimenter entre vos programmes ;
 pour communiquer avec Paparazzi, vous utiliserez ensuite les définitions de
@@ -41,8 +41,7 @@ Le parcours est le suivant :
 
 La bibliothèque demande C++23, CMake 3.20 ou plus, TinyXML2 et Boost.
 Sous Ubuntu 26.04, utilisez le compilateur natif GCC 15 avec Boost 1.90 et
-TinyXML2 11. Les exigences minimales des sources restent GCC 13 et Boost 1.83 ;
-les anciennes validations Ubuntu 24.04 sont conservées dans la référence.
+TinyXML2 11. Les exigences minimales sont GCC 13 et Boost 1.83.
 Les conversions SI utilisent une table interne. Les dépendances du début de
 ce guide s'installent avec :
 
@@ -64,14 +63,13 @@ racine du dépôt pprzlink** :
 export PPRZLINK_CPP="$PWD/lib/v2.0/C++"
 export PPRZLINK_ATELIER=/tmp/pprzlink-guide-ubuntu26
 
-# Configure une bibliothèque de débogage, sans Ivy, agent link++ ni tests.
+# Configure une bibliothèque de débogage sans Ivy ni tests.
 cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-lib" \
   -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_BUILD_TYPE=Debug \
   -DPPRZLINK_WITH_IVY=OFF \
-  -DPPRZLINK_BUILD_LINK=OFF \
   -DBUILD_TESTING=OFF
-# Compile la bibliothèque et les exemples activés avec le parallélisme de l'environnement.
+# Compile la bibliothèque avec le parallélisme de l’environnement.
 cmake --build "$PPRZLINK_ATELIER/build-lib"
 # Installe les en-têtes, bibliothèques et cibles CMake dans le SDK de l'atelier.
 cmake --install "$PPRZLINK_ATELIER/build-lib" \
@@ -156,7 +154,7 @@ Le composant `core` suffit pour manipuler des messages et leurs encodages.
 La cible CMake transmet au programme les chemins d'en-têtes, les dépendances
 et le standard C++23.
 
-### Actualiser le SDK après une évolution de l'API
+### Actualiser le SDK
 
 Le projet utilise les fichiers **installés dans le SDK**, qui peuvent être
 plus anciens que les sources. Après une modification de la bibliothèque,
@@ -174,10 +172,7 @@ cmake -S . -B build \
 cmake --build build
 ```
 
-Une erreur telle que « `XbeeConfiguration` has no member named
-`hardwareFlowControl` » signifie que le compilateur ne voit pas l'en-tête
-attendu. Vérifiez d'abord que les sources contiennent cette API, puis le SDK
-effectivement retenu :
+Pour vérifier le SDK retenu par CMake :
 
 ```sh
 cmake -LA -N build
@@ -314,7 +309,7 @@ transmettra l'ensemble de ses champs.
 aussi `transport.sendMessage(command.setField(...))`. Conservez pour commencer
 deux instructions distinctes : le remplissage, puis l'envoi. Le chaînage
 `command.setField(...).setField(...)` ne convient pas, car le premier résultat
-est constant. L'ancienne méthode `addField()` remplit également un champ ;
+est constant. La méthode `addField()` remplit également un champ ;
 les exemples de ce guide utilisent `setField()`.
 
 ### Comprendre les conversions
@@ -363,7 +358,7 @@ comme `"12.5"` en nombre.
 
 `getField()` et `setField()` manipulent les valeurs dans les unités du XML.
 `getFieldAs<double>()` change leur type numérique, pas leur unité. Pour fournir
-ou récupérer une grandeur SI, appelez les nouvelles méthodes :
+ou récupérer une grandeur SI, utilisez :
 
 ```cpp
 // Fournit des mètres ; le setter convertit vers l'unité et le type du champ XML.
@@ -509,11 +504,9 @@ et mètres selon le repère. Les transformations de repères, références
 Vous pouvez remplacer localement une lecture par `getFieldSI()` ou une
 écriture par `setFieldSI()` lorsque la grandeur est fournie en SI et que ses
 métadonnées permettent la conversion. Les transports série, UDP et Ivy
-continuent à transmettre les mêmes types et valeurs XML. Recompilez la
-bibliothèque et les programmes clients : la disposition des classes C++ a
-changé, ce qui interdit de réutiliser des binaires construits avec les anciens en-têtes.
+transmettent les types et valeurs XML.
 
-Les clients série, PTY et Ivy fournis utilisent maintenant `getFieldSI()` et
+Les clients série, PTY et Ivy fournis utilisent `getFieldSI()` et
 `setFieldSI()` pour leurs altitudes. Le XML fourni possède `unit="m"`, mais
 le même code fonctionne avec une altitude XML entière en millimètres : les
 programmes continuent à fournir et afficher des mètres. Les réglages génériques `GUIDE_SETTING.value` et

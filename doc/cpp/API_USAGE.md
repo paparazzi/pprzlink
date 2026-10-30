@@ -1,10 +1,8 @@
-# API pprzlink++ : simplification par les exemples
+# API pprzlink++ par les exemples
 
-Première itération réalisée le 29 septembre 2026. Les clients de référence sont
-un récepteur Ivy, un simulateur d'avion série, un enregistreur UDP et un émetteur
-de commande UDP. Ils utilisent
-uniquement les en-têtes publics de la bibliothèque. Leur répertoire peut être
-copié dans un autre projet et compilé avec le SDK installé.
+Les exemples comprennent un récepteur Ivy, un simulateur d'avion série, un
+enregistreur UDP et un émetteur de commande UDP. Ils utilisent uniquement
+les en-têtes publics de la bibliothèque. Leur répertoire peut être copié dans un autre projet et compilé avec le SDK installé.
 
 | Exemple | Parcours et limite qu'il permet d'observer |
 | --- | --- |
@@ -19,7 +17,7 @@ copié dans un autre projet et compilé avec le SDK installé.
 | [PtyAgent.cpp](../../lib/v2.0/C++/examples/clients/PtyAgent.cpp) | Lancer le même agent aux deux extrémités : chaque processus publie et reçoit une altitude, sans rôle lié au port. |
 
 Ces exemples sont de petits clients exécutables de référence, pas des services
-complets de production. Les clients série/UDP/Ivy initiaux sont bornés à dix secondes.
+complets de production. Les clients série/UDP/Ivy sont bornés à dix secondes.
 Utiliser le XML fourni avec un pair de test qui charge les mêmes définitions.
 
 Les deux rôles de `pty_peer` utilisent `guide_messages.xml` et attendent jusqu'à
@@ -32,7 +30,7 @@ Le [guide d'utilisation](guide_d_utilisation.md#essayer-deux-processus-sur-des-p
 donne les commandes de compilation et de lancement. Ces clients se lient
 uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
 
-## Contrats retenus
+## Principes de l’API
 
 1. Les écritures numériques vérifient la plage et refusent une partie
    fractionnaire lors d'une conversion vers un entier. Une erreur ne remplace
@@ -41,13 +39,10 @@ uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
 2. `bind()` conserve un abonnement qui reçoit un message et ses métadonnées
    facultatives. `start()` active la réception réactive et `stop()` la met en
    pause. Pour Ivy, `close()` termine la session et fait sortir de `run()`.
-   Les méthodes de réception des transports par polling ont été retirées.
 3. `subscribeMessage()` et `subscribeSender()` retournent directement
    `ivy::Subscription`. L'appelant conserve le jeton ; sa destruction désabonne.
-   Les anciennes fonctions à identifiant numérique gardent leur contrat.
-4. UDP devient une API publique. Les composants CMake `core`, `io` et `ivy`
-   permettent de choisir les dépendances ; les cibles historiques restent
-   disponibles. La construction sans Ivy et les clients qui la consomment sont testés.
+4. Les composants CMake `core`, `io` et `ivy` permettent de choisir les
+   dépendances. Les cibles `pprzlink++` et `pprzlink++_static` les regroupent.
 
 Les exemples et les tests de leurs échanges sont la référence pour faire
 évoluer ces contrats. Les conventions de routage, PING périodiques et rapports
@@ -141,7 +136,7 @@ diagnostic indique le fichier, message, champ, libellé et `UnitAliases.cpp`.
 Les incompatibilités de dimensions sont également refusées. Les libellés
 opaques explicitement reconnus (`adc`, `pprz`, `dB`, données binaires, etc.)
 peuvent être lus nativement mais une demande SI lève `field_unit_error`.
-Les anciens labels applicatifs `motor` et `foo` sont enregistrés comme opaques,
+Les labels applicatifs `motor` et `foo` sont enregistrés comme opaques,
 sans inventer de grandeur physique.
 
 Les dépassements numériques lèvent `field_conversion_error`. Les NaN de mesures
@@ -153,10 +148,8 @@ Leurs appels existants gardent leurs unités XML ; les lectures/écritures SI so
 adoptables localement pour les champs dont `canConvertSI()` est vrai. Les
 identifiants et commandes sans unité physique passent par l'API native. Le relais
 de `link++` conserve les valeurs XML et les rapports de compatibilité OCaml.
-La nouvelle disposition des classes exige de recompiler les clients, et pas
-seulement de remplacer leur bibliothèque partagée.
 
-Les exemples série, PTY et Ivy ont adopté l'accès SI pour leurs altitudes.
+Les exemples série, PTY et Ivy utilisent l'accès SI pour leurs altitudes.
 Les tests lancent aussi les mêmes clients série/Ivy avec une altitude XML
 `int32` en millimètres : l'entrée et l'affichage restent en mètres.
 L'enregistreur UDP conserve les valeurs XML pour ses sorties de diagnostic ;
@@ -254,11 +247,11 @@ Une destination flottante peut arrondir, notamment lors d'une conversion
 ne promet donc pas une représentation sans perte. Les valeurs flottantes de
 même type, y compris les NaN, restent prises en charge par le protocole binaire.
 
-`getField<T>()` conserve son contrat de lecture exacte. Une incompatibilité
-lève maintenant `field_type_mismatch`, dérivée de `std::bad_variant_access`,
-avec le nom du champ, son type XML et le type demandé. Les anciens blocs `catch`
-restent valables. `getFieldAs<T>()` ne parse pas les chaînes et ne convertit pas
-encore les tableaux ; leurs getters conservent les types d'éléments du XML.
+`getField<T>()` demande le type exact. Une incompatibilité lève
+`field_type_mismatch`, dérivée de `std::bad_variant_access`, avec le nom du
+champ, son type XML et le type demandé. `getFieldAs<T>()` convertit uniquement
+les scalaires numériques ; les getters de tableaux utilisent les types
+d'éléments du XML.
 
 Pour lire du texte sans copier ses octets, utilisez une `std::string_view`
 (en-tête `<string_view>`) sur un champ `string`, `char[]` ou `char[N]` :
@@ -431,7 +424,7 @@ une exception. Le suivi des statuts, les délais et les éventuelles nouvelles
 tentatives applicatives restent à la charge de l'appelant ; `RadioRetries`
 sélectionne uniquement les ACK/retries effectués par le modem.
 
-## Ivy : utiliser la propriété déjà fournie par Ivy C++
+## Ivy : abonnements et durée de vie
 
 `IvyLink::sendMessage()` transmet le texte produit par `serializeMessage()`.
 Les champs numériques utilisent `std::to_chars`, indépendamment de la locale
@@ -463,7 +456,7 @@ auto subscription = link.subscribeMessage("CLIENT_ALTITUDE",
 Le type retourné est directement `ivy::Subscription`. Il est déplaçable,
 non copiable, désabonné à sa destruction. `subscribeSender()` fournit le même
 contrat pour un expéditeur ; `subscribeRequestAnswerer()` pour un répondeur.
-L'ancienne API à identifiants numériques délègue aux mêmes mécanismes.
+L'API à identifiants numériques délègue aux mêmes mécanismes.
 
 Conserver le jeton aussi longtemps que l'abonnement est souhaité. Un callback
 déjà commencé peut finir après le désabonnement : son état capturé doit rester
@@ -486,7 +479,7 @@ abonnements réactifs `bind()` et laisse la boucle Ivy active.
 | `pprzlink::ivy` | IvyLink ; dépend de `core`, Ivy C++ et des threads. |
 
 Les composants sont des archives statiques construites avec PIC. Les cibles
-historiques `pprzlink++` et `pprzlink++_static` restent respectivement partagée
+`pprzlink++` et `pprzlink++_static` sont respectivement partagée
 et statique. Ne pas mélanger les cibles agrégées et les composants dans un même
 client ; choisir l'une des deux interfaces de construction.
 
@@ -501,7 +494,7 @@ target_link_libraries(my_recorder PRIVATE pprzlink::io)
 ```
 
 Cet appel ne cherche pas Ivy, même si le SDK a été construit avec son composant
-Ivy. Sans `COMPONENTS`, `find_package` garde le comportement historique et
+Ivy. Sans `COMPONENTS`, `find_package`
 charge les dépendances des bibliothèques agrégées. Demander le composant `ivy`
 à un SDK construit sans Ivy provoque une erreur de configuration explicite.
 
@@ -512,7 +505,7 @@ Depuis `lib/v2.0/C++`, après préparation des dépendances décrites dans
 
 ```sh
 cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
-  -DCMAKE_BUILD_TYPE=Debug
+  -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON
 cmake --build build-gcc13
 ctest --test-dir build-gcc13 --output-on-failure
 
@@ -594,12 +587,12 @@ Construction sans Ivy, incluant les exemples série/UDP et leurs tests :
 
 ```sh
 cmake -S . -B build-no-ivy -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
-  -DPPRZLINK_WITH_IVY=OFF -DPPRZLINK_BUILD_LINK=OFF
+  -DPPRZLINK_WITH_IVY=OFF -DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON
 cmake --build build-no-ivy
 ctest --test-dir build-no-ivy --output-on-failure
 ```
 
-Le Makefile historique accepte également `WITH_IVY=0`. Ses bibliothèques
+Le Makefile accepte également `WITH_IVY=0`. Ses bibliothèques
 agrégées excluent alors l'adaptateur Ivy.
 
 Pour vérifier un usage extérieur au dépôt :
@@ -616,77 +609,8 @@ cmake --build /tmp/pprzlink-client-build
 Ivy. Le standard C++23 et les dépendances transitives proviennent des cibles
 installées ; le projet client ne les redéclare pas.
 
-## Validation du 17 octobre 2026
+## Validation
 
-La reconstruction sous Ubuntu 26.04 avec GCC 15.2 et Boost 1.90 réussit :
-**31/31 tests passent**. Les régressions couvrent notamment la pause/reprise
-Ivy, les flottants non finis des codecs et le routage du catalogue réel,
-ainsi que les envois XBee à adresse et frame ID explicites.
-Les résultats comparatifs OCaml cités ci-dessous restent historiques :
-l'application OCaml de référence n'a pas été reconstruite avec OCaml 5.4
-pour cette validation.
-
-## Validation du remplissage multiple
-
-La validation du 29 septembre, après ajout de la surcharge de `setField()` et
-du client `UdpSettingSender`, couvre la compilation avec GCC 13.3 et les
-**19/19 tests avec Ivy** et **15/15 tests sans Ivy**. Le scénario comparatif
-de `link++` avec OCaml est inclus.
-Les tests vérifient le refus d'un nombre impair d'arguments, les conversions,
-l'ordre d'application et l'égalité des trames avec les appels individuels.
-
-Les trois clients série/UDP ont également été copiés hors du dépôt, compilés
-avec `CLIENTS_WITH_IVY=OFF` contre le SDK complet installé, puis exécutés.
-Le datagramme de `CLIENT_SETTING` est comparé aux octets attendus. Cette
-vérification utilise `/tmp/pprzlink-api/clients-variadic/` ; aucun répertoire
-du dépôt n'est utilisé comme chemin d'inclusion par ces clients.
-
-Le 30 septembre, les diagnostics ont été renforcés avec des contraintes
-nommées : **20/20 tests avec Ivy passent sous GCC 13.3**. Le nouveau test
-`field_arguments_compile` compile un cas valide puis cinq appels incorrects ;
-il vérifie le refus, la contrainte ou conversion indiquée, et la référence à
-la ligne de l'appel fautif. Les clés erronées au début, au milieu et en fin de
-liste sont couvertes.
-
-## Validation de la première itération
-
-- Ubuntu 24.04, GCC 13.3 : **19/19 tests avec Ivy**, dont les nouveaux contrôles
-  de conversion, réception, UDP et les trois clients exécutés.
-- Construction sans Ivy : **15/15 tests**, sans préfixe Ivy dans l'environnement
-  d'exécution et avec la découverte pkg-config désactivée à la configuration.
-- Les **17 scénarios comparatifs de link++/OCaml** passent après adoption de
-  abonnements réactifs et de `UdpTransport` par l'agent.
-- Les trois clients sont copiés hors du dépôt, compilés et exécutés contre le
-  SDK installé. Les clients série/UDP sont aussi compilés et exécutés sans Ivy,
-  depuis un SDK complet et depuis un SDK sans Ivy.
-- Un consommateur `core` seul compile et s'exécute avec la découverte d'Ivy et
-  de Threads désactivée. `ldd` confirme l'absence d'Ivy dans les clients série/UDP.
-- Les deux anciens consommateurs CMake, statique et partagé, passent toujours.
-- ASan/UBSan avec détection des fuites : **19/19 tests réussis**, sans diagnostic.
-  La bibliothèque, l'agent et les clients sont instrumentés ; Ivy et les
-  dépendances système ne sont pas réinstrumentés dans cette session.
-- Le Makefile construit les deux variantes et le changement `WITH_IVY=1` → `0`
-  reconstruit bien les archives/bibliothèques sans conserver `IvyLink.o` ni de
-  dépendance dynamique à Ivy.
-- La CI reprend la construction des clients installés et les tests sans Ivy.
-  Ces commandes sont validées localement ; la nouvelle CI n'a pas été lancée
-  sur GitHub pendant cette session.
-
-Traces locales : `/tmp/pprzlink-api/` (`gcc13`, `no-ivy`, `sdk`, `sdk-no-ivy`,
-`clients-build`, `clients-no-ivy-build`, `no-ivy-sdk-clients`, `core-client`,
-`legacy-consumer` et leurs journaux). Les changements d'ABI nécessitent une
-recompilation des applications ; les signatures historiques sont conservées,
-mais les écritures numériques invalides sont désormais rejetées.
-
-## Limites observées pour les prochaines itérations
-
-| Observation dans les exemples | Amélioration à examiner ensuite |
-| --- | --- |
-| Le récepteur Ivy utilise `getBus()` pour son délai. | Délais et annulation des requêtes au niveau PPRZLINK ; `sendRequest()` conserve encore son interface historique. |
-| La réception utilise les callbacks de lecture et la boucle Asio fournie. | Intégration GUI avec transfert des messages vers le thread de l’interface. |
-| Les callbacks Ivy peuvent s'exécuter sur un thread distinct. | Exemple d'intégration GUI avec transfert explicite des événements et durée de vie des objets. |
-| La lecture convertie couvre les scalaires. | Évaluer les conversions explicites de tableaux à partir d'un vrai client qui en a besoin. |
-| Le récepteur écrit l'unité « m » dans son code. | Exposer davantage de métadonnées XML, comme les unités et les valeurs d'énumération, pour un afficheur générique. |
-
-Ces points ne sont pas masqués par une nouvelle abstraction générale. Chaque
-extension future devra raccourcir ou clarifier un client concret, avec ses tests.
+Les tests couvrent les conversions, les codecs, les transports et les échanges
+entre clients. Les [rapports de validation](validation/index.rst) détaillent
+les environnements testés et leurs limites.

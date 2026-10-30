@@ -2,14 +2,12 @@
 
 The C++23 library loads PPRZLINK v2 message definitions from XML at runtime.
 It provides codecs, reactive reception, serial/UDP transports, an optional
-Ivy adapter and the `link++` ground agent.
+Ivy adapter and XBee support.
 
 All receivers share `bind()`, `start()` and `stop()`. On `IvyLink`, `stop()`
 pauses reactive bindings while the bus remains active; use `close()` to end
-the session and return from `run()`. Both Ivy codecs preserve explicit
-floating-point NaN/infinity values, including unavailable camera temperatures.
-XBee callers can combine an explicit radio destination and frame ID through
-`sendMessageToWithId()`; application retries remain the caller's responsibility.
+the session and return from `run()`. Ivy callbacks can also run on an
+[application-owned Asio context](docs/ivy-asio.md).
 
 ## Documentation
 
@@ -20,7 +18,6 @@ The manuals are maintained centrally in [`doc/cpp`](../../../doc/cpp/index.rst):
 - [Standalone client examples](../../../doc/cpp/API_USAGE.md).
 - [Architecture](../../../doc/cpp/architecture.md), in French.
 - [Validation reports](../../../doc/cpp/validation/index.rst).
-- [Historical plans and notes](../../../doc/cpp/historique/index.rst).
 
 ## Build
 
@@ -42,14 +39,16 @@ can still refer to the previous compiler and dependency versions.
 From this directory:
 
 ```sh
-cmake -S . -B build-ubuntu26 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug
+cmake -S . -B build-ubuntu26 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug \
+  -DBUILD_TESTING=ON
 cmake --build build-ubuntu26 -j4
 ctest --test-dir build-ubuntu26 --output-on-failure
 cmake --install build-ubuntu26 --prefix /path/to/sdk
 ```
 
-To build without Ivy and the ground agent, configure with
-`-DPPRZLINK_WITH_IVY=OFF -DPPRZLINK_BUILD_LINK=OFF`.
+Tests and examples are disabled by default. Enable them with
+`-DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON`.
+To build without Ivy, use `-DPPRZLINK_WITH_IVY=OFF`.
 
 The [full reference](../../../doc/cpp/reference.md#build) covers SDK components,
 private dependency prefixes and standalone consumers. The

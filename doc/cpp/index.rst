@@ -14,12 +14,9 @@ The usage guide and architecture document are written in French.
    API_USAGE
    architecture
    validation/index
-   historique/index
 
 Source and generated API documentation
 --------------------------------------
 
-The implementation remains in ``lib/v2.0/C++``. Header and source comments
-are used by the ``pprzlink_docs`` CMake target to generate the Doxygen API
-reference. Build commands in these manuals keep their stated working directory;
-moving the manuals does not move the sources or examples.
+The implementation is in ``lib/v2.0/C++``. The ``pprzlink_docs`` CMake target
+generates the Doxygen API reference from header and source comments.

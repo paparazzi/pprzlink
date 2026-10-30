@@ -5,20 +5,14 @@ Unit conversion uses an internal affine table and bounded SI-prefix resolution.
 The default build also includes Ivy **3.18 or newer** with its native C++ wrapper
 (`ivy-cpp`) and pkg-config. Set `PPRZLINK_WITH_IVY=OFF` to build without Ivy.
 On Ubuntu 26.04, use the native GCC 15 toolchain with Boost 1.90 and TinyXML2 11.
-The source minimum remains GCC 13 and Boost 1.83. Earlier validation on Ubuntu
-24.04 used GCC 13.3 and official Noble dependencies; see
-[the validation report](validation/VALIDATION_UBUNTU24_GCC13.md).
-Those reports describe their original environments, rather than the current
-Ubuntu 26.04 installation. Ubuntu 22.04 is no longer targeted.
-For sharing this branch, use [Ivy 3.18.3](https://github.com/alex31/libivy-c/commit/b0bf831702c5bfd1313e83ded62eb14d17198534),
-which includes the cleanup, threading and context-ownership changes validated
-with this library.
+The minimum compiler is GCC 13. Use an Ivy wrapper built for the selected
+compiler and runtime.
 
-The serial device remains part of both aggregate library builds and the `io` component. It uses
-`boost::asio::io_context` (the type previously aliased as `io_service`).
+The serial device is part of both aggregate library builds and the `io`
+component. It uses `boost::asio::io_context`.
 Boost.System is header-only with the supported Boost versions.
 
-Start with the [public API examples and their usability notes](API_USAGE.md)
+Start with the [public API examples](API_USAGE.md)
 for Ivy reception, an aircraft serial peer, or a UDP recorder. The examples can
 also be built as an independent project against the installed SDK.
 The [architecture guide (in French)](architecture.md) explains transport
@@ -54,8 +48,7 @@ For example, `MessageField("altitude", "float")` describes a field, while its
 The usual path is XML → dictionary → definition → populated message → Ivy link
 or binary transport. Reception reconstructs a message using the same definitions.
 The dictionary must outlive an Ivy link or transport that borrows it; a Message
-owns its own definition and values. The unused `Link` placeholder has been
-removed: applications use `IvyLink`, `PprzTransport` or `XbeeTransport` directly.
+owns its own definition and values.
 
 ## API documentation
 
@@ -68,7 +61,7 @@ From the Paparazzi root, generate the HTML and XML reference with Doxygen 1.9.8+
 ```sh
 cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-docs-ubuntu26 \
   -DCMAKE_CXX_COMPILER=g++ -DPPRZLINK_BUILD_DOCS=ON \
-  -DPPRZLINK_WITH_IVY=OFF -DPPRZLINK_BUILD_LINK=OFF \
+  -DPPRZLINK_WITH_IVY=OFF \
   -DPPRZLINK_BUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
 cmake --build var/build/pprzlink-docs-ubuntu26 --target pprzlink_docs
 ```
@@ -91,7 +84,8 @@ Run the following commands from the C++ source directory, `lib/v2.0/C++`:
 # With ivy-c / ivy-c-dev installed, the system pkg-config paths are sufficient.
 pkg-config --modversion ivy-cpp ivy-c
 
-cmake -S . -B build-ubuntu26 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug
+cmake -S . -B build-ubuntu26 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug \
+  -DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON
 cmake --build build-ubuntu26 -j
 ctest --test-dir build-ubuntu26 --output-on-failure
 cmake --install build-ubuntu26 --prefix /path/to/install
@@ -121,29 +115,20 @@ on a recent `libstdc++`; keep the system runtime supplied with Ubuntu 26.04
 when building and running these programs. The source minimum GCC 13 does not
 guarantee that a prebuilt Ivy wrapper works with an older C++ runtime. Rebuild
 the wrapper with the selected toolchain when changing its compiler or runtime.
-Earlier GCC 13 and GCC 16 checks required matching wrapper builds, as recorded
-in the comparison report.
 Instructions for building the Ivy packages
 are in [Ivy's Debian README](https://github.com/alex31/libivy-c/blob/b0bf831702c5bfd1313e83ded62eb14d17198534/debian/README).
-Validation results and limitations are recorded in
-[VALIDATION_UBUNTU24_GCC13.md](validation/VALIDATION_UBUNTU24_GCC13.md) and the earlier
-[VALIDATION_CLANG22.md](validation/VALIDATION_CLANG22.md). Their temporary paths are
-validation logs, not build prerequisites.
+The [validation reports](validation/index.rst) record tested environments
+and limitations.
 
 To check source compatibility with the minimum compiler explicitly, use a fresh
 build directory and an Ivy wrapper compatible with that toolchain/runtime:
 
 ```sh
 cmake -S . -B build-gcc13 -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 \
-  -DCMAKE_BUILD_TYPE=Debug
+  -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
 cmake --build build-gcc13 -j4
 ctest --test-dir build-gcc13 --output-on-failure
 ```
-
-The [step-by-step link replacement guide](historique/LINK_CPP_PLAN.md) tracks the ground
-agent implementation and its remaining hardware validation. See also the
-[OCaml/C++ comparison report](validation/LINK_CPP_VALIDATION.md). `serial_messages` remains
-a separate diagnostic tool.
 
 `make libpprzlink++` and `make install DESTDIR=/path/to/install` are also supported.
 Use the same `PKG_CONFIG_PATH`; `CXX`, `CPPFLAGS`, `CXXFLAGS`, `LDFLAGS`, and
@@ -175,7 +160,7 @@ mutable spans are not accepted by these getters. Use `std::string`,
 
 ## Explicit SI field access
 
-`getField`/`setField` use XML units and retain their existing type/range checks.
+`getField`/`setField` use XML units with type and range checks.
 `getFieldAs<T>` changes only the numeric representation. To request unit
 conversion explicitly, use `getFieldSI`/`setFieldSI`:
 
@@ -196,7 +181,7 @@ Integer destinations always round to nearest, with ties away from zero. Range
 overflow throws without saturation or replacement. Numeric homogeneous arrays
 use `std::span<const double>` inputs. `getFieldArraySI()` returns an owned
 `std::vector<double>` with the stored array's length, by field name or XML index.
-`getFieldSI()` returns a scalar `double`; its existing output parameters
+`getFieldSI()` returns a scalar `double`; its output parameters
 also accept `double&` and `std::vector<double>&`.
 NaN/non-finite floating measurements retain their numeric meaning; integer
 writes reject them. A double cannot preserve all 64-bit integer values.
@@ -225,36 +210,25 @@ through native reads. Incompatible physical dimensions also fail at loading.
 The explicit XML coefficient multiplies the alternative rule's slope once;
 it does not scale the offset. See [the validation and size report](validation/VALIDATION_AFFINE_UNITS.md).
 
-Existing client source can adopt SI calls field by field. Rebuild the library
-and its clients: adding schema metadata changes the C++ class layout, so old
-binaries must not be used with the new shared library. `link++` keeps forwarding
-XML values; its routing IDs and byte/message counters are not SI quantities.
+`link++` forwards XML values; its routing IDs and byte/message counters
+are not SI quantities.
 See [the usage guide](guide_d_utilisation.md#convertir-explicitement-les-unités)
 for executable examples and the [API notes](API_USAGE.md#champs--unités-si-explicites)
 for the complete contract.
 
-Earlier validation checked the SI implementation with GCC 13.3 and GCC 16.1.
-The full 25-test suite, including serial/UDP/Ivy clients and `link++`, passed with GCC 13.3 and
-the installed Ivy 3.18.3 wrapper. GCC 16 SI tests, the Make build without Ivy,
-installed-SDK clients and warning-free Doxygen generation were also checked.
-In that validation environment, the system Ivy wrapper had to be rebuilt for
-GCC 16; the mismatched wrapper crashed at bus creation. This is a historical
-result, not a description of the current Ubuntu 26.04 wrapper.
-The unit test uses the real repository XML as well as fixtures covering native
-wire bytes, scoped aliases, Celsius offsets, integer rounding, arrays and failures.
 Installed CMake consumers can use `find_package(pprzlink++ CONFIG REQUIRED)` and
 link `pprzlink++` or `pprzlink++_static`; dependencies and C++23 propagate.
 
 New consumers can select `COMPONENTS core`, `io` or `ivy` and link
 `pprzlink::core`, `pprzlink::io` or `pprzlink::ivy`. The component libraries are
 static/PIC. Selecting `core` or `io` does not look for Ivy, even with a full SDK.
-The default `find_package` call retains the historical aggregate targets.
+Without `COMPONENTS`, `find_package` imports the aggregate targets.
 The Makefile also supports `WITH_IVY=0`; see [API_USAGE.md](API_USAGE.md) for the
 complete build and installed-consumer examples.
 
 ## Ground agent: link++
 
-On Unix, the default CMake build also creates `apps/link/link++`. It accepts
+`link++` is a separate Unix application. It accepts
 all 24 options of Paparazzi's OCaml `link`, plus its `-help`/`--help` switches.
 Defaults match OCaml, including **9600 baud**, uplink enabled, UDP ports
 4242/4243, aircraft timeout 5000 ms, PING period 5000 ms and report period 1000 ms.
@@ -269,9 +243,7 @@ export PAPARAZZI_HOME=/path/to/paparazzi
 
 The message file is `$PPRZLINK_DIR/messages.xml`, otherwise
 `$PAPARAZZI_HOME/var/messages.xml`, otherwise `/usr/share/pprzlink/messages.xml`.
-`IVY_BUS` supplies the default bus; `-b` overrides it. No new mandatory option
-is needed. Disable the executable with `-DPPRZLINK_BUILD_LINK=OFF` when building
-only the library.
+`IVY_BUS` supplies the default bus; `-b` overrides it.
 
 The agent bridges telemetry to Ivy, routes XML `forwarded`/`broadcasted` commands,
 tracks known aircraft, sends PING, receives PONG and publishes LINK_REPORT. It
@@ -360,21 +332,14 @@ covered by fixtures and a simulated modem; physical 868 modem configuration and
 delivery have not been validated. See the comparison report for the corrected
 OCaml 868 transmit-type bug and other intentional differences.
 
-The application source is in [`apps/link`](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link). `Options` handles the CLI;
-`IvyBridge` transfers incoming commands to the Asio loop; `AircraftRegistry`
-owns liveness/accounting; the library's `UdpTransport` preserves datagram origins;
-`XbeeTransmitter` owns outstanding sends and retries; `LinkAgent` connects these
-components. Application state and radio I/O run on one Asio loop. The Ivy thread
-is stopped and joined before that state is destroyed.
-
-Library additions used by the agent:
+Library facilities used by the agent:
 
 - `MessageDefinition::getLinkMode()` and `MessageField::getFormat()` expose XML
   routing/display metadata.
 - `serializeLegacyMessage()` honors XML display formats. The standard
   `serializeMessage()` uses compact, round-trippable numbers. `parseLegacyMessageBody()` accepts
   the legacy whitespace/quoted-field syntax while checking numeric ranges.
-- Signed/unsigned 64-bit scalar and array fields complement the existing types.
+- Signed/unsigned 64-bit scalar and array fields are supported.
 - `PprzFrameDecoder` and `encodePprzFrame()` provide framing without device I/O.
   `discardPendingInput()` keeps incomplete UDP datagrams from contaminating later ones.
 - Transports expose `getStatistics()` and `getLastReceivedFrameSize()`;
@@ -382,26 +347,6 @@ Library additions used by the agent:
 - `XbeeTransport::Api::Series868` selects the extended framing;
   `sendMessageWithId()` lets an application track/retry a transmission explicitly.
   RX 0x90 has no RSSI; check `ReceiveInfo::hasRssi` before using that value.
-
-These additions change the public C++ ABI, notably the field-value variant and
-message metadata. Rebuild all dependent applications.
-
-CTest runs the agent's protocol scenarios without hardware. To run the same
-scenarios against a real OCaml reference as well:
-
-```sh
-cmake -S . -B build-ubuntu26 \
-  -DCMAKE_CXX_COMPILER=g++ \
-  -DPPRZLINK_OCAML_REFERENCE=/path/to/link_ocaml
-cmake --build build-ubuntu26 -j4
-ctest --test-dir build-ubuntu26 --output-on-failure
-```
-
-[`build_ocaml_reference.py`](../../lib/v2.0/C++/tests/build_ocaml_reference.py) builds an
-isolated reference from Paparazzi and Ivy OCaml sources. The comparison report
-documents its dependencies and exact invocation. The Ubuntu 24.04/GCC 13 CI
-workflow runs the independent agent scenarios; differential tests additionally
-require this OCaml executable.
 
 ## Complete example
 
@@ -733,14 +678,10 @@ stores all current settings and requires waiting for the acknowledgement.
 
 ## Ivy integration
 
-`IvyLink` uses `<Ivy/ivy.hpp>` and `libivy-cpp` directly. The legacy `ivy-c++`
-source directory, including its Qt loop adapter, has been removed.
-Existing `BindMessage`, `BindOnSrcAc`, `UnbindMessage`, `sendMessage`,
-`sendRequest` and `registerRequestAnswerer` signatures are retained. The old
-`IvyApplicationCallback` inheritance and helper callback classes are removed.
+`IvyLink` uses `<Ivy/ivy.hpp>` and `libivy-cpp` directly.
 Binding IDs are opaque and local to each link.
 
-New code can use `subscribeMessage(definitionOrName, callback)`,
+Use `subscribeMessage(definitionOrName, callback)`,
 `subscribeSender(sender, callback)` and `subscribeRequestAnswerer(definition, callback)`.
 They return Ivy's own move-only `ivy::Subscription`; retain it while subscribed,
 then let destruction unsubscribe or call `unbind()` explicitly. The legacy
@@ -772,8 +713,8 @@ auto aliveSubscription = first.subscribeMessage("ALIVE",
 ```
 
 `threadedIvy=true` owns an `ivy::LoopThread`; destruction stops and joins it
-before releasing subscriptions and the bus. The default remains `false`:
-call `link.run()` to run its native loop on the calling thread. `link.stop()`
+before releasing subscriptions and the bus. Without an Asio context, the default
+is `false`: call `link.run()` to run its native loop on the calling thread. `link.stop()`
 pauses only reception through `Receiver::bind()`, preserving those bindings
 for `link.start()`. Native/scoped subscriptions (`subscribeMessage()`, requests
 and their legacy counterparts), sends and bus timers remain active while paused;
@@ -782,21 +723,20 @@ and their legacy counterparts), sends and bus timers remain active while paused;
 Call `link.close()` to end the Ivy session and request return from `run()`.
 Both `stop()` and `close()` may be called from a callback. Closing is terminal:
 create a new `IvyLink` for another session. Destruction joins an owned loop thread.
-The global
-`Ivy::ivyMainLoop()`/old Qt adapter cannot drive these independent contexts.
 `getBus()` borrows the native wrapper for its public APIs and context integration;
 do not move/destroy the borrowed bus or run an additional loop on it.
 
 Sends and binding changes can be called from multiple threads. Application
-callback state still needs its own synchronization. The dictionary must outlive
-the link, and all external callers/event loops must finish before destruction.
+callback state shared with other threads needs synchronization. The dictionary
+must outlive the link, and all external callers/event loops must finish before destruction.
 Never destroy a link from its callback. Unbinding permits an already executing
 callback to finish; Ivy keeps its captures alive until then.
 
 Synchronous Ivy errors throw `std::system_error`. Ivy catches exceptions from
 callbacks, records an error and stops that bus. `run()` checks this error on
 return; in threaded mode inspect `getBus().take_callback_error()` when the loop
-has stopped. A destructor does not report errors.
+has stopped. A destructor does not report errors. For callbacks on an application
+event loop, see [Asio integration](../../lib/v2.0/C++/docs/ivy-asio.md).
 
 The integration test uses loopback UDP/TCP on process-specific ports. It checks
 XML scalar/array/string conversions, sender routing, empty messages, concurrent
@@ -806,19 +746,18 @@ requests and sends, cancellation, independent bus shutdown and error reporting.
 
 `FieldValue` stores a `std::variant` of the supported scalar types and typed
 `std::vector` arrays. The XML definition selects the stored type; construction
-checks numeric ranges and fixed array lengths before storing a value. There is no
-`std::any`, per-element type erasure or mutable formatting flag. Named C++
+checks numeric ranges and fixed array lengths before storing a value. Named C++
 concepts describe scalar, input-container and output-container overloads.
 
-Returning getters complement the existing output-parameter API:
+Getters support return values and output parameters:
 
 ```cpp
 // For XML fields declared as float and int16[].
 auto altitude = message.getField<float>("altitude");
 auto convertedAltitude = message.getFieldAs<double>("altitude"); // Explicit checked conversion.
 auto samples = message.getField<std::vector<int16_t>>("samples");
-float previousStyle;
-message.getField("altitude", previousStyle); // Still supported.
+float altitudeOut;
+message.getField("altitude", altitudeOut); // Output-parameter overload.
 
 // Dynamic access: the XML determines which variant alternative is active.
 const auto &storage = message.getField("altitude"); // const FieldValue::Storage&
@@ -858,7 +797,7 @@ format and `writeDebugField(stream, field)` for diagnostics. Formatting visits
 stored values directly, without copying arrays or changing the field. Both use
 numeric int8/uint8 output and preserve the caller's stream flags. `operator<<`
 uses diagnostic formatting, including braces around non-character arrays;
-`Message::toString()` retains its existing diagnostic layout.
+`Message::toString()` formats diagnostic output.
 
 Ivy numeric fields use `std::to_chars` on the stored type. Finite `float` and
 `double` values use their shortest round-trippable representation, so an Ivy
@@ -880,25 +819,20 @@ integer fields.
 
 `<pprzlink/BytesBuffer.h>` declares `BytesBuffer` as `std::vector<uint8_t>`
 using only standard headers. Value and codec headers use it without importing
-`Device.h` or Asio; `Device.h` still includes it for existing device consumers.
-The CMake `core` target retains its Boost dependency for its receiver and
+`Device.h` or Asio. `Device.h` also includes it.
+The CMake `core` target depends on Boost for its receiver and
 transport interfaces.
 
 `<pprzlink/BinaryCodec.h>` contains little-endian encoding/decoding using
 `std::bit_cast` and bounded `std::span` input. Floating-point bit patterns and
-full-width integer arrays are preserved. The existing `addToBuffer`,
+full-width integer arrays are preserved. The `addToBuffer`,
 `addFieldToBuffer` and `addFieldFromBuffer` entry points delegate to this codec.
 Truncated field reads throw `std::out_of_range` without advancing their offset.
 Dynamic array/string counts must fit in one byte; arrays of strings remain
 unsupported by the binary format.
 
-This changes the C++ API/ABI: rebuild dependent applications. Replace
-`std::any_cast` on raw values with typed getters, `std::get` or `std::visit`, and
-catch `std::bad_variant_access` instead of `std::bad_any_cast`. Construct fields
-with their definition and value; the invalid default `FieldValue` constructor
-has been removed. Replace `setOutputInt8AsInt`/`isOutputInt8AsInt` with the
-appropriate text codec. Code that used `operator<<` for Ivy fields should use
-`writeIvyField` explicitly.
+Access raw values with typed getters, `std::get` or `std::visit`. Construct
+fields with their definition and value. Use `writeIvyField` for Ivy field text.
 
 The serialization tests check exact wire bytes for every scalar and array base
 type, floating-point bits, truncated input, length limits, typed getters,
@@ -909,8 +843,8 @@ concepts, supported containers and numeric conversions.
 
 Reception uses receiver-owned `bind()` subscriptions on UDP, serial PPRZ,
 XBee and Ivy. `start()` enables reception; binary channels execute callbacks
-on the supplied Asio context, and Ivy on its native loop. The polling transport
-methods `tryReceive()`, `hasMessage()` and `getMessage()` have been removed.
+on the supplied Asio context. Ivy uses its native loop or an optional
+[application Asio context](../../lib/v2.0/C++/docs/ivy-asio.md).
 The standalone `PprzFrameDecoder` still exposes incremental reads without I/O.
 
 ```cpp
@@ -966,7 +900,7 @@ with a positive N; `[0]` is rejected. `FieldType::getArraySize()` throws
 `std::logic_error` for scalar fields.
 
 Every indexed field accessor checks bounds through `MessageDefinition`.
-`getRawValue()` now follows the same `no_such_field` / `field_has_no_value`
+`getRawValue()` follows the same `no_such_field` / `field_has_no_value`
 contract as `getField()`. Indices use `size_t`, including in `MessageDefinition`
 and `getRawValue`. Borrowed field references must not outlive message
 destruction/assignment or replacement of that field.
@@ -994,10 +928,8 @@ or `startReception()`. Its synchronous write/poll failures use
 `getDevice()` returns a borrowed reference (const for a const transport), valid until
 transport destruction. Do not delete the device or give it to another owner.
 Transports cannot be copied or moved; a `unique_ptr<Transport>` can still be moved.
-`setDevice()` has been removed: recreate the transport with a new device so buffered
-frames and modem initialization state cannot carry over from the previous one.
-Existing callers must replace stack-device pointers with `std::make_unique` and
-transfer ownership with `std::move`; rebuild the library and dependent applications.
+To change devices, recreate the transport. Pass the device with
+`std::make_unique` or transfer ownership with `std::move`.
 
 `BoostSerialPortDevice` retains Boost.Asio. Reception is asynchronous; writes
 are synchronous and complete. Run the supplied `io_context`, which must outlive
@@ -1011,10 +943,7 @@ Port I/O and option calls are serialized internally. Finish external calls
 before destroying the device. Receive errors are reported by `availableBytes()`,
 `readAll()` or `startReception()`; transports forward them through `onError()`;
 buffered bytes can be drained before the error is reported. Recreate the device
-after a terminal receive error. Option getters now return values read from the
-port. The old public completion handler and protected implementation members
-are removed; callers should use the reception API. Rebuild dependent code for
-these API/ABI changes.
+after a terminal receive error. Option getters return values read from the port.
 
 Additional tests cover malformed binary frames and recovery, XML/file errors,
 field-access contracts and the standalone Ivy codec. On Unix, pseudo-terminal

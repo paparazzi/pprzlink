@@ -620,7 +620,7 @@ callback Ivy suivent le mécanisme du bus natif, accessible par `getBus()` ;
 | `pprzlink::core` | Dictionnaire, messages, conversions SI affines, codecs, abstractions et transports sur `Device`. Permet le décodage hors ligne ou l'intégration à ses propres I/O, sans bus Ivy. |
 | `pprzlink::io` | Ajoute série Boost.Asio, UDP et périphérique POSIX ; dépend de `core`. |
 | `pprzlink::ivy` | Ajoute `IvyLink` et la dépendance Ivy native ; dépend de `core`. |
-| `pprzlink++`, `pprzlink++_static` | Cibles historiques regroupant les composants construits. |
+| `pprzlink++`, `pprzlink++_static` | Cibles regroupant les composants construits. |
 
 Le codec de **texte** Ivy appartient au cœur et peut être utilisé sans démarrer
 de bus. La dépendance à la bibliothèque Ivy est apportée par le composant
@@ -642,9 +642,6 @@ Les exemples exécutables à relire pour évaluer l'API sont :
   l'émission d'une commande complète ou la réception avec son origine réseau.
 
 Les instructions de compilation et d'utilisation se trouvent dans
-[`README.md`](reference.md) et [`API_USAGE.md`](API_USAGE.md). Les contraintes de
-remplacement de l'application OCaml sont suivies dans
-[`LINK_CPP_PLAN.md`](historique/LINK_CPP_PLAN.md), les comparaisons dans
-[`LINK_CPP_VALIDATION.md`](validation/LINK_CPP_VALIDATION.md), et la validation de la
-plateforme minimale dans
-[`VALIDATION_UBUNTU24_GCC13.md`](validation/VALIDATION_UBUNTU24_GCC13.md).
+[la référence](reference.md) et [les exemples](API_USAGE.md). Les
+[rapports de validation](validation/index.rst) décrivent les environnements
+testés et leurs limites.
