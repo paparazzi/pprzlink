@@ -1,4 +1,5 @@
 #include <pprzlink/IvyLink.h>
+#include <pprzlink/exceptions/pprzlink_exception.h>
 #include <atomic>
 #include <bit>
 #include <chrono>
@@ -54,6 +55,178 @@ namespace {
   {
     auto result = link.getBus().send(text);
     require(result.has_value(), "Raw Ivy send");
+  }
+
+  void testAsio(const MessageDictionary &dict, const std::string &domain)
+  {
+    boost::asio::io_context context;
+    IvyLink receiver(context, dict, "asio-rx", domain);
+    IvyLink sender(context, dict, "asio-tx", domain);
+    const auto thread = std::this_thread::get_id();
+    auto checkContext = [&] {
+      require(context.get_executor().running_in_this_thread() && std::this_thread::get_id() == thread,
+              "Application callback runs on supplied context");
+    };
+    int scoped = 0, legacy = 0, source = 0, reactive = 0, errors = 0, answers = 0;
+    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) { checkContext(); ++scoped; });
+    receiver.BindMessage(dict.getDefinition("EMPTY"), [&](std::string, Message) { checkContext(); ++legacy; });
+    auto senderSubscription = receiver.subscribeSender("42", [&](std::string, Message) { checkContext(); ++source; });
+    receiver.bind("EMPTY", {.where = [&](const Message &) { checkContext(); return true; }},
+                  [&](const Message &) { checkContext(); ++reactive; });
+    receiver.onError([&](const pprzlink::ReceiveError &error) {
+      checkContext(); require(error.kind == pprzlink::ReceiveError::Kind::Decode, "Asio decode error"); ++errors;
+    });
+    receiver.start();
+    receiver.registerRequestAnswerer(dict.getDefinition("ANSWER_REQ"), [&](std::string, Message request) {
+      checkContext();
+      Message answer(dict.getDefinition("ANSWER"));
+      answer.setSenderId(std::string("server"));
+      answer.addField("value", field<uint32_t>(request, "value") + 10);
+      return answer;
+    });
+    // This native marker proves Ivy has processed all earlier wire messages
+    // while the supplied context has not been serviced yet.
+    std::atomic<int> barriers{0};
+    auto marker = receiver.getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view>) {
+      ++barriers;
+    }, ivy::runtime_regexp("^SYNC$"));
+    require(marker.has_value(), "Asio test marker");
+    waitBindings(sender, "asio-rx", 6);
+    sendRaw(sender, "42 EMPTY");
+    sendRaw(sender, "broken BYTE invalid");
+    for (uint32_t value = 0; value < 3; ++value) {
+      Message request(dict.getDefinition("ANSWER_REQ"));
+      request.setSenderId(std::string("client"));
+      request.addField("value", value);
+      sender.sendRequest(request, [&, value](std::string from, Message reply) {
+        checkContext();
+        require(from == "server" && field<uint32_t>(reply, "value") == value + 10,
+                "Asio concurrent request correlation");
+        ++answers;
+      });
+    }
+    sendRaw(sender, "SYNC");
+    waitFor([&] { return barriers == 1; }, "Ivy progresses without servicing Asio answerers");
+    require(scoped == 0 && legacy == 0 && source == 0 && reactive == 0 && answers == 0 && errors == 0,
+            "Callbacks are deferred until context runs");
+    waitFor([&] {
+      context.poll();
+      return scoped == 1 && legacy == 1 && source == 1 && reactive == 1 && errors == 1 && answers == 3;
+    }, "All SDK callback APIs dispatched on Asio");
+
+    // Closing from an answerer suppresses its reply and all later queued work.
+    auto closing = receiver.subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+      checkContext(); receiver.close();
+      Message answer(dict.getDefinition("EMPTY"));
+      answer.setSenderId(std::string("server"));
+      return answer;
+    });
+    waitBindings(sender, "asio-rx", 7);
+    Message request(dict.getDefinition("EMPTY_REQ"));
+    request.setSenderId(std::string("client"));
+    sender.sendRequest(request, [&](std::string, Message) { throw std::runtime_error("Closed answerer replied"); });
+    sendRaw(sender, "42 EMPTY");
+    sendRaw(sender, "SYNC");
+    waitFor([&] { return barriers == 2; }, "Queued close and message");
+    context.poll();
+    require(scoped == 1 && legacy == 1 && source == 1 && reactive == 1, "Close drops later queued callbacks");
+    sender.close();
+    context.run(); // Work guards are released by close().
+  }
+
+  void testAsioThreads(const MessageDictionary &dict, const std::string &domain)
+  {
+    boost::asio::io_context context;
+    IvyLink receiver(context, dict, "asio-threads-rx", domain);
+    IvyLink sender(dict, "asio-threads-tx", domain, true);
+    std::atomic<int> calls{0}, active{0};
+    std::atomic<bool> valid{true};
+    auto subscription = receiver.subscribeMessage("EMPTY", [&](std::string, Message) {
+      if (!context.get_executor().running_in_this_thread() || active.fetch_add(1) != 0) valid = false;
+      std::this_thread::sleep_for(1ms);
+      --active;
+      ++calls;
+    });
+    waitBindings(sender, "asio-threads-rx", 1);
+    std::jthread first([&] { context.run(); });
+    std::jthread second([&] { context.run(); });
+    for (int i = 0; i < 16; ++i) sendRaw(sender, "42 EMPTY");
+    // Always release work before asserting, including the timeout path.
+    try { waitFor([&] { return calls == 16; }, "Multi-thread Asio dispatch"); }
+    catch (...) { receiver.close(); throw; }
+    receiver.close();
+    first.join(); second.join();
+    require(valid, "Callbacks serialized across context threads");
+  }
+
+  void testAsioErrors(const MessageDictionary &dict, const std::string &domain)
+  {
+    boost::asio::io_context context;
+    IvyLink receiver(context, dict, "asio-errors-rx", domain);
+    IvyLink sender(dict, "asio-errors-tx", domain, true);
+    int observed = 0;
+    auto subscription = receiver.subscribeMessage("EMPTY", [&, count = 0](std::string, Message) mutable {
+      require(context.get_executor().running_in_this_thread(), "Throwing callback runs on context");
+      observed = ++count;
+      if (count == 2) throw std::runtime_error("application failure");
+    });
+    auto answerer = receiver.subscribeRequestAnswerer(dict.getDefinition("ANSWER_REQ"), [&](std::string, Message) {
+      return Message(dict.getDefinition("EMPTY")); // Wrong answer must fail on Asio.
+    });
+    waitBindings(sender, "asio-errors-rx", 2);
+    sendRaw(sender, "42 EMPTY"); sendRaw(sender, "42 EMPTY");
+    bool failed = false;
+    waitFor([&] {
+      try { context.poll(); }
+      catch (const std::runtime_error &error) {
+        require(std::string(error.what()) == "application failure", "Application exception preserved");
+        failed = true;
+      }
+      return failed;
+    }, "Asio callback exception");
+    require(observed == 2, "Mutable callback state survives successive posted invocations");
+    Message request(dict.getDefinition("ANSWER_REQ"));
+    request.setSenderId(std::string("client")); request.addField("value", uint32_t{1});
+    sender.sendRequest(request, [](std::string, Message) {});
+    failed = false;
+    waitFor([&] {
+      try { context.poll(); }
+      catch (const pprzlink::wrong_answer_to_request &) { failed = true; }
+      return failed;
+    }, "Asio wrong-answer exception");
+    require(receiver.getBus().take_callback_error().has_value(), "Application exceptions stay off Ivy loop");
+    receiver.close();
+    context.run();
+  }
+
+  void testAsioShutdown(const MessageDictionary &dict, const std::string &domain)
+  {
+    boost::asio::io_context context;
+    IvyLink sender(dict, "asio-shutdown-tx", domain, true);
+    int calls = 0;
+    std::atomic<int> barriers{0};
+    auto receiver = std::make_unique<IvyLink>(context, dict, "asio-shutdown-rx", domain);
+    auto observer = receiver->subscribeMessage("EMPTY", [&](std::string, Message) { ++calls; });
+    auto answerer = receiver->subscribeRequestAnswerer(dict.getDefinition("EMPTY_REQ"), [&](std::string, Message) {
+      ++calls; return Message(dict.getDefinition("EMPTY"));
+    });
+    auto marker = receiver->getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view>) {
+      ++barriers;
+    }, ivy::runtime_regexp("^SYNC$"));
+    require(marker.has_value(), "Shutdown test marker");
+    waitBindings(sender, "asio-shutdown-rx", 3);
+    Message request(dict.getDefinition("EMPTY_REQ"));
+    request.setSenderId(std::string("client"));
+    sender.sendRequest(request, [&](std::string, Message) { ++calls; });
+    sendRaw(sender, "42 EMPTY");
+    sendRaw(sender, "SYNC");
+    waitFor([&] { return barriers == 1; }, "Answer pending on stopped context");
+    context.stop();
+    receiver.reset(); // Must join Ivy without servicing the pending answer.
+    require(!observer.is_bound() && !answerer.is_bound(), "Scoped tokens safely outlive Asio link");
+    context.restart();
+    context.run();
+    require(calls == 0, "Destroying link suppresses queued observers and replies after context restart");
   }
 
   void testReactive(const MessageDictionary &dict, const std::string &domain)
@@ -517,6 +690,10 @@ int main()
     const int port = 25000 + (getpid() % 10000) * 2;
     const auto domainA = "127.255.255.255:" + std::to_string(port);
     const auto domainB = "127.255.255.255:" + std::to_string(port + 1);
+    testAsio(dict, domainA);
+    testAsioShutdown(dict, domainA);
+    testAsioErrors(dict, domainA);
+    testAsioThreads(dict, domainA);
     testReactive(dict, domainA);
     testReactiveSharedTraffic(dict, domainA);
     testMessages(dict, domainA);

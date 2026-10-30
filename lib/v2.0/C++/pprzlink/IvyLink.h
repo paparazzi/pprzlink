@@ -22,7 +22,7 @@
  * @brief Independent Ivy buses, scoped subscriptions and request helpers.
  * @ingroup ivy
  *
- * A link borrows its dictionary and owns its bus. Application callbacks run on the Ivy loop; subscription tokens and captured state need appropriate lifetimes.
+ * A link borrows its dictionary and owns its bus. Application callbacks run on the selected event loop; subscription tokens and captured state need appropriate lifetimes.
  */
 
 #ifndef PPRZLINKCPP_IVYLINK_H
@@ -33,10 +33,12 @@
 #include <pprzlink/Message.h>
 #include <pprzlink/MessageDictionary.h>
 #include <pprzlink/Receiver.h>
+#include <boost/asio/io_context.hpp>
 #include <atomic>
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -44,7 +46,7 @@
 
 namespace pprzlink {
 
-  /// @brief Observer receiving sender text and an owned decoded message on the Ivy loop.
+  /// @brief Observer receiving sender text and an owned decoded message on the selected event loop.
   /// @ingroup ivy
   using messageCallback_t = std::function<void(std::string, Message)>;
   /// @brief Request handler receiving sender/request values and returning its reply message.
@@ -54,7 +56,19 @@ namespace pprzlink {
   /** Owns an independent Ivy bus. The dictionary must outlive the link.
    * @ingroup ivy
    * Sends and subscription operations may be called from multiple threads.
-   * Callbacks run on the bus's event loop; synchronize shared application data.
+   * Without an Asio context, callbacks run on the Ivy loop. With a context,
+   * all SDK message callbacks, Receiver predicates/error handlers and request
+   * answerers are posted there and serialized per link. Native getBus() callbacks
+   * still run on Ivy. The context and dictionary must outlive the link.
+   * In Asio mode, close() suppresses queued callbacks and waits for active
+   * callbacks on other threads; no callback starts after it returns. Unbinding can leave already
+   * posted SDK callbacks queued. Keep their captured state alive until close()
+   * or until those invocations finish. Queued captures may survive until the
+   * context drains or is destroyed, but cannot access a closed/destroyed link.
+   * Asio callback/reply errors propagate from context.run(); native decode errors
+   * remain available through getBus().take_callback_error(). No Asio thread is
+   * owned; service the context to receive callbacks. Do not synchronously wait
+   * for replies from its callbacks. A work guard keeps context.run() running until close().
    * Destroy the link after external callers/loops have finished, never from a callback.
    */
   class IvyLink : public Receiver {
@@ -69,6 +83,19 @@ namespace pprzlink {
      */
     IvyLink(const MessageDictionary &dict, std::string appName,
             std::string domain = "127.255.255.255:2010", bool threadedIvy = false);
+    /** Dispatch SDK callbacks on context, optionally owning an Ivy I/O thread.
+     * Request answerers return normally on context; their correlated reply is
+     * sent there without blocking the Ivy thread. Closing discards pending replies.
+     * With threadedIvy=false, service the Ivy bus separately using run().
+     * @param[in] context Borrowed application event loop.
+     * @param[in] dict Borrowed immutable schemas.
+     * @param[in] appName Ivy application name.
+     * @param[in] domain Ivy bus address and port.
+     * @param[in] threadedIvy Whether to own an Ivy event-loop thread.
+     * @throws std::system_error Native startup or thread creation fails.
+     */
+    IvyLink(boost::asio::io_context &context, const MessageDictionary &dict,
+            std::string appName, std::string domain = "127.255.255.255:2010", bool threadedIvy = true);
     /// @brief Stop/join the owned loop before releasing subscriptions and the bus.
     /// External callers and non-owned loops must have finished; do not destroy from a callback.
     ~IvyLink();
@@ -85,17 +112,17 @@ namespace pprzlink {
     IvyLink& operator=(IvyLink&&) = delete;
 
     /// Keep the returned Ivy token alive; destruction unsubscribes automatically.
-    /// Callbacks execute on the Ivy loop, as for the legacy binding methods.
-    /// Unbinding does not wait for a callback already executing. Captured application
-    /// state must remain alive until that invocation finishes.
+    /// Callbacks execute on the selected event loop, as for the legacy binding methods.
+    /// Unbinding does not wait for an executing callback or cancel one already
+    /// posted to Asio. Captured state must survive those invocations or close().
     /// @param[in] definition Schema copied into the binding's capture state.
-    /// @param[in] callback Observer receiving the sender and decoded message on the loop.
+    /// @param[in] callback Observer receiving the sender and decoded message on the selected event loop.
     /// @return Owned scoped subscription token; keep it alive to remain subscribed.
     /// @throws std::exception Regex generation or native Ivy binding fails.
     [[nodiscard]] ivy::Subscription subscribeMessage(const MessageDefinition &definition, messageCallback_t callback);
     /// @brief Subscribe to a named schema using scoped token ownership.
     /// @param[in] name Exact dictionary message name.
-    /// @param[in] callback Observer executed on the Ivy loop.
+    /// @param[in] callback Observer executed on the selected event loop.
     /// @return Owned token whose destruction unsubscribes without waiting for an active callback.
     /// @throws std::exception Dictionary lookup, regex generation or native binding fails.
     [[nodiscard]] ivy::Subscription subscribeMessage(std::string_view name, messageCallback_t callback);
@@ -110,13 +137,13 @@ namespace pprzlink {
     /// @param[in] callback Handler returning the corresponding message without the _REQ suffix.
     /// @return Owned answerer token; keep captured state alive through active callbacks.
     /// @throws message_is_not_request The schema is not a request.
-    /// @throws std::system_error Binding fails; callback/reply errors are recorded by Ivy.
+    /// @throws std::system_error Binding fails; callback/reply errors reach the selected event loop.
     [[nodiscard]] ivy::Subscription subscribeRequestAnswerer(const MessageDefinition &definition,
                                                             answererCallback_t callback);
 
     /// @brief Create a legacy ID-owned subscription retained by this link.
     /// @param[in] def Message schema to observe.
-    /// @param[in] cb Observer executed on the Ivy loop.
+    /// @param[in] cb Observer executed on the selected event loop.
     /// @return Binding ID accepted by UnbindMessage().
     /// @throws std::exception Schema regex generation or native binding fails.
     long BindMessage(const MessageDefinition &def, messageCallback_t cb);
@@ -163,7 +190,7 @@ namespace pprzlink {
     /// Scoped/native subscriptions, sends and bus timers remain active.
     /// Safe inside callbacks; the event loop keeps running.
     void stop() override;
-    /// @brief Permanently stop this Ivy session and request return from run().
+    /// @brief Permanently stop this Ivy session, cancel queued Asio callbacks/replies, and request return from run().
     /// Safe inside callbacks. Destruction joins the owned thread. A closed link
     /// cannot be restarted; create a new IvyLink for another session.
     /// @throws std::system_error The native stop request fails.
@@ -174,6 +201,11 @@ namespace pprzlink {
     ivy::Bus& getBus() noexcept { return bus; }
 
   private:
+    struct DispatchState;
+    std::shared_ptr<DispatchState> dispatchState;
+    IvyLink(boost::asio::io_context *context, const MessageDictionary &dict,
+            std::string appName, std::string domain, bool threadedIvy);
+    messageCallback_t dispatchCallback(messageCallback_t callback) const;
     const MessageDictionary &dictionary;
     ivy::Bus bus;
     std::mutex subscriptionsMutex;

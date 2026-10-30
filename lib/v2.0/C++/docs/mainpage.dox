@@ -26,8 +26,10 @@
  * asynchronous serial/UDP reads. Receiver::bind() owns subscriptions; start()
  * enables them and stop() cancels only that receiver. Message callbacks are
  * serialized per receiver and invoked outside device I/O locks.
- * Ivy callbacks run on the bus loop and need synchronization when sharing
- * application data with another thread. Keep subscription tokens alive and
+ * IvyLink optionally borrows an Asio context too: SDK callbacks and request
+ * answerers then run there, serialized per link; native getBus() callbacks
+ * remain on Ivy. Without a context, Ivy callbacks run on the bus loop and
+ * need synchronization when sharing application data with another thread. Keep subscription tokens alive and
  * finish external calls before destroying the objects they use.
  *
  * @section values Values and wire formats

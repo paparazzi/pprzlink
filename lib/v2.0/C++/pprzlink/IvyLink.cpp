@@ -28,6 +28,8 @@
 #include <pprzlink/IvyLink.h>
 #include <pprzlink/IvyMessageCodec.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
+#include <boost/asio/post.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 #include <system_error>
 #include <unistd.h>
 
@@ -53,9 +55,56 @@ namespace pprzlink {
 
   }
 
+  // The gate protects queued closures borrowing the link, including during
+  // callback-side close(). Ivy never waits for application code on Asio.
+  struct IvyLink::DispatchState : std::enable_shared_from_this<DispatchState> {
+    explicit DispatchState(boost::asio::io_context *context) : context(context)
+    {
+      if (context) work.emplace(context->get_executor());
+    }
+    boost::asio::io_context *context;
+    std::optional<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work;
+    std::recursive_mutex mutex;
+    std::atomic<bool> open{true};
+
+    void submit(std::function<void()> callback)
+    {
+      if (!context) { callback(); return; }
+      if (!open) return;
+      boost::asio::post(*context, [state = shared_from_this(), callback = std::move(callback)] {
+        std::lock_guard lock(state->mutex);
+        if (state->open) callback();
+      });
+    }
+    void close()
+    {
+      std::lock_guard lock(mutex);
+      open = false;
+      work.reset();
+    }
+  };
+
+  messageCallback_t IvyLink::dispatchCallback(messageCallback_t callback) const
+  {
+    return [state = dispatchState, callback = std::make_shared<messageCallback_t>(std::move(callback))](std::string sender, Message message) {
+      state->submit([callback, sender = std::move(sender), message = std::move(message)]() mutable {
+        (*callback)(std::move(sender), std::move(message));
+      });
+    };
+  }
+
+  IvyLink::IvyLink(boost::asio::io_context &context, const MessageDictionary &dict,
+                   std::string appName, std::string domain, bool threadedIvy)
+    : IvyLink(&context, dict, std::move(appName), std::move(domain), threadedIvy) {}
+
   IvyLink::IvyLink(const MessageDictionary &dict, std::string appName,
                    std::string domain, bool threadedIvy)
-    : Receiver(dict, Kind::Ivy), dictionary(dict), bus(checked(ivy::Bus::create(appName, appName + " ready")))
+    : IvyLink(nullptr, dict, std::move(appName), std::move(domain), threadedIvy) {}
+
+  IvyLink::IvyLink(boost::asio::io_context *context, const MessageDictionary &dict,
+                   std::string appName, std::string domain, bool threadedIvy)
+    : Receiver(dict, Kind::Ivy), dispatchState(std::make_shared<DispatchState>(context)),
+      dictionary(dict), bus(checked(ivy::Bus::create(appName, appName + " ready")))
   {
     checked(bus.start(domain));
     if (threadedIvy) {
@@ -65,6 +114,7 @@ namespace pprzlink {
 
   IvyLink::~IvyLink()
   {
+    dispatchState->close();
     shutdown();
     loop.reset(); // Stop and join before releasing any callback captures.
     (void)bus.stop();
@@ -90,6 +140,7 @@ namespace pprzlink {
 
   void IvyLink::close()
   {
+    dispatchState->close();
     auto lock = lockReceiver();
     stop();
     checked(bus.request_stop());
@@ -116,8 +167,12 @@ namespace pprzlink {
     });
     try {
       reactiveSubscription.emplace(checked(bus.bind_raw(
-        [notification](IvyClientPtr, std::span<const std::string_view> arguments) mutable {
-          if (arguments.size() == 2) notification(arguments[0], arguments[1]);
+        [state = dispatchState, notification](IvyClientPtr, std::span<const std::string_view> arguments) mutable {
+          if (arguments.size() == 2) {
+            state->submit([notification, sender = std::string(arguments[0]), body = std::string(arguments[1])]() mutable {
+              notification(sender, body);
+            });
+          }
         }, ivy::runtime_regexp("^([^ ]*) (.*)$"))));
     } catch (...) { deactivate(); throw; }
   }
@@ -151,7 +206,7 @@ namespace pprzlink {
   {
     const auto regexp = "^([^ ]*) " + ivy_codec::messageRegexp(def);
     return checked(bus.bind_raw(
-      [def, cb = std::move(cb)](IvyClientPtr, std::span<const std::string_view> args) {
+      [def, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
         if (args.empty()) {
           throw wrong_message_format("Missing sender in " + def.getName());
         }
@@ -169,7 +224,7 @@ namespace pprzlink {
   {
     const auto regexp = "^(" + ivy_codec::escapeRegexp(ac_id) + ") (.*)$";
     return checked(bus.bind_raw(
-      [this, cb = std::move(cb)](IvyClientPtr, std::span<const std::string_view> args) {
+      [this, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
         if (args.size() != 2) {
           throw wrong_message_format("Missing sender or message body");
         }
@@ -219,7 +274,7 @@ namespace pprzlink {
     const auto regexp = "^" + requestId + " ([^ ]*) " + ivy_codec::messageRegexp(answer);
     const long id = nextBindId++;
     auto result = bus.bind_raw(
-      [this, answer, id, cb = std::move(cb)](IvyClientPtr, std::span<const std::string_view> args) {
+      [this, answer, id, cb = dispatchCallback(std::move(cb))](IvyClientPtr, std::span<const std::string_view> args) {
         if (args.empty()) {
           throw wrong_message_format("Missing request answer sender");
         }
@@ -252,18 +307,22 @@ namespace pprzlink {
     const auto answerName = def.getName().substr(0, def.getName().size() - 4);
     const auto regexp = "^([^ ]*) ([^ ]*) " + ivy_codec::messageRegexp(def);
     return checked(bus.bind_raw(
-      [this, def, answerName, cb = std::move(cb)]
+      [this, state = dispatchState, def, answerName, cb = std::make_shared<answererCallback_t>(std::move(cb))]
       (IvyClientPtr, std::span<const std::string_view> args) {
         if (args.size() < 2) {
           throw wrong_message_format("Missing request sender or ID");
         }
         auto request = ivy_codec::parseFields(def, args[0], args.subspan(2));
-        auto answer = cb(ivy_codec::unquote(args[0]), std::move(request));
-        if (answer.getDefinition().getName() != answerName) {
-          throw wrong_answer_to_request("Wrong answer " + answer.getDefinition().getName() +
-                                        " to request " + def.getName());
-        }
-        checked(bus.send(std::string(args[1]) + " " + ivy_codec::serializeMessage(answer)));
+        state->submit([this, state, def, answerName, cb, sender = ivy_codec::unquote(args[0]),
+                       requestId = std::string(args[1]), request = std::move(request)]() mutable {
+          auto answer = (*cb)(std::move(sender), std::move(request));
+          if (state->context && !state->open) return; // Answerer may have closed the link.
+          if (answer.getDefinition().getName() != answerName) {
+            throw wrong_answer_to_request("Wrong answer " + answer.getDefinition().getName() +
+                                          " to request " + def.getName());
+          }
+          checked(bus.send(requestId + " " + ivy_codec::serializeMessage(answer)));
+        });
       }, ivy::runtime_regexp(regexp)));
   }
 
