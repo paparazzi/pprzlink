@@ -17,209 +17,160 @@
  *
  */
 
-/** \file IvyLink.h
+/**
+ * @file IvyLink.h
+ * @brief Independent Ivy buses, Receiver bindings and request helpers.
+ * @ingroup ivy
  *
- *
+ * A link borrows its dictionary and owns its bus. Application callbacks run on the selected event loop; subscription tokens and captured state need appropriate lifetimes.
  */
-
 
 #ifndef PPRZLINKCPP_IVYLINK_H
 #define PPRZLINKCPP_IVYLINK_H
 
-#include <string>
-#include <pprzlink/MessageDictionary.h>
-#include <ivy-c++/Ivy.h>
+#include <Ivy/ivy.hpp>
+#include <Ivy/ivy_thread.hpp>
 #include <pprzlink/Message.h>
-#include <boost/bimap.hpp>
+#include <pprzlink/MessageDictionary.h>
+#include <pprzlink/Receiver.h>
+#include <pprzlink/RequestReply.h>
+#include <boost/asio/io_context.hpp>
+#include <atomic>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <string>
 
 namespace pprzlink {
-  class MessageCallback;
-  class AircraftCallback;
-  class RequestCallback;
 
-  using messageCallback_t = std::function<void(std::string,Message)>;
-  using answererCallback_t = std::function<Message(std::string,Message)>;
-
-  /**
-   *
+  /** Owns an independent Ivy bus. The dictionary must outlive the link.
+   * @ingroup ivy
+   * Use the inherited Receiver::bind() and Receiver::unbind() for ordinary messages.
+   * Sends and subscription operations may be called from multiple threads.
+   * Without an Asio context, callbacks run on the Ivy loop. With a context,
+   * Receiver callbacks/predicates/error handlers, request reply callbacks and
+   * answerers are posted there and serialized per link. Native getBus() callbacks
+   * still run on Ivy. The context and dictionary must outlive the link.
+   * In Asio mode, close() suppresses queued callbacks and waits for active
+   * callbacks on other threads; no callback starts after it returns. Canceling a request
+   * suppresses queued delivery; an already executing invocation may finish. Queued captures may survive until the
+   * context drains or is destroyed, but cannot access a closed/destroyed link.
+   * Receiver decode failures reach onError(); application callback/reply errors propagate
+   * from context.run(). Native request decode errors remain available through
+   * getBus().take_callback_error(). No Asio thread is
+   * owned; service the context to receive callbacks. Do not synchronously wait
+   * for replies from its callbacks. A work guard keeps context.run() running until close().
+   * Destroy the link after external callers/loops have finished, never from a callback.
    */
-  class IvyLink : public IvyApplicationCallback {
+  class IvyLink : public Receiver, public RequestReply {
   public:
-    /**
-     *
-     * @param dict
-     * @param appName
-     * @param domain
-     * @param threadedIvy
+    /** Start a bus, optionally running its event loop on an owned thread.
+     * With threadedIvy=false, call run() to service this bus.
+     * @param[in] dict Borrowed, unchanged schemas that must outlive this link.
+     * @param[in] appName Bus application name and prefix of its ready announcement.
+     * @param[in] domain Ivy bus address and port.
+     * @param[in] threadedIvy Whether to own an Ivy event-loop thread.
+     * @throws std::system_error Native Ivy creation, startup or thread creation fails.
      */
-    IvyLink(MessageDictionary const & dict , std::string appName, std::string domain = "127.255.255.255:2010", bool threadedIvy = false);
-
-    /**
-     *
+    IvyLink(const MessageDictionary &dict, std::string appName,
+            std::string domain = "127.255.255.255:2010", bool threadedIvy = false);
+    /** Dispatch SDK callbacks on context, optionally owning an Ivy I/O thread.
+     * Request answerers return normally on context; their correlated reply is
+     * sent there without blocking the Ivy thread. Closing discards pending replies.
+     * With threadedIvy=false, service the Ivy bus separately using run().
+     * @param[in] context Borrowed application event loop.
+     * @param[in] dict Borrowed immutable schemas.
+     * @param[in] appName Ivy application name.
+     * @param[in] domain Ivy bus address and port.
+     * @param[in] threadedIvy Whether to own an Ivy event-loop thread.
+     * @throws std::system_error Native startup or thread creation fails.
      */
+    IvyLink(boost::asio::io_context &context, const MessageDictionary &dict,
+            std::string appName, std::string domain = "127.255.255.255:2010", bool threadedIvy = true);
+    /// @brief Stop/join the owned loop before releasing subscriptions and the bus.
+    /// External callers and non-owned loops must have finished; do not destroy from a callback.
     ~IvyLink();
 
-    /**
-     *
-     * @param def
-     * @param cb
-     * @return
-     */
-    long BindMessage(MessageDefinition const & def, messageCallback_t cb);
+    /// @brief Copying an independent bus owner is prohibited.
+    IvyLink(const IvyLink&) = delete;
+    /// @brief Copy assignment is prohibited.
+    /// @return This operation is deleted and cannot return.
+    IvyLink& operator=(const IvyLink&) = delete;
+    /// @brief Moving a live bus owner is prohibited.
+    IvyLink(IvyLink&&) = delete;
+    /// @brief Move assignment is prohibited.
+    /// @return This operation is deleted and cannot return.
+    IvyLink& operator=(IvyLink&&) = delete;
 
-    /**
-     * Bind on all messages coming from given ac_id
-     * @param ac_id
-     * @param cb
-     * @return
-     */
-    long BindOnSrcAc(std::string ac_id, messageCallback_t cb);
-
-    /**
-     *
-     * @param bindId
-     */
-    void UnbindMessage(long bindId);
-
-    /**
-     *
-     * @param ac_id
-     * @param msg
-     */
-    void sendMessage(const Message& msg);
-
-    long sendRequest(const Message& msg, messageCallback_t cb);
-
-    long registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb);
+    /// Cancel a pending request, suppressing queued reply delivery. Unknown IDs are harmless.
+    void cancelRequest(RequestId id) override;
+    /// Remove a persistent answerer, suppressing queued invocations. Unknown IDs are harmless.
+    void unbindRequest(HandlerId id) override;
+    /// @brief Publish an ordinary populated message on this bus.
+    /// @param[in] msg Non-request message to serialize in standard Ivy syntax.
+    /// @throws message_is_request The schema ends with _REQ; use sendRequest().
+    /// @throws std::exception Field formatting or native sending fails.
+    void sendMessage(const Message &msg);
+    /// Run the loop on this thread until close() or a terminal bus error.
+    /// Only valid when constructed with threadedIvy=false; stop() pauses reception
+    /// without ending this loop.
+    /// @throws std::logic_error This link already owns a loop thread.
+    /// @throws std::system_error The native loop or a recorded callback error fails.
+    void run();
+    /// @brief Activate Receiver::bind subscriptions on this bus's event loop.
+    /// One subscription per distinct bound message; any ALL binding replaces these
+    /// with one broad subscription. No bindings means no subscription. Additional
+    /// filters are applied locally. Binding changes update subscriptions while active;
+    /// peers learn changes asynchronously, so transitions may lose in-flight messages.
+    /// Names absent from the dictionary are ignored. Malformed fields of known
+    /// subscribed messages are reported through onError() as ReceiveError::Kind::Decode.
+    void start() override;
+    /// Pause Receiver::bind reception while preserving bindings for start().
+    /// Request subscriptions, native getBus() subscriptions, sends and bus timers remain active.
+    /// Safe inside callbacks; the event loop keeps running.
+    void stop() override;
+    /// @brief Permanently stop this Ivy session, cancel queued Asio callbacks/replies, and request return from run().
+    /// Safe inside callbacks. Destruction joins the owned thread. A closed link
+    /// cannot be restarted; create a new IvyLink for another session.
+    /// @throws std::system_error The native stop request fails.
+    void close();
+    /// Borrow the bus for native API access and take_callback_error() inspection.
+    /// Do not move/destroy it or run a second loop on it.
+    /// @return Bus reference valid for this link's lifetime.
+    ivy::Bus& getBus() noexcept { return bus; }
 
   private:
+    struct DispatchState;
+    std::shared_ptr<DispatchState> dispatchState;
+    IvyLink(boost::asio::io_context *context, const MessageDictionary &dict,
+            std::string appName, std::string domain, bool threadedIvy);
     const MessageDictionary &dictionary;
-    std::string domain;
-    std::string appName;
-    Ivy *bus;
-    bool threaded;
-    unsigned int requestNb;
-    boost::bimap<std::string, long> requestBindId;
+    ivy::Bus bus;
+    /// Owned request registration and gate for already queued application work.
+    struct RequestSubscription {
+      ivy::Subscription token; ///< Native registration.
+      std::shared_ptr<bool> active; ///< Protected by DispatchState::mutex.
+    };
+    std::map<RequestId, RequestSubscription> pendingRequests;
+    std::map<HandlerId, RequestSubscription> requestHandlers;
+    uint64_t nextRequestId = 1; ///< Shared local ID sequence, protected by DispatchState::mutex.
+    /// @brief Native subscription and cancellation gate for already posted notifications.
+    struct ReceiverSubscription {
+      ivy::Subscription token; ///< Owned native binding.
+      std::shared_ptr<bool> active; ///< Read/written only under the receiver lock.
+    };
+    std::map<std::optional<std::string>, ReceiverSubscription> receiverSubscriptions; ///< nullopt selects ALL.
+    uint64_t receptionGeneration = 0; ///< Ignore notifications retained from an earlier reception interval.
+    // Declared last: stop/join before destroying subscriptions or the bus.
+    std::optional<ivy::LoopThread> loop;
 
-    void getMessageData(const Message& msg, std::string &ac_id, std::string &name, std::string &fieldStream);
-
-    /**
-     *
-     * @param def
-     * @return
-     */
-    std::string regexpForMessageDefinition(MessageDefinition const & def);
-
-    std::string messageRegexp(MessageDefinition const & def);
-
-    std::map<long,MessageCallback*> messagesCallbackMap;
-    std::map<long,AircraftCallback*> aircraftCallbackMap;
-    std::map<long,RequestCallback*> requestCallbackMap;
-
-    /**
-     *
-     * @param app
-     */
-    void OnApplicationConnected(IvyApplication *app) override;
-
-    /**
-     *
-     * @param app
-     */
-    void OnApplicationDisconnected(IvyApplication *app) override;
-
-    /**
-     *
-     * @param app
-     */
-    void OnApplicationCongestion(IvyApplication *app) override;
-
-    /**
-     *
-     * @param app
-     */
-    void OnApplicationDecongestion(IvyApplication *app) override;
-
-    /**
-     *
-     * @param app
-     */
-    void OnApplicationFifoFull(IvyApplication *app) override;
+    RequestId sendRequestImpl(const Message &request, ReplyCallback callback) override;
+    HandlerId bindRequestImpl(std::string_view name, AnswerCallback callback) override;
+    void bindingsChanged() override;
+    ReceiverSubscription bindReceiver(const std::optional<std::string> &name);
   };
-
-  /**
-   *
-   */
-  class MessageCallback : public IvyMessageCallback {
-  public:
-    /**
-     *
-     * @param dictionary
-     * @param cb
-     */
-    MessageCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
-
-    /**
-     *
-     * @param app
-     * @param argc
-     * @param argv
-     */
-    void OnMessage(IvyApplication *app, int argc, const char **argv) override;
-
-  private:
-    const MessageDictionary &dictionary;
-    messageCallback_t cb;
-  };
-
-  /**
- *
- */
-  class AircraftCallback : public IvyMessageCallback {
-  public:
-    /**
-     *
-     * @param dictionary
-     * @param cb
-     */
-    AircraftCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
-
-    /**
-     *
-     * @param app
-     * @param argc
-     * @param argv
-     */
-    void OnMessage(IvyApplication *app, int argc, const char **argv) override;
-
-  private:
-    const MessageDictionary &dictionary;
-    messageCallback_t cb;
-  };
-
-
-  class RequestCallback : public MessageCallback {
-  public:
-    /**
-     *
-     * @param dictionary
-     * @param cb
-     */
-    RequestCallback(const MessageDictionary &dictionary,const messageCallback_t &cb);
-
-    /**
-     *
-     * @param app
-     * @param argc
-     * @param argv
-     */
-    void OnMessage(IvyApplication *app, int argc, const char **argv) override;
-
-    std::string& getRequestId() {return requestId;}
-
-  private:
-    std::string requestId;
-  };
-
 }
-#endif //PPRZLINKCPP_IVYLINK_H
+#endif // PPRZLINKCPP_IVYLINK_H

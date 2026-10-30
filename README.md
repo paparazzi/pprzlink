@@ -5,20 +5,36 @@ PPRZLINK is a messages toolkit (message definition, code generators, libraries) 
 ## Documentation
 
 Documentation is in the [doc](doc) subdirectory and can be viewed on https://pprzlink.readthedocs.org
+The [C++ documentation](doc/cpp/index.rst) includes the usage guide, API reference,
+and architecture.
 
 To build the docs locally:
 
-    sudo pip install sphinx sphinx-autobuild sphinx_rtd_theme
-    cd doc && make html
+    python3 -m venv /tmp/pprzlink-docs
+    . /tmp/pprzlink-docs/bin/activate
+    python -m pip install -r doc/requirements.txt
+    make -C doc html
+
+The HTML is written to `doc/build/html`. Sphinx reads both reStructuredText
+and Markdown. The C API pages additionally require generated Doxygen XML
+under `doc/_xml/c/v2.0`, as produced by the existing Read the Docs build.
 
 ## Libraries
 
 PPRZLINK libraries are available for the following programming languages: 
 
 -   [C](lib/v2.0/C)
+-   [C++](lib/v2.0/C++)
 -   [OCaml](lib/v2.0/ocaml)
 -   [Python](lib/v2.0/python)
 -   [Rust](https://github.com/paparazzi/pprzlink-rust)
+
+## C++ unit conversions
+
+The C++ library uses an internal table of affine XML-to-SI conversions and a
+small resolver for common SI prefixes. Unit declarations are validated when
+loading the XML. See the [C++ usage guide](doc/cpp/guide_d_utilisation.md)
+for build instructions and the editable conversion rules.
 
 ## License
 
@@ -288,4 +304,3 @@ Where `user_data` is a pointer to a structure that you may want to pass at init 
 Parse messages by calling this function in your mainloop:
 
     pprzlink_check_and_parse(&dev_rx, new_message);
-

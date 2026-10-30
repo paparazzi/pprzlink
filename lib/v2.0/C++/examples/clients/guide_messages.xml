@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<protocol>
+  <!-- Catalogue de l'atelier partagé par les agents série et les exemples UDP. -->
+  <msg_class name="guide" id="1">
+    <!-- Mesure exprimée en mètres ; les accès SI utiliseront la même unité. -->
+    <message name="GUIDE_ALTITUDE" id="1" link="broadcasted">
+      <field name="altitude" type="float" unit="m"/>
+    </message>
+    <!-- Champs applicatifs du réglage ; ac_id reste distinct du receiverId de l'en-tête. -->
+    <message name="GUIDE_SETTING" id="2" link="forwarded">
+      <field name="ac_id" type="uint8"/>
+      <field name="value" type="float"/>
+    </message>
+    <!-- Tableau fixe, tableau variable, quatre caractères et texte libre illustrent les types XML. -->
+    <message name="GUIDE_SAMPLES" id="3">
+      <field name="axes" type="float[3]"/>
+      <field name="samples" type="uint16[]"/>
+      <field name="label" type="char[4]"/>
+      <field name="text" type="string"/>
+    </message>
+    <!-- Requête sans champs utilisée par PtyRequester et PtyResponder. -->
+    <message name="GUIDE_ALTITUDE_REQ" id="4"/>
+  </msg_class>
+</protocol>

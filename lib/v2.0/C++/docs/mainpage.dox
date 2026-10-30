@@ -1,0 +1,105 @@
+/**
+ * @mainpage pprzlink++ C++ API
+ *
+ * pprzlink++ loads message schemas from XML at runtime. A Message owns its
+ * definition and populated values; codecs turn those values into binary or
+ * text data, and transports exchange complete messages over a Device, UDP
+ * or Ivy. No generated C++ class is needed for each XML message.
+ *
+ * @section components Components
+ * - @ref messages defines schemas, checked values and message addressing.
+ * - @ref codecs encodes fields, PPRZLINK v2 frames and Ivy message text.
+ * - @ref transports provides byte streams, memory loopback, serial ports, framing and UDP.
+ * - @ref xbee provides XBee AP=1 framing and asynchronous AT initialization.
+ * - @ref ivy provides an optional independent Ivy bus and scoped subscriptions.
+ * - @ref errors describes the exceptions reported by the public API.
+ * - @ref internals documents shared validation and payload helpers.
+ *
+ * The CMake target `pprzlink::core` contains schemas, codecs and affine XML-to-SI conversions;
+ * `pprzlink::io` adds operating-system I/O, and `pprzlink::ivy` adds the optional
+ * Ivy 3.18+ adapter. The aggregate targets remain available for compatibility.
+ *
+ * @section lifetimes Ownership and execution
+ * Declare MessageDictionary before any object borrowing it. Transports own
+ * their Device exclusively. BoostSerialPortDevice and UdpTransport borrow
+ * an Asio context that must outlive them. Service the context to progress
+ * asynchronous serial/UDP reads. Receiver::bind() owns subscriptions; start()
+ * enables them and stop() cancels only that receiver. Message callbacks are
+ * serialized per receiver and invoked outside device I/O locks.
+ * IvyLink optionally borrows an Asio context too: SDK callbacks and request
+ * answerers then run there, serialized per link; native getBus() callbacks
+ * remain on Ivy. Without a context, Ivy callbacks run on the bus loop and
+ * need synchronization when sharing application data with another thread. Keep subscription tokens alive and
+ * finish external calls before destroying the objects they use.
+ *
+ * @section values Values and wire formats
+ * A field has no value until populated. Writes perform checked conversion
+ * to the XML type. Exact reads use the stored C++ type; numeric conversions
+ * must be requested explicitly. Binary frames carry identifiers and values,
+ * so both endpoints need compatible XML schemas and field order.
+ * Ivy numeric fields use std::to_chars with locale-independent decimal text.
+ * Finite float/double values use their shortest round-trippable representation,
+ * without six-decimal padding. Scientific notation, subnormal values and signed
+ * zero preserve the stored value's bits. The legacy OCaml/XML serializer retains
+ * its separate display-format contract.
+ * `getField<std::string_view>()` borrows the bytes of a string or character-array
+ * field. `getField<std::span<const T>>()` borrows an array with its exact element
+ * type and returns its stored length; array views use dynamic-extent spans.
+ * Views copy no data and remain valid until field replacement
+ * or message assignment/destruction. Do not borrow from a temporary message.
+ * Span elements must be const; making the span object const does not protect
+ * mutable elements. Both views support named/indexed reads and output parameters.
+ * getFieldSI()/getFieldArraySI()/setFieldSI() request coherent SI conversions
+ * with double values. Scalar reads return double; array reads return an owned
+ * std::vector<double> whose length follows the stored XML array.
+ * Integer SI writes round to nearest, with ties away from zero, and retain
+ * the XML storage type. MessageField exposes original XML unit metadata and
+ * the prepared SI unit; UnitAliases.cpp contains editable scoped conventions.
+ *
+ * @section examples Learning examples
+ * The repository's doc/cpp/guide_d_utilisation.md walks through the public API.
+ * The offline `si_units` example demonstrates metadata, conversion and native framing.
+ * The `pty_agent` example runs the same sender/receiver at either end of a
+ * virtual serial pair. `link++ -socat start` creates interchangeable ports
+ * and `link++ -socat stop` removes them. These utilities are application
+ * examples; the library does not impose aircraft discovery or retry policy.
+ */
+
+/** @defgroup messages Message schemas and values
+ * XML definitions, exact reads, checked conversions and message addressing.
+ */
+/** @defgroup codecs Binary and text codecs
+ * Stateless encoding plus incremental PPRZLINK v2 frame decoding.
+ */
+/** @defgroup transports Devices and transports
+ * Byte-stream contracts, operating-system I/O and UDP messages.
+ */
+/** @defgroup xbee XBee radio transport
+ * AP=1 radio frames, status events, baud detection and AT initialization.
+ */
+/** @defgroup ivy Ivy bus adapter
+ * Independent buses, scoped subscriptions and request/answer helpers.
+ */
+/** @defgroup errors Exceptions
+ * Error categories preserving the standard C++ catch contracts.
+ */
+/** @defgroup internals Internal helpers
+ * Shared validation and payload functions; implementation details rather
+ * than an extension interface for application code.
+ */
+
+/** @namespace pprzlink
+ * @brief C++ message definitions, codecs, byte streams and transport adapters.
+ */
+/** @namespace pprzlink::binary
+ * @brief Little-endian scalar and XML field codecs.
+ */
+/** @namespace pprzlink::ivy_codec
+ * @brief Ivy text serialization, bindings and legacy OCaml-compatible formats.
+ */
+/** @namespace pprzlink::detail
+ * @brief Shared implementation helpers for checked values and wire payloads.
+ */
+/** @namespace pprzlink::detail::xml
+ * @brief XML element, attribute and identifier validation.
+ */

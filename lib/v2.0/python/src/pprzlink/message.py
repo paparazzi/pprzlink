@@ -52,27 +52,20 @@ class PprzMessageField(object):
     Dataclass representing a field in a Paparazzi Ivy message
     
     Required attributes:
-    - `name`: str
-        Field's name
-    - `typestr`: str
-        Field's type in C, as a string
+
+    - ``name`` (str): Field's name.
+    - ``typestr`` (str): Field's type in C, as a string.
     
     Optional attributes:
-    - `val`: Any
-        Field's current value
-    - `format`: str
-        C-like format string for readable display
-    - `unit`: str
-        Field's unit
-    - `values`: IntEnum
-        Enumeration of the possible values for `val`
-    - `alt_unit`: str
-        Alternative unit for the value. Mostly used to be human-friendly.
-    - `alt_unit_coef`: float
-        Conversion factor from base to alternative unit
-    - `alt_val`: float
-        Access `val` through its alternative unit, automatically
-        using the conversion factor (if defined) 
+
+    - ``val`` (Any): Field's current value.
+    - ``format`` (str): C-like format string for readable display.
+    - ``unit`` (str): Field's unit.
+    - ``values`` (IntEnum): Enumeration of the possible values for ``val``.
+    - ``alt_unit`` (str): Alternative unit, mostly used to be human-friendly.
+    - ``alt_unit_coef`` (float): Conversion factor from base to alternative unit.
+    - ``alt_val`` (float): Access ``val`` through its alternative unit,
+      automatically using the conversion factor (if defined).
     """     
     
     name:str
