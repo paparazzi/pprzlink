@@ -17,7 +17,6 @@ The manuals are maintained centrally in [`doc/cpp`](../../../doc/cpp/index.rst):
 - [API and build reference](../../../doc/cpp/reference.md).
 - [Standalone client examples](../../../doc/cpp/API_USAGE.md).
 - [Architecture](../../../doc/cpp/architecture.md), in French.
-- [Validation reports](../../../doc/cpp/validation/index.rst).
 
 ## Build
 
@@ -51,9 +50,7 @@ Tests and examples are disabled by default. Enable them with
 To build without Ivy, use `-DPPRZLINK_WITH_IVY=OFF`.
 
 The [full reference](../../../doc/cpp/reference.md#build) covers SDK components,
-private dependency prefixes and standalone consumers. The
-[XBee guide](../../../doc/cpp/guide_d_utilisation.md#utiliser-link-avec-une-radio-xbee)
-explains paired RTS/CTS and the existing XML unicast/broadcast routing in `link++`.
+private dependency prefixes and standalone consumers.
 
 ## Generated API reference
 

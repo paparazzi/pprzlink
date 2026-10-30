@@ -1,5 +1,5 @@
-C++ library and link++
-======================
+C++ library
+===========
 
 The C++23 library loads message definitions at runtime and exchanges PPRZLINK
 messages over serial ports, UDP, Ivy and XBee radios. Start with the usage guide
@@ -13,7 +13,6 @@ The usage guide and architecture document are written in French.
    reference
    API_USAGE
    architecture
-   validation/index
 
 Source and generated API documentation
 --------------------------------------

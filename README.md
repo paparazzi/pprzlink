@@ -6,7 +6,7 @@ PPRZLINK is a messages toolkit (message definition, code generators, libraries) 
 
 Documentation is in the [doc](doc) subdirectory and can be viewed on https://pprzlink.readthedocs.org
 The [C++ documentation](doc/cpp/index.rst) includes the usage guide, API reference,
-architecture, validation reports and historical notes.
+and architecture.
 
 To build the docs locally:
 

@@ -117,8 +117,6 @@ guarantee that a prebuilt Ivy wrapper works with an older C++ runtime. Rebuild
 the wrapper with the selected toolchain when changing its compiler or runtime.
 Instructions for building the Ivy packages
 are in [Ivy's Debian README](https://github.com/alex31/libivy-c/blob/b0bf831702c5bfd1313e83ded62eb14d17198534/debian/README).
-The [validation reports](validation/index.rst) record tested environments
-and limitations.
 
 To check source compatibility with the minimum compiler explicitly, use a fresh
 build directory and an Ivy wrapper compatible with that toolchain/runtime:
@@ -208,7 +206,7 @@ string fields and unused alternative units. The error names the message,
 field, spelling and table to update. Known opaque labels remain available
 through native reads. Incompatible physical dimensions also fail at loading.
 The explicit XML coefficient multiplies the alternative rule's slope once;
-it does not scale the offset. See [the validation and size report](validation/VALIDATION_AFFINE_UNITS.md).
+it does not scale the offset.
 
 `link++` forwards XML values; its routing IDs and byte/message counters
 are not SI quantities.
@@ -226,128 +224,6 @@ Without `COMPONENTS`, `find_package` imports the aggregate targets.
 The Makefile also supports `WITH_IVY=0`; see [API_USAGE.md](API_USAGE.md) for the
 complete build and installed-consumer examples.
 
-## Ground agent: link++
-
-`link++` is a separate Unix application. It accepts
-all 24 options of Paparazzi's OCaml `link`, plus its `-help`/`--help` switches.
-Defaults match OCaml, including **9600 baud**, uplink enabled, UDP ports
-4242/4243, aircraft timeout 5000 ms, PING period 5000 ms and report period 1000 ms.
-
-```sh
-export PAPARAZZI_HOME=/path/to/paparazzi
-./build-ubuntu26/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport pprz
-./build-ubuntu26/apps/link/link++ -udp -udp_port 4242 -udp_uplink_port 4243
-./build-ubuntu26/apps/link/link++ -d /dev/ttyUSB0 -s 57600 -transport xbee -hfc
-./build-ubuntu26/apps/link/link++ -help
-```
-
-The message file is `$PPRZLINK_DIR/messages.xml`, otherwise
-`$PAPARAZZI_HOME/var/messages.xml`, otherwise `/usr/share/pprzlink/messages.xml`.
-`IVY_BUS` supplies the default bus; `-b` overrides it.
-
-The agent bridges telemetry to Ivy, routes XML `forwarded`/`broadcasted` commands,
-tracks known aircraft, sends PING, receives PONG and publishes LINK_REPORT. It
-supports serial PPRZ/XBee, file/FIFO descriptors, UDP with per-aircraft peers,
-traffic output, local timestamps and redundant-link telemetry encapsulation.
-
-The agent links the static `pprzlink::io` and `pprzlink::ivy` components. A copied
-`link++` executable therefore runs independently of the pprzlink build directory;
-it still needs the system Ivy and TinyXML2 shared libraries and the C++ runtime.
-From the Paparazzi root, build and copy it with a fresh Ubuntu 26.04 directory:
-
-```sh
-make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD" \
-  PPRZLINK_CPP_BUILD="$PWD/var/build/pprzlink-cpp-ubuntu26"
-```
-
-The resulting executable is `sw/ground_segment/tmtc/link++`.
-The make target uses the system `g++` by default; `PPRZLINK_CXX` overrides it.
-
-`LINK_REPORT` round-trip time uses a monotonic clock and starts at `9999 ms`
-until the first PONG associated with a pending PING. Reports retain the last
-completed measurement while waiting for subsequent replies; unsolicited PONGs
-do not change it. Only a PING sent to a live aircraft starts or replaces a
-pending measurement. PING/PONG carry no sequence number, so a delayed PONG can
-be associated with a newer PING.
-
-On Linux, `-socat start` creates two connected virtual serial ports using the
-`socat` executable on PATH. It prints **Port A** and **Port B**, then returns to
-the shell. Both ports are bidirectional and interchangeable: each program opens
-one of them. The socat process runs in the background until `-socat stop`:
-
-```sh
-./build-ubuntu26/apps/link/link++ -socat start
-./build-ubuntu26/apps/link/link++ -d /dev/pts/N -transport pprz -s 57600
-./build-ubuntu26/apps/link/link++ -socat stop
-```
-
-Replace `/dev/pts/N` with either printed port. These management commands do
-not need a messages XML or an Ivy bus. There is one managed pair per user;
-repeating `start` prints the existing ports, and repeating `stop` is harmless.
-`stop` only terminates the process recorded by this helper and removes its PTYs.
-Virtual ports exchange raw bytes in both directions without emulating baud-rate
-timing. State is kept under `$XDG_RUNTIME_DIR/linkpp-socat`, or
-`/tmp/linkpp-socat-<uid>` when `XDG_RUNTIME_DIR` is unset.
-
-Unlike the diagnostic example, the compatible XBee launch uses a fixed baudrate
-and does **not** change or save the modem's baudrate. AT replies and deadlines
-are still checked. Host retries preserve the frame ID; `-xbee_retries` sets the
-maximum total attempts, including the first send. Pending IDs are not reused;
-a missing status expires after five seconds without blindly resending a command.
-If all 255 IDs are pending, a new send is skipped with a diagnostic on stderr.
-The agent keeps running and the existing expiry/retry timer stays armed, even
-when further commands arrive. Skipped sends are not queued; subsequent sends
-can succeed once a status or timeout frees an ID. A skipped PING does not
-start or replace an RTT measurement, and the periodic PING timer continues.
-
-The agent follows the existing XML `link` attribute. `forwarded` commands
-use unicast to the aircraft identified by `ac_id`; `broadcasted` commands use
-radio destination `0xffff` and PPRZLINK receiver 255. The application fields
-remain unchanged: targeted command handlers in the autopilot filter on `ac_id`.
-Broadcasts request no MAC ACK, even with the normal `0x00` transmit options.
-
-In UDP mode, a broadcast command normally sends one datagram to each live
-aircraft's peer. With `-udp_broadcast`, it sends a single datagram to
-`-udp_broadcast_addr` and `-udp_uplink_port`, provided at least one aircraft is
-live. Learning more aircraft does not multiply that network broadcast; with
-no live aircraft, no datagram is sent.
-
-Host resends apply only to unicast transmissions and are bounded by
-`-xbee_retries` (default 10 total attempts). Broadcast failures release their
-pending ID without scheduling a resend, regardless of this CLI limit.
-Transmit-status tracking remains enabled for both destinations.
-`-xbee_retries 1` suppresses all host resends. Some 802.15.4 firmware can repeat
-broadcasts according to its global `RR` setting; the agent does not change it.
-See Digi's [RR documentation](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_cmd_rr.htm).
-
-`-hfc` enables paired RTS/CTS on the host and XBee modem (`D6=1`, `D7=1`).
-Omitting it disables both sides (`D6=0`, `D7=0`); the default is off.
-The AT initialization verifies both settings before the ready message. In
-PPRZ serial mode, `-hfc` configures the host UART only. The
-[French guide](guide_d_utilisation.md#utiliser-link-avec-une-radio-xbee) includes
-Paparazzi build/launch commands and the existing XML routing convention.
-
-`-xbee_868` selects AP=1 TX 0x10, RX 0x90 and status 0x8b frames. This framing is
-covered by fixtures and a simulated modem; physical 868 modem configuration and
-delivery have not been validated. See the comparison report for the corrected
-OCaml 868 transmit-type bug and other intentional differences.
-
-Library facilities used by the agent:
-
-- `MessageDefinition::getLinkMode()` and `MessageField::getFormat()` expose XML
-  routing/display metadata.
-- `serializeLegacyMessage()` honors XML display formats. The standard
-  `serializeMessage()` uses compact, round-trippable numbers. `parseLegacyMessageBody()` accepts
-  the legacy whitespace/quoted-field syntax while checking numeric ranges.
-- Signed/unsigned 64-bit scalar and array fields are supported.
-- `PprzFrameDecoder` and `encodePprzFrame()` provide framing without device I/O.
-  `discardPendingInput()` keeps incomplete UDP datagrams from contaminating later ones.
-- Transports expose `getStatistics()` and `getLastReceivedFrameSize()`;
-  `PosixFileDevice` supplies the file/FIFO stream adapter.
-- `XbeeTransport::Api::Series868` selects the extended framing;
-  `sendMessageWithId()` lets an application track/retry a transmission explicitly.
-  RX 0x90 has no RSSI; check `ReceiveInfo::hasRssi` before using that value.
-
 ## Complete example
 
 [`IvyRoundTrip.cpp`](../../lib/v2.0/C++/examples/IvyRoundTrip.cpp) loads
@@ -355,9 +231,9 @@ Library facilities used by the agent:
 creates a message with altitude `123.5f`, sends it and reads the received value.
 It runs two Ivy links in one process, using their owned event-loop threads.
 
-The example is built by default and exercised by CTest. From the C++ source
-directory (`lib/v2.0/C++`),
-after configuring the dependencies as above:
+Enable examples with `-DPPRZLINK_BUILD_EXAMPLES=ON`; CTest exercises this
+example when tests are also enabled. From the C++ source directory
+(`lib/v2.0/C++`), after configuring the dependencies as above:
 
 ```sh
 cmake --build build-ubuntu26 --target ivy_round_trip

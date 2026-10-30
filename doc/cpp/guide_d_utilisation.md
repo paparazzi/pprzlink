@@ -31,7 +31,6 @@ Le parcours est le suivant :
     L'exemple utilise un timer d'émission et présente [RTS/CTS](#activer-rtscts-sur-le-port-et-la-radio-ensemble),
     [la lecture de CTS](#lire-létat-cts-local), les [réessais par envoi](#choisir-les-réessais-radio-pour-chaque-envoi)
     et les [adresses radio typées](#choisir-la-destination-radio).
-    Vous pourrez ensuite [configurer link++ avec le XML et RTS/CTS](#utiliser-link-avec-une-radio-xbee).
 11. [Construire un outil générique ou un adaptateur](#11-construire-un-outil-générique-ou-un-adaptateur).
 12. [Organiser une application durable et diagnostiquer les erreurs](#12-organiser-une-application-durable-et-diagnostiquer-les-erreurs).
 
@@ -1191,10 +1190,9 @@ terminent une fois l'échange achevé.
 
 ### Essayer deux processus sur des pseudo-terminaux
 
-Sur Linux, `link++ -socat start` crée deux ports virtuels reliés et rend la main.
-Il sert ici à gérer la liaison : les deux instances de l'atelier utilisent
-directement la bibliothèque, sans lancer l'agent de télémétrie ni le bus Ivy.
-Le programme `socat` doit être installé et accessible sur PATH.
+Sur Linux, `socat` permet de relier deux ports virtuels. Les deux instances
+de l'atelier utilisent directement la bibliothèque, sans agent de télémétrie
+ni bus Ivy. Installez `socat` et rendez-le accessible sur PATH.
 
 L'exemple [PtyAgent.cpp](../../lib/v2.0/C++/examples/clients/PtyAgent.cpp) est symétrique :
 le **même programme** tourne dans les deux processus. Chaque instance publie
@@ -1211,23 +1209,22 @@ Depuis la **racine du dépôt Paparazzi**, compilez les exemples une fois dans
 un répertoire distinct de celui du `make` habituel :
 
 ```sh
-# Configure une construction distincte avec les exemples et l'outil link++.
+# Configure une construction distincte avec les exemples.
 cmake -S sw/ext/pprzlink/lib/v2.0/C++ -B var/build/pprzlink-pty-ubuntu26 \
   -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug \
-  -DPPRZLINK_BUILD_EXAMPLES=ON -DPPRZLINK_BUILD_LINK=ON -DBUILD_TESTING=OFF
-# Compile uniquement l'outil de gestion de la liaison et l'agent de démonstration.
-cmake --build var/build/pprzlink-pty-ubuntu26 \
-  --target link++ pty_agent
-# Crée les deux pseudo-terminaux reliés ; relève les noms Port A et Port B affichés.
-./var/build/pprzlink-pty-ubuntu26/apps/link/link++ -socat start
+  -DPPRZLINK_BUILD_EXAMPLES=ON -DBUILD_TESTING=OFF
+# Compile l'agent de démonstration.
+cmake --build var/build/pprzlink-pty-ubuntu26 --target pty_agent
+# Dans un terminal dédié, crée deux pseudo-terminaux et affiche leurs chemins.
+socat -d -d pty,raw,echo=0 pty,raw,echo=0
 ```
 
-Le démarrage affiche **Port A** et **Port B**, par exemple `/dev/pts/12` et
-`/dev/pts/13`. Dans un premier terminal, ouvrez l'un des ports avec
-l'identifiant 1 :
+Gardez ce terminal ouvert. `socat` affiche deux chemins, par exemple
+`/dev/pts/12` et `/dev/pts/13`, nommés ici **Port A** et **Port B**. Dans un
+autre terminal, ouvrez l'un des ports avec l'identifiant 1 :
 
 ```sh
-# Lance l'agent 1 sur Port A ; remplace /dev/pts/12 par le chemin affiché par start.
+# Lance l'agent 1 sur Port A ; remplace /dev/pts/12 par le chemin affiché par socat.
 ./var/build/pprzlink-pty-ubuntu26/pty_agent \
   sw/ext/pprzlink/lib/v2.0/C++/examples/clients/guide_messages.xml \
   /dev/pts/12 1
@@ -1254,14 +1251,10 @@ Agent 1 RX from 2: GUIDE_ALTITUDE 125.5 m
 ```
 
 Les processus continuent jusqu'à **Ctrl+C**. Les adresses `/dev/pts/N` sont
-temporaires : utilisez les valeurs réellement affichées par `start`.
+temporaires : utilisez les valeurs réellement affichées par `socat`.
 
-À la fin, arrêtez les deux agents avec Ctrl+C, puis la liaison :
-
-```sh
-# Arrête socat et supprime la liaison virtuelle après l'arrêt des deux agents.
-./var/build/pprzlink-pty-ubuntu26/apps/link/link++ -socat stop
-```
+À la fin, arrêtez les deux agents avec Ctrl+C, puis faites de même dans le
+terminal de `socat` pour supprimer la liaison virtuelle.
 
 Vous pouvez remplacer `guide_messages.xml` par le `messages.xml` créé à
 l'étape 1 : les définitions sont identiques. Cet exemple se compile
@@ -1308,9 +1301,9 @@ appelée lorsqu'un message correspondant arrive.
 
 ### Ajouter le composant Ivy
 
-Cette branche nécessite Ivy 3.18 ou plus et son interface native C++
+Le composant nécessite Ivy 3.18 ou plus et son interface native C++
 `ivy-cpp`. Le [README](reference.md#build) précise l'installation Ivy utilisée
-pour les validations et la configuration d'un préfixe privé.
+pour la configuration d'un préfixe privé.
 Conservez la `libstdc++` fournie par Ubuntu 26.04 à la compilation et à
 l'exécution : l'interface Ivy installée peut demander des symboles absents d'un
 ancien environnement. GCC 13 reste le minimum pour les sources ; cela ne rend
@@ -1969,21 +1962,20 @@ Il s'agit d'un `enum class`, pas d'un booléen. Ce choix est propre à la trame,
 sans modifier la configuration globale du modem. En 802.15.4, il agit sur
 les ACK et réessais MAC ; il ne reconfigure pas les autres couches de réessais
 (`MM`/`RR`). Les trames 868 `0x10` utilisent également le bit « Disable ACK ».
-En particulier, `Enabled` conserve le comportement antérieur, sans forcer
-des mécanismes que la configuration globale du modem aurait désactivés.
+`Enabled` ne force pas les mécanismes désactivés par la configuration globale
+du modem.
 Voir le [format TX16 de Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_frame_0x01.htm).
 
 Une destination radio broadcast n'exige aucun ACK MAC, même avec les options
 normales `0x00`. Pour les commandes Paparazzi, l'attribut XML existant
 `link="broadcasted"` permet à `link++` de choisir cette diffusion ; les
 commandes ciblées conservent leur champ `ac_id` pour le filtrage dans l'autopilote.
-La [section link++](#utiliser-link-avec-une-radio-xbee) détaille cette convention.
 Le choix explicite `Disabled` reste utile pour un envoi unicast sans ACK.
 
-Le même argument final est accepté par `sendMessageWithId()` et les anciennes
-méthodes d'adressage conservées pour compatibilité. Pour l'adressage déduit
+Le même argument final est accepté par `sendMessageWithId()` et les méthodes
+d'adressage. Pour l'adressage déduit
 du destinataire PPRZLINK, utilisez
-`sendMessage(message, RadioRetries::Disabled)` ; l'appel historique
+`sendMessage(message, RadioRetries::Disabled)` ; l’appel
 `sendMessage(message)` utilise `Enabled`, y compris via `Transport&`.
 Le type est déclaré dans `<pprzlink/RadioRetries.h>`, avec l'alias
 `XbeeTransport::RadioRetries`.
@@ -2030,18 +2022,15 @@ Le type d'adresse dépend de la fabrique choisie : même `ieee(0x0100)` utilise
 le format IEEE. Les littéraux n'exigent ni cast ni suffixe particulier.
 Les valeurs négatives et les adresses `network()` dépassant `0xffff` sont
 refusées à la construction avec `std::out_of_range`, avant toute troncature.
-Les valeurs flottantes et booléennes ne sont pas acceptées. Les anciennes
-méthodes `sendMessageTo16()` et `sendMessageTo64()` restent disponibles.
+Les valeurs flottantes et booléennes ne sont pas acceptées. Les méthodes `sendMessageTo16()` et `sendMessageTo64()` restent disponibles.
 Le type est inclus par `XbeeTransport.h` et peut aussi être utilisé seul avec
 `<pprzlink/XbeeAddress.h>`. `kind()` et `value()` permettent d'inspecter son
 format et sa valeur. Une valeur IEEE doit tenir sur 64 bits.
 
 La variante `XbeeTransport::Api::Series868`, passée en troisième argument au
 constructeur, sélectionne les trames étendues et requiert une adresse `ieee()`.
-Elle ne configure pas à elle seule un modem 868 MHz. Les essais logiciels
-de cette branche couvrent ces
-trames ; la validation sur matériel 868 reste à effectuer, comme indiqué
-dans le [rapport de validation](validation/LINK_CPP_VALIDATION.md).
+Elle ne configure pas à elle seule un modem 868 MHz. Ces trames sont couvertes
+par des tests logiciels ; la validation sur matériel 868 reste à effectuer.
 
 ### Distinguer écriture série et livraison radio
 
@@ -2145,138 +2134,6 @@ L'adresse radio source et l'identifiant d'expéditeur PPRZLINK décrivent deux
 niveaux d'adressage. Le RSSI n'est pas présent dans toutes les variantes,
 d'où le contrôle de `hasRssi`. La charge utile RF acceptée par ce transport
 est limitée à 100 octets, en-tête PPRZLINK compris.
-
-### Utiliser link++ avec une radio XBee
-
-L'agent [link++](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link) relie le bus Ivy aux avions, applique les règles
-`link="forwarded"` et `link="broadcasted"`, et suit leur présence. Il utilise
-les mêmes `MessageDefinition` et `XbeeTransport` que votre application.
-Il attend le catalogue Paparazzi complet, avec ses classes `telemetry`,
-`datalink` et `ground`, et les définitions utilisées par le routage et les
-rapports. Utilisez le catalogue de votre configuration ; le petit XML
-`GUIDE_*` de cet atelier ne remplit pas ce rôle.
-
-Après l'installation d'Ivy décrite à l'étape 8, construisez l'agent depuis
-les sources actuelles de pprzlink :
-
-```sh
-cmake -S "$PPRZLINK_CPP" -B "$PPRZLINK_ATELIER/build-link" \
-  -DCMAKE_CXX_COMPILER=g++ \
-  -DPPRZLINK_WITH_IVY=ON \
-  -DPPRZLINK_BUILD_LINK=ON \
-  -DPPRZLINK_BUILD_EXAMPLES=OFF \
-  -DBUILD_TESTING=OFF
-cmake --build "$PPRZLINK_ATELIER/build-link" --target link++ -j4
-"$PPRZLINK_ATELIER/build-link/apps/link/link++" --help
-```
-
-Dans une arborescence Paparazzi, vous pouvez aussi reconstruire le binaire
-utilisé par les outils sol, depuis la racine de Paparazzi :
-
-```sh
-make -C sw/ground_segment/tmtc -f link_cpp.mk PAPARAZZI_SRC="$PWD" \
-  PPRZLINK_CPP_BUILD="$PWD/var/build/pprzlink-cpp-ubuntu26"
-```
-
-Cette commande reconstruit la bibliothèque et l'agent ensemble à partir du
-sous-module présent, puis copie l'exécutable dans
-`sw/ground_segment/tmtc/link++`.
-Elle utilise le compilateur système par défaut ; `PPRZLINK_CXX` permet de le
-choisir explicitement. Les composants `pprzlink::io` et `pprzlink::ivy` sont liés
-statiquement à l'agent : l'exécutable copié est indépendant du répertoire de
-construction pprzlink. Il utilise encore les bibliothèques partagées système
-Ivy et TinyXML2, ainsi que la bibliothèque d'exécution C++.
-
-Dans `LINK_REPORT`, le temps aller-retour est mesuré avec une horloge monotone.
-Il vaut `9999 ms` avant le premier PONG associé à un PING, puis conserve la
-dernière mesure terminée pendant l'attente des réponses suivantes. Un PONG sans
-PING en attente ne modifie pas cette mesure. L'agent ne crée une attente que
-pour un aéronef encore actif auquel il a envoyé le PING. Le protocole ne contient
-pas de numéro de séquence : un PONG très retardé peut être associé à un PING
-plus récent.
-
-Pour lancer ce binaire depuis la racine de Paparazzi, avec RTS/CTS activé :
-
-```sh
-export PAPARAZZI_HOME="$PWD"
-./sw/ground_segment/tmtc/link++ \
-  -transport xbee -d /dev/ttyUSB0 -s 57600 -hfc
-```
-
-`-hfc` est un commutateur sans argument. En mode XBee, il active ensemble le
-RTS/CTS du TTY Linux et les fonctions `D6=1`, `D7=1` du modem. Sans `-hfc`,
-les deux côtés sont désactivés (`D6=0`, `D7=0`, sans `CRTSCTS`). Les deux fils
-RTS/CTS doivent être câblés pour les activer. En mode `-transport pprz`,
-`-hfc` configure seulement le port série.
-
-La préparation AT vérifie le modem et le TTY avant d'annoncer
-`XBee ready: RTS/CTS enabled on host and modem`. L'agent conserve le débit
-fixe demandé par `-s` : il ne lance ni changement de débit ni `ATWR`.
-Dans Paparazzi Center, ajoutez `-hfc` aux arguments de lancement de `link++`
-pour obtenir le même réglage.
-
-Les messages sont chargés depuis `$PPRZLINK_DIR/messages.xml` si cette variable
-est définie, sinon depuis `$PAPARAZZI_HOME/var/messages.xml`, sinon depuis
-`/usr/share/pprzlink/messages.xml`. Après modification du catalogue, relancez
-l'agent. Un `PPRZLINK_DIR` conservé d'un autre essai prend priorité sur
-`PAPARAZZI_HOME`.
-
-Le choix par type de message utilise l'attribut XML `link` déjà présent dans
-Paparazzi. `MessageDefinition::getLinkMode()` l'expose ; `link++` choisit la
-destination puis `XbeeTransport` construit la trame radio correspondante.
-
-| Attribut sur `<message>` | Comportement radio | Réémission par link++ |
-| --- | --- | --- |
-| `link="forwarded"` | Unicast vers l'avion désigné par `ac_id` ; ACK MAC selon la configuration du modem. | Autorisée sur erreur d'ACK, selon `-xbee_retries`. |
-| `link="broadcasted"` | Diffusion radio à `0xffff`, sans ACK MAC ; les champs du message restent intacts. | Aucun nouvel envoi après un échec radio. |
-| Absent | Pas de routage automatique d'une commande Ivy ordinaire. | Les envois internes, tels que PING, gardent leur routage propre. |
-
-Une diffusion radio peut viser logiquement un seul avion. Par exemple, en
-conservant les champs habituels de `SETTING` :
-
-```xml
-<message name="SETTING" id="4" link="broadcasted">
-  <field name="index" type="uint8"/>
-  <field name="ac_id" type="uint8"/>
-  <field name="value" type="float"/>
-</message>
-```
-
-La commande Ivy `ground SETTING 3 42 12.5` est alors diffusée avec le
-`receiverId` PPRZLINK à 255 et l'adresse radio `0xffff`, tandis que le champ
-`ac_id` vaut toujours 42. Le gestionnaire `SETTING` de l'autopilote vérifie
-`ac_id == AC_ID` avant d'appliquer le réglage. Les autres avions rejettent
-cette commande. Le routage radio et le destinataire applicatif restent ainsi
-distincts, en suivant la convention Paparazzi existante.
-
-`-xbee_retries 3` autorise au maximum trois tentatives côté PC, premier envoi
-compris, pour les envois unicast. La valeur par défaut est 10 ;
-`-xbee_retries 1` supprime les réémissions côté PC. Cette option ne réactive
-jamais les réémissions de broadcasts. La bibliothèque conserve les options
-radio normales `0x00` dans l'agent : l'adresse broadcast suffit à supprimer
-les ACK MAC.
-
-L'absence d'ACK ne garantit pas une émission radio unique : certains firmwares
-802.15.4 répètent les broadcasts selon le paramètre global `RR`. `link++`
-ne modifie pas ce paramètre. Voir [RR dans la documentation Digi](https://docs.digi.com/resources/documentation/digidocs/90001500/reference/r_cmd_rr.htm).
-
-Les statuts TX restent demandés et leurs identifiants sont suivis aussi pour
-les broadcasts. Un statut absent expire après cinq secondes sans réémission
-automatique ; un statut « OK » sans ACK ne prouve pas la réception distante.
-Lorsque les 255 identifiants sont occupés, un nouvel envoi est refusé avec un
-diagnostic sur stderr. L'agent poursuit son fonctionnement et garde les
-échéances des transmissions en cours, même si de nouvelles commandes arrivent.
-L'envoi refusé n'est pas mis en file ; les envois suivants peuvent reprendre
-dès qu'un statut ou une expiration libère un identifiant. Un PING refusé ne
-démarre aucune nouvelle mesure RTT ; le timer des PING périodiques reste actif.
-La bibliothèque seule ne crée aucune réémission côté PC : cette politique
-supplémentaire appartient à l'agent `link++`.
-
-En mode UDP, une commande diffusée est normalement envoyée à chaque avion
-vivant. Avec `-udp_broadcast`, `link++` émet un seul datagramme vers
-`-udp_broadcast_addr` et `-udp_uplink_port`, dès lors qu'au moins un avion est
-vivant. Découvrir plusieurs avions ne multiplie pas ce broadcast réseau ;
-sans avion vivant, aucun datagramme n'est émis.
 
 ## 11. Construire un outil générique ou un adaptateur
 
@@ -2490,9 +2347,7 @@ le `v1.0` de ce chemin désigne le catalogue et ne sélectionne pas le protocole
 de transport utilisé par la bibliothèque C++.
 
 Les règles de routage vers les avions, le suivi de présence, les délais de
-réponse et les réessais appartiennent à l'application. L'agent
-[link++](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link) montre une application complète qui relie les transports
-au bus Ivy et applique ces règles.
+réponse et les réessais appartiennent à l'application.
 
 Pour poursuivre avec des exemples déjà intégrés au dépôt :
 

@@ -25,7 +25,7 @@ Les deux rôles de `pty_peer` utilisent `guide_messages.xml` et attendent jusqu'
 `pty_agent` utilise le même XML et continue jusqu'à Ctrl+C. Lancez deux
 instances avec des identifiants différents, sur **Port A** et **Port B**
 indifféremment ; les deux processus envoient et reçoivent.
-`link++ -socat start` prépare leurs ports ; `link++ -socat stop` les supprime.
+`socat` prépare les deux ports virtuels reliés.
 Le [guide d'utilisation](guide_d_utilisation.md#essayer-deux-processus-sur-des-pseudo-terminaux)
 donne les commandes de compilation et de lancement. Ces clients se lient
 uniquement à `pprzlink::io` et peuvent également utiliser le SDK sans Ivy.
@@ -394,9 +394,8 @@ arrêtent la réception et remontent dans la boucle. `onError()` peut les traite
 Les exceptions des prédicats et callbacks applicatifs arrêtent la réception
 et restent visibles ; elles ne sont pas converties en erreurs de trame.
 
-Les méthodes de réception des transports `tryReceive()`, `hasMessage()` et
-`getMessage()` ont été retirées sur cette branche. Le décodeur sans I/O
-`PprzFrameDecoder` conserve `pushBytes()` et ses lectures incrémentales pour
+Le décodeur sans I/O `PprzFrameDecoder` fournit `pushBytes()` et des lectures
+incrémentales pour
 les intégrations qui fournissent elles-mêmes les octets.
 
 `UdpTransport::sendMessage(message, destination)` demande une destination réseau
@@ -608,9 +607,3 @@ cmake --build /tmp/pprzlink-client-build
 `-DCLIENTS_WITH_IVY=OFF` construit les trois clients série/UDP sans rechercher
 Ivy. Le standard C++23 et les dépendances transitives proviennent des cibles
 installées ; le projet client ne les redéclare pas.
-
-## Validation
-
-Les tests couvrent les conversions, les codecs, les transports et les échanges
-entre clients. Les [rapports de validation](validation/index.rst) détaillent
-les environnements testés et leurs limites.

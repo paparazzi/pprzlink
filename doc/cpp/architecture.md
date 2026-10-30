@@ -1,23 +1,19 @@
-# Architecture de pprzlink++ et de link++
+# Architecture de pprzlink++
 
-Ce document décrit l'implémentation présente au 17 octobre 2026. Les
-adaptations proposées à la fin sont distinguées des API
-déjà disponibles. La validation actuelle utilise C++23, GCC 15.2 et Boost 1.90
-sur Ubuntu 26.04 ; la configuration demande GCC 13+ et Boost 1.83+.
-
-Les réponses aux questions principales sont les suivantes :
+La bibliothèque charge les définitions XML à l'exécution et sépare les
+messages, leurs encodages et les entrées/sorties.
 
 - L'indépendance des entrées/sorties repose sur une interface `Device`, une
   classe abstraite `Transport` et des codecs utilisables sans périphérique.
   UDP et Ivy ont leurs propres classes d'envoi ; les quatre modes partagent
   l'interface de réception `Receiver`.
-- Le XML décrit déjà le contenu des messages : identifiants, noms, ordre et
+- Le XML décrit le contenu des messages : identifiants, noms, ordre et
   types des champs, ainsi que certaines informations documentaires.
-- Un callback Ivy reçoit déjà **un message complet avec tous ses champs**.
+- Un callback Ivy reçoit **un message complet avec tous ses champs**.
   Les transports binaires distribuent le même contenu par `bind()` sur leur boucle Asio.
-- L'envoi utilise déjà **un seul appel pour le message complet**. Son
+- L'envoi utilise **un seul appel pour le message complet**. Son
   remplissage accepte plusieurs couples clé/valeur dans `setField()`.
-  La bibliothèque C++ ne génère pas encore de structure propre à chaque message.
+  Les messages sont représentés par la classe dynamique `Message`.
 
 ## 1. Bibliothèque et application : deux responsabilités
 
@@ -27,7 +23,7 @@ Elle peut servir à un simulateur, un enregistreur, une interface graphique,
 un outil de test, une passerelle ou un programme qui échange directement avec
 un avion.
 
-`link++`, dans [`apps/link`](https://github.com/alex31/pprzlink/tree/FEATURE/reactive_reception/lib/v2.0/C%2B%2B/apps/link), est une application de cette
+`link++` est une application distincte utilisant cette
 bibliothèque. Elle porte les règles de la station sol : options de lancement,
 association entre avions et liaisons, routage des commandes Ivy, PING/PONG,
 rapports de liaison, délais et politique de retransmission XBee. Ces règles
@@ -176,14 +172,13 @@ description : elle charge le XML **à l'exécution** et manipule un type génér
 de recompiler une classe C++ pour un outil qui traite les messages génériquement.
 En contrepartie, les noms des champs et leurs types sont vérifiés à l'exécution.
 
-Le dépôt possède déjà un
+Le dépôt fournit un
 [générateur de code C](../../tools/generator/gen_messages.py), avec les
 sorties `C` et `C_standalone`. Le
 [générateur C v2](../../tools/generator/gen_messages_v2_0_c.py) produit
 notamment des fonctions `pprzlink_msg_v2_send_<MESSAGE>` prenant les champs du
 message comme paramètres. Cette API C, utilisable depuis C++, est distincte
-de l'API de la bibliothèque `pprzlink++` décrite ici. Il n'existe pas encore de
-générateur équivalent de structures et d'adaptateurs pour cette API C++.
+de l'API dynamique de la bibliothèque `pprzlink++` décrite ici.
 
 Enfin, le format binaire PPRZLINK n'est pas celui de Protobuf. PPRZLINK encode
 les champs dans l'ordre du XML, sans leurs noms ni une étiquette numérotée
@@ -527,58 +522,9 @@ Réussir l'appel d'envoi ne prouve pas que l'avion a reçu ou appliqué la comma
 Les statuts XBee et les réponses applicatives correspondent à d'autres étapes.
 
 La surcharge de `setField()` est générique : elle prend les noms et valeurs
-des champs. Il n'existe pas encore de fonction propre à `SETTING` prenant
-seulement `index`, `ac_id` et `value`, ni de callback qui les fournisse
-automatiquement comme trois paramètres typés. Le point d'entrée commun reste
-`Message`, avec accès par champ.
+des champs. Le point d'entrée commun est `Message`, avec accès par champ.
 
-## 7. Une couche typée serait une amélioration possible
-
-Pour un programme qui connaît ses messages à la compilation, une structure
-nommée serait plus facile à utiliser :
-
-```cpp
-#include <cstdint>
-
-// Exemple de type applicatif possible, absent de la bibliothèque actuelle.
-struct Setting {
-    std::uint8_t index;
-    std::uint8_t acId;
-    float value;
-};
-```
-
-Un adaptateur pourrait convertir le `Message` reçu en `Setting`, puis appeler
-le callback de l'application avec cette structure complète. Dans l'autre sens,
-une fonction prenant un `Setting` pourrait effectuer les trois `setField()`
-et appeler `sendMessage()`. L'utilisateur de cet adaptateur fournirait tous
-les champs avec `Setting{.index = 7, .acId = 42, .value = 12.5f}`.
-
-Il est possible d'écrire ces adaptateurs à la main aujourd'hui. Leur génération
-à partir du XML éviterait ensuite de recopier les noms et types des champs.
-Le travail porterait sur un générateur C++ et une couche d'API au-dessus du
-modèle existant ; il ne demanderait pas de remplacer le XML ni le protocole.
-
-Une progression raisonnable serait :
-
-1. Écrire un adaptateur pour un petit message scalaire, puis un message à
-   tableaux, afin d'évaluer les appels de réception et d'envoi dans de vrais
-   clients.
-2. Garder les champs dans une structure lisible avec des noms explicites,
-   plutôt qu'imposer de longues listes de paramètres positionnels.
-3. Séparer cette structure de données de l'adressage et des métadonnées de
-   transport ; un `ac_id` dans le contenu n'est pas toujours une destination.
-4. Une fois l'usage satisfaisant, générer structures et conversions depuis le
-   XML, avec contrôle de cohérence entre les définitions utilisées à la
-   génération et celles chargées à l'exécution.
-
-Cette couche serait facultative. L'API dynamique resterait utile à `link++`,
-aux inspecteurs de messages et aux enregistreurs qui doivent accepter des
-définitions inconnues à la compilation. La conception devrait conserver la
-compatibilité GCC 13 et des types simples à comprendre ; une réflexion C++
-native des champs n'est pas disponible en C++23.
-
-## 8. Durées de vie, boucles et erreurs
+## 7. Durées de vie, boucles et erreurs
 
 Le dictionnaire doit vivre plus longtemps que les liens, transports ou
 décodeurs qui l'empruntent. Un `Message`, lui, possède sa définition et ses
@@ -593,12 +539,17 @@ et distribue les messages depuis leurs callbacks de fin de réception.
 
 Les appels sur un même transport doivent être sérialisés par l'application.
 `IvyLink` autorise les envois et opérations d'abonnement depuis plusieurs
-threads, mais les callbacks s'exécutent sur la boucle Ivy. Par défaut,
-`run()` fait tourner cette boucle sur le thread appelant ; le constructeur
-peut aussi demander un thread possédé par `IvyLink`.
+threads. Sans contexte Asio, les callbacks s'exécutent sur la boucle Ivy :
+`run()` utilise le thread appelant, ou le constructeur peut demander un thread
+possédé par le lien. Avec un contexte Asio, les callbacks applicatifs et les
+répondeurs aux requêtes sont postés sur ce contexte et sérialisés par lien.
+Le contexte doit survivre au lien. Les callbacks natifs de `getBus()` restent
+sur la boucle Ivy.
 
 Un désabonnement n'attend pas la fin d'un callback déjà commencé. Les objets
-capturés doivent donc rester vivants jusqu'à la fin de son exécution.
+capturés doivent donc rester vivants jusqu'à la fin de son exécution. En mode
+Asio, un callback déjà posté peut aussi s'exécuter après désabonnement ;
+`close()` et la destruction du lien neutralisent les callbacks en attente.
 `stop()` et `close()` peuvent être appelés depuis un callback Ivy ; la
 destruction du lien doit avoir lieu en dehors de ce callback et après la fin
 des appels externes.
@@ -609,11 +560,14 @@ Le décodeur autonome représente l'absence de message par `std::nullopt` ;
 la réception réactive appelle les abonnements lorsqu'un message est disponible.
 Les erreurs de définition, de valeur, de décodage ou d'I/O utilisent des exceptions. Une
 trame au contenu mal formé peut être consommée avant que l'erreur soit
-signalée ; l'appel suivant peut poursuivre le décodage. Les erreurs de
-callback Ivy suivent le mécanisme du bus natif, accessible par `getBus()` ;
-`IvyLink::run()` vérifie aussi ces erreurs au retour de la boucle.
+signalée ; l'appel suivant peut poursuivre le décodage. Sans contexte Asio,
+les erreurs de callback Ivy sont accessibles par `getBus()` et vérifiées par
+`IvyLink::run()` au retour de la boucle. Avec un contexte Asio, les erreurs
+des callbacks applicatifs sont propagées par `run()` ou `poll()` du contexte.
+Les [règles d'intégration Asio](../../lib/v2.0/C++/docs/ivy-asio.md) détaillent
+l'exécution et la durée de vie des callbacks.
 
-## 9. Composants et points d'entrée pour une autre application
+## 8. Composants et points d'entrée pour une autre application
 
 | Cible CMake | Contenu et usage |
 | --- | --- |
@@ -642,6 +596,4 @@ Les exemples exécutables à relire pour évaluer l'API sont :
   l'émission d'une commande complète ou la réception avec son origine réseau.
 
 Les instructions de compilation et d'utilisation se trouvent dans
-[la référence](reference.md) et [les exemples](API_USAGE.md). Les
-[rapports de validation](validation/index.rst) décrivent les environnements
-testés et leurs limites.
+[la référence](reference.md) et [les exemples](API_USAGE.md).
