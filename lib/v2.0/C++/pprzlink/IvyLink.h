@@ -183,8 +183,12 @@ namespace pprzlink {
     /// @throws std::system_error The native loop or a recorded callback error fails.
     void run();
     /// @brief Activate Receiver::bind subscriptions on this bus's event loop.
+    /// One subscription per distinct bound message; any ALL binding replaces these
+    /// with one broad subscription. No bindings means no subscription. Additional
+    /// filters are applied locally. Binding changes update subscriptions while active;
+    /// peers learn changes asynchronously, so transitions may lose in-flight messages.
     /// Names absent from the dictionary are ignored. Malformed fields of known
-    /// messages are reported through onError() as ReceiveError::Kind::Decode.
+    /// subscribed messages are reported through onError() as ReceiveError::Kind::Decode.
     void start() override;
     /// Pause Receiver::bind reception while preserving bindings for start().
     /// Scoped/native subscriptions, sends and bus timers remain active.
@@ -211,13 +215,20 @@ namespace pprzlink {
     std::mutex subscriptionsMutex;
     std::map<long, ivy::Subscription> subscriptions;
     std::atomic<long> nextBindId{1};
-    std::optional<ivy::Subscription> reactiveSubscription; ///< One native binding feeding the shared receiver registry.
+    /// @brief Native subscription and cancellation gate for already posted notifications.
+    struct ReceiverSubscription {
+      ivy::Subscription token; ///< Owned native binding.
+      std::shared_ptr<bool> active; ///< Read/written only under the receiver lock.
+    };
+    std::map<std::optional<std::string>, ReceiverSubscription> receiverSubscriptions; ///< nullopt selects ALL.
     uint64_t receptionGeneration = 0; ///< Ignore notifications retained from an earlier reception interval.
     // Declared last: stop/join before destroying subscriptions or the bus.
     std::optional<ivy::LoopThread> loop;
 
     long storeSubscription(ivy::Subscription subscription);
     void storeSubscription(long id, ivy::Bus::BindResult result);
+    void bindingsChanged() override;
+    ReceiverSubscription bindReceiver(const std::optional<std::string> &name);
   };
 }
 #endif // PPRZLINKCPP_IVYLINK_H

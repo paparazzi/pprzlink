@@ -30,6 +30,7 @@
 #include <pprzlink/exceptions/pprzlink_exception.h>
 #include <boost/asio/post.hpp>
 #include <boost/asio/executor_work_guard.hpp>
+#include <algorithm>
 #include <system_error>
 #include <unistd.h>
 
@@ -135,7 +136,7 @@ namespace pprzlink {
     auto lock = lockReceiver();
     deactivate();
     ++receptionGeneration;
-    reactiveSubscription.reset();
+    receiverSubscriptions.clear();
   }
 
   void IvyLink::close()
@@ -149,9 +150,38 @@ namespace pprzlink {
   void IvyLink::start()
   {
     auto lock = lockReceiver();
+    if (!dispatchState->open || bus.state() == IVY_CTX_STOPPED) {
+      throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
+    }
     if (!activate()) return;
-    auto notification = guarded([this, session = ++receptionGeneration](std::string_view sender, std::string_view body) {
-      if (session != receptionGeneration) return;
+    try { bindingsChanged(); }
+    catch (...) { deactivate(); throw; }
+  }
+
+  void IvyLink::bindingsChanged()
+  {
+    if (!isRunning()) return;
+    const auto names = boundMessageNames();
+    // Stage new registrations first so a failed bind leaves the current set intact.
+    // Staged callbacks remain inert until the registry/subscription change commits.
+    decltype(receiverSubscriptions) additions;
+    for (const auto &name : names) {
+      if (!receiverSubscriptions.contains(name)) additions.emplace(name, bindReceiver(name));
+    }
+    std::erase_if(receiverSubscriptions, [&](auto &entry) {
+      if (names.contains(entry.first)) return false;
+      *entry.second.active = false;
+      return true;
+    });
+    for (auto &[name, subscription] : additions) *subscription.active = true;
+    receiverSubscriptions.merge(additions);
+  }
+
+  IvyLink::ReceiverSubscription IvyLink::bindReceiver(const std::optional<std::string> &name)
+  {
+    auto active = std::make_shared<bool>(false);
+    auto notification = guarded([this, active, session = receptionGeneration](std::string_view sender, std::string_view body) {
+      if (!*active || session != receptionGeneration) return;
       std::optional<Message> message;
       try {
         const MessageDefinition *definition;
@@ -165,16 +195,18 @@ namespace pprzlink {
       } catch (...) { reportError(std::current_exception(), ReceiveError::Kind::Decode); return; }
       try { deliver(*message, ReceiveInfo{}); } catch (...) { stop(); throw; }
     });
-    try {
-      reactiveSubscription.emplace(checked(bus.bind_raw(
+    // Match the name boundary, but leave field validation local for onError().
+    const auto regexp = name ? "^([^ ]*) (" + ivy_codec::escapeRegexp(*name) + "(?: .*)?)$"
+                             : "^([^ ]*) (.*)$";
+    auto token = checked(bus.bind_raw(
         [state = dispatchState, notification](IvyClientPtr, std::span<const std::string_view> arguments) mutable {
           if (arguments.size() == 2) {
             state->submit([notification, sender = std::string(arguments[0]), body = std::string(arguments[1])]() mutable {
               notification(sender, body);
             });
           }
-        }, ivy::runtime_regexp("^([^ ]*) (.*)$"))));
-    } catch (...) { deactivate(); throw; }
+        }, ivy::runtime_regexp(regexp)));
+    return {std::move(token), std::move(active)};
   }
 
   long IvyLink::storeSubscription(ivy::Subscription subscription)

@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -108,7 +109,7 @@ namespace pprzlink {
     /// @param[in] name Exact dictionary message name, resolved when binding.
     /// @param[in] function Observer retained by the receiver.
     /// @return ID that can optionally be retained for unbind().
-    /// @throws std::exception Unknown message or invalid callback/filter.
+    /// @throws std::exception Unknown message, invalid callback/filter or transport subscription failure.
     template<class Function>
     BindingId bind(std::string_view name, Function function)
     { return bind(name, ReceiveFilter{}, std::move(function)); }
@@ -128,7 +129,7 @@ namespace pprzlink {
     /// @param[in] filter Additional checked criteria.
     /// @param[in] function Receiver-owned callback.
     /// @return Receiver-local binding ID.
-    /// @throws std::exception Unknown schema or invalid/unsupported filter.
+    /// @throws std::exception Unknown schema, invalid/unsupported filter or transport subscription failure.
     template<class Function>
     BindingId bind(std::string_view name, ReceiveFilter filter, Function function)
     { return addBinding(std::string(name), std::move(filter), adapt(std::move(function))); }
@@ -139,13 +140,14 @@ namespace pprzlink {
     /// @param[in] filter Checked AND-combined criteria.
     /// @param[in] function Receiver-owned callback.
     /// @return Receiver-local binding ID.
-    /// @throws std::exception Invalid or unsupported filter.
+    /// @throws std::exception Invalid/unsupported filter or transport subscription failure.
     template<class Function>
     BindingId bind(AllMessages selector, ReceiveFilter filter, Function function)
     { (void)selector; return addBinding(std::nullopt, std::move(filter), adapt(std::move(function))); }
 
     /// @brief Remove a binding; unknown IDs are harmless, an active invocation can finish.
     /// @param[in] id Receiver-local ID previously returned by bind().
+    /// @throws std::exception A transport subscription update fails; the binding is retained.
     void unbind(BindingId id);
     /// @brief Install the receive error handler; empty restores the default policy.
     /// Decode errors are skipped by default. Terminal errors propagate to the event loop.
@@ -175,6 +177,12 @@ namespace pprzlink {
     /// @param[in] dictionary Dictionary that must outlive this receiver.
     /// @param[in] kind Source kind determining available metadata.
     Receiver(const MessageDictionary &dictionary, Kind kind);
+    /// @brief Distinct bound names, or only nullopt when any ALL binding exists.
+    /// @return Empty for no bindings; filters remain the dispatcher's responsibility.
+    std::set<std::optional<std::string>> boundMessageNames() const;
+    /// @brief Update transport subscriptions after a registry change, under the receiver lock.
+    /// Throwing must leave transport subscriptions unchanged; the registry change is rolled back.
+    virtual void bindingsChanged() {}
     /// @brief Serialize receiver operations and callbacks, allowing callback-side stop/unbind.
     /// @return A lock on this receiver's recursive lifetime gate.
     std::unique_lock<std::recursive_mutex> lockReceiver() const;

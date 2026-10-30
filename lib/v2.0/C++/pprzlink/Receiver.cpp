@@ -50,6 +50,17 @@ namespace pprzlink {
   }
   void Receiver::deactivate() { auto lock = lockReceiver(); receiverState->running = false; }
   bool Receiver::isRunning() const { auto lock = lockReceiver(); return receiverState->running; }
+  std::set<std::optional<std::string>> Receiver::boundMessageNames() const
+  {
+    auto lock = lockReceiver();
+    std::set<std::optional<std::string>> names;
+    for (const auto &binding : receiverState->bindings) {
+      if (!binding->messageId) return {std::nullopt};
+      const auto [classId, messageId] = *binding->messageId;
+      names.emplace(receiverState->dictionary.getMessageName(classId, messageId));
+    }
+    return names;
+  }
   void Receiver::shutdown()
   {
     auto lock = lockReceiver();
@@ -99,16 +110,22 @@ namespace pprzlink {
     binding->filter = std::move(filter);
     binding->callback = std::move(callback);
     receiverState->bindings.push_back(binding);
+    try { bindingsChanged(); }
+    catch (...) { receiverState->bindings.pop_back(); throw; }
     return binding->id;
   }
   void Receiver::unbind(BindingId id)
   {
     auto lock = lockReceiver();
-    std::erase_if(receiverState->bindings, [id](const auto &binding) {
-      if (binding->id != id) return false;
-      binding->active = false;
-      return true;
-    });
+    auto &bindings = receiverState->bindings;
+    const auto found = std::find_if(bindings.begin(), bindings.end(),
+                                    [id](const auto &binding) { return binding->id == id; });
+    if (found == bindings.end()) return;
+    const auto binding = *found;
+    const auto position = bindings.erase(found);
+    try { bindingsChanged(); }
+    catch (...) { bindings.insert(position, binding); throw; }
+    binding->active = false;
   }
   void Receiver::onError(ErrorCallback callback)
   { auto lock = lockReceiver(); receiverState->errorCallback = std::move(callback); }

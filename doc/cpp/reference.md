@@ -571,10 +571,20 @@ dynamic interface. Numeric conversions check syntax and range; strings and
 arrays keep the PprzLink wire format. Request replies preserve the request ID,
 and a reply subscription is canceled before invoking its one-shot callback.
 
-Reactive reception through `start()` ignores Ivy traffic whose apparent message
-name is absent from the dictionary. A malformed body for a known message still
-reports `ReceiveError::Kind::Decode` through `onError()`. Request/reply APIs keep
-their own subscriptions and matching rules.
+Reception through `Receiver::bind()` uses one Ivy subscription per distinct bound
+message name. Multiple callbacks for the same name share that subscription; sender,
+class and predicate filters are applied locally. Any `bind(ALL, ...)` replaces the
+named subscriptions with one broad subscription, even if it has additional filters.
+Removing the last ALL binding restores the named subscriptions; no bindings means
+no receive subscription. Changes through `bind()` and `unbind()` update the native
+subscriptions while reception is active, including calls through a `Receiver&`.
+Peers learn subscription changes asynchronously, so transitions may lose in-flight
+messages; removed subscriptions' queued notifications are suppressed.
+
+Names absent from the dictionary are ignored. A malformed body for a subscribed
+message reports `ReceiveError::Kind::Decode` through `onError()`; unrelated message
+types do not produce decode errors. Request/reply APIs keep their own subscriptions
+and matching rules.
 
 Every `IvyLink` owns an independent `ivy::Bus`. Several links can use the same
 bus address or separate addresses in one process:

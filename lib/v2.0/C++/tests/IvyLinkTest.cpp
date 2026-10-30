@@ -1,5 +1,6 @@
 #include <pprzlink/IvyLink.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
+#include <algorithm>
 #include <atomic>
 #include <bit>
 #include <chrono>
@@ -57,6 +58,126 @@ namespace {
     require(result.has_value(), "Raw Ivy send");
   }
 
+  void waitRegexps(IvyLink &sender, const std::string &peerName, std::vector<std::string> expected)
+  {
+    std::sort(expected.begin(), expected.end());
+    waitFor([&] {
+      auto peer = sender.getBus().find_application(peerName);
+      if (!peer || !*peer) return false;
+      auto regexps = sender.getBus().application_regexps(**peer);
+      if (!regexps) return false;
+      std::sort(regexps->begin(), regexps->end());
+      return *regexps == expected;
+    }, "advertised regexps of " + peerName);
+  }
+
+  void testManagedBindings(const MessageDictionary &dict, const std::string &domain, bool asio)
+  {
+    boost::asio::io_context context;
+    std::atomic<int> first{0}, second{0}, bytes{0}, all{0}, errors{0}, barriers{0};
+    const std::string name = asio ? "managed-asio-rx" : "managed-native-rx";
+    auto link = asio ? std::make_unique<IvyLink>(context, dict, name, domain)
+                     : std::make_unique<IvyLink>(dict, name, domain, true);
+    pprzlink::Receiver &receiver = *link; // Base-class calls must update Ivy subscriptions too.
+    IvyLink sender(dict, name + "-tx", domain, true);
+    receiver.onError([&](const pprzlink::ReceiveError &error) {
+      require(error.kind == pprzlink::ReceiveError::Kind::Decode, "Managed decode category");
+      ++errors;
+    });
+    auto marker = link->getBus().bind_raw([&](IvyClientPtr, std::span<const std::string_view>) {
+      ++barriers;
+    }, "^SYNC$");
+    require(marker.has_value(), "Managed binding marker");
+    // A marker followed by context.poll() drains all previously sent notifications.
+    auto flush = [&] {
+      const int target = barriers + 1;
+      sendRaw(sender, "SYNC");
+      waitFor([&] { return barriers == target; }, "managed binding barrier");
+      if (asio) context.poll();
+    };
+    auto advertised = [&](std::vector<std::string> regexps) {
+      regexps.emplace_back("^SYNC$");
+      waitRegexps(sender, name, std::move(regexps));
+    };
+    const std::string emptyRegexp = "^([^ ]*) (EMPTY(?: .*)?)$";
+    const std::string byteRegexp = "^([^ ]*) (BYTE(?: .*)?)$";
+    const std::string allRegexp = "^([^ ]*) (.*)$";
+
+    receiver.start();
+    advertised({}); // Running without bindings must not subscribe to bus traffic.
+    const auto firstId = receiver.bind("EMPTY", [&](const Message &) { ++first; });
+    const auto secondId = receiver.bind("EMPTY", {.sender = "42"}, [&](const Message &) { ++second; });
+    advertised({emptyRegexp}); // Duplicate named bindings share one native subscription.
+    sendRaw(sender, "42 EMPTY"); sendRaw(sender, "43 EMPTY ");
+    sendRaw(sender, "42 BYTE invalid"); // Unbound known message: no decode error.
+    sendRaw(sender, "42 EMPTY_REQ"); // The name boundary must exclude longer names.
+    flush();
+    require(first == 2 && second == 1 && errors == 0, "Named subscription and local sender filter");
+
+    const auto byteId = receiver.bind("BYTE", [&](const Message &) { ++bytes; });
+    advertised({emptyRegexp, byteRegexp});
+    sendRaw(sender, "42 BYTE invalid"); sendRaw(sender, "42 BYTE 7");
+    flush();
+    require(bytes == 1 && errors == 1, "Selected malformed messages still report decode errors");
+
+    // ALL replaces named subscriptions even when it has an additional local filter.
+    const auto allId = receiver.bind(pprzlink::ALL, {.sender = "42"}, [&](const Message &) { ++all; });
+    const auto anotherAll = receiver.bind(pprzlink::ALL, [](const Message &) {});
+    advertised({allRegexp});
+    sendRaw(sender, "42 EMPTY"); sendRaw(sender, "43 EMPTY"); sendRaw(sender, "42 BYTE 8");
+    flush();
+    require(first == 4 && second == 2 && bytes == 2 && all == 2,
+            "ALL and named callbacks each run once without overlapping native subscriptions");
+    receiver.unbind(anotherAll);
+    advertised({allRegexp});
+    if (asio) {
+      sendRaw(sender, "42 EMPTY");
+      const int target = barriers + 1;
+      sendRaw(sender, "SYNC");
+      waitFor([&] { return barriers == target; }, "queued ALL notification");
+    }
+    receiver.unbind(allId);
+    advertised({emptyRegexp, byteRegexp});
+    if (asio) {
+      context.poll();
+      require(first == 4 && second == 2 && all == 2, "Removed ALL subscription drops queued notifications");
+    }
+    sendRaw(sender, "42 EMPTY"); sendRaw(sender, "42 BYTE 9");
+    flush();
+    require(first == 5 && second == 3 && bytes == 3 && all == 2, "Last ALL removal restores named subscriptions");
+
+    receiver.unbind(firstId); receiver.unbind(firstId); // Unknown IDs remain harmless.
+    advertised({emptyRegexp, byteRegexp});
+    sendRaw(sender, "42 EMPTY"); flush();
+    require(first == 5 && second == 4, "Removing one callback preserves its shared subscription");
+    receiver.unbind(secondId);
+    advertised({byteRegexp});
+
+    // A callback can replace its own last native subscription while dispatching.
+    pprzlink::Receiver::BindingId replacement = 0, mutation = 0;
+    mutation = receiver.bind("BYTE", [&](const Message &) {
+      receiver.unbind(byteId); receiver.unbind(mutation);
+      replacement = receiver.bind("EMPTY", [&](const Message &) { ++first; });
+    });
+    sendRaw(sender, "42 BYTE 10"); flush();
+    advertised({emptyRegexp});
+    sendRaw(sender, "42 EMPTY"); flush();
+    require(bytes == 4 && first == 6 && second == 4, "Callback-side subscription replacement");
+    receiver.stop();
+    advertised({});
+    receiver.unbind(replacement);
+    const auto paused = receiver.bind("BYTE", [&](const Message &) { ++bytes; });
+    advertised({}); // Binding changes while paused must not install subscriptions.
+    receiver.start();
+    advertised({byteRegexp});
+    sendRaw(sender, "42 BYTE 11"); flush();
+    require(bytes == 5, "Restart uses bindings changed while paused");
+    receiver.unbind(paused);
+    advertised({});
+    link->close();
+    require(link->getBus().take_callback_error().has_value(), "Managed binding callback errors");
+  }
+
   void testAsio(const MessageDictionary &dict, const std::string &domain)
   {
     boost::asio::io_context context;
@@ -93,7 +214,7 @@ namespace {
     require(marker.has_value(), "Asio test marker");
     waitBindings(sender, "asio-rx", 6);
     sendRaw(sender, "42 EMPTY");
-    sendRaw(sender, "broken BYTE invalid");
+    sendRaw(sender, "broken EMPTY invalid");
     for (uint32_t value = 0; value < 3; ++value) {
       Message request(dict.getDefinition("ANSWER_REQ"));
       request.setSenderId(std::string("client"));
@@ -695,6 +816,8 @@ int main()
     testAsioErrors(dict, domainA);
     testAsioThreads(dict, domainA);
     testReactive(dict, domainA);
+    testManagedBindings(dict, domainA, false);
+    testManagedBindings(dict, domainA, true);
     testReactiveSharedTraffic(dict, domainA);
     testMessages(dict, domainA);
     testCompactNumbers(dict, domainA);
