@@ -3,10 +3,10 @@ project(pprzlink++ LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+option(BUILD_TESTING "Build the tests" OFF)
 include(CTest)
 option(PPRZLINK_WITH_IVY "Build the optional Ivy adapter" ON)
 option(PPRZLINK_BUILD_EXAMPLES "Build the public API examples" ON)
-option(PPRZLINK_BUILD_LINK "Build the OCaml-compatible ground link agent (Unix)" ${PPRZLINK_WITH_IVY})
 option(PPRZLINK_BUILD_DOCS "Add the Doxygen documentation target" OFF)
 
 if(PPRZLINK_BUILD_DOCS)
@@ -47,9 +47,6 @@ find_package(Threads REQUIRED)
 if(PPRZLINK_WITH_IVY)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(IVY REQUIRED IMPORTED_TARGET ivy-cpp>=3.18)
-endif()
-if(PPRZLINK_BUILD_LINK AND NOT PPRZLINK_WITH_IVY)
-    message(FATAL_ERROR "link++ requires Ivy; set PPRZLINK_BUILD_LINK=OFF for a build without Ivy")
 endif()
 
 set(CORE_SOURCES
@@ -151,9 +148,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pprzlink++Config.cmake" DESTINATION $
 if(PPRZLINK_BUILD_EXAMPLES)
     add_subdirectory(pprzlink/examples)
 endif()
-if(PPRZLINK_BUILD_LINK AND UNIX)
-    add_subdirectory(apps/link)
-endif()
 if(BUILD_TESTING)
     if(PPRZLINK_BUILD_EXAMPLES)
         add_test(NAME si_units_example COMMAND si_units)
@@ -209,34 +203,6 @@ if(BUILD_TESTING)
     add_pprzlink_test(ivy_message_codec IvyMessageCodecTest.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../../../message_definitions/v1.0/messages.xml")
     add_pprzlink_test(link_library LinkLibraryTest.cpp)
-    if(PPRZLINK_BUILD_LINK AND UNIX)
-        add_executable(link_policy_test pprzlink/tests/LinkPolicyTest.cpp)
-        target_link_libraries(link_policy_test PRIVATE pprzlink_agent)
-        target_compile_options(link_policy_test PRIVATE -Wall -Wextra -Werror)
-        add_test(NAME link_policy COMMAND link_policy_test)
-        find_package(Python3 REQUIRED COMPONENTS Interpreter)
-        set(PPRZLINK_OCAML_REFERENCE "" CACHE FILEPATH "Optional OCaml link for differential tests")
-        set(reference_args)
-        if(PPRZLINK_OCAML_REFERENCE)
-            list(APPEND reference_args --ocaml "${PPRZLINK_OCAML_REFERENCE}")
-        endif()
-        add_test(NAME link_agent COMMAND ${Python3_EXECUTABLE}
-                 "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/LinkParityTest.py"
-                 --cpp $<TARGET_FILE:link++> --bus $<TARGET_FILE:link_test_bus> ${reference_args})
-        set_tests_properties(link_agent PROPERTIES TIMEOUT 120)
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            add_test(NAME link_xbee_configuration COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/LinkXbeeConfigurationTest.py"
-                     --agent $<TARGET_FILE:link++> --bus $<TARGET_FILE:link_test_bus>)
-            set_tests_properties(link_xbee_configuration PROPERTIES TIMEOUT 60)
-        endif()
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            add_test(NAME link_socat COMMAND ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/SocatSessionTest.py"
-                     $<TARGET_FILE:link++>)
-            set_tests_properties(link_socat PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77)
-        endif()
-    endif()
     if(UNIX)
         add_pprzlink_test(serial_device SerialDeviceTest.cpp)
         target_link_libraries(serial_device_test PRIVATE pprzlink::io)
@@ -247,17 +213,9 @@ if(BUILD_TESTING)
         endif()
         if(PPRZLINK_BUILD_EXAMPLES)
             find_package(Python3 REQUIRED COMPONENTS Interpreter)
-            set(pty_controller_args)
-            if(PPRZLINK_BUILD_LINK AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-                find_program(SOCAT_EXECUTABLE socat)
-                if(SOCAT_EXECUTABLE)
-                    list(APPEND pty_controller_args --controller $<TARGET_FILE:link++>)
-                endif()
-            endif()
             add_test(NAME pty_peers COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyPeersTest.py"
-                     --peer $<TARGET_FILE:pty_peer>
-                     ${pty_controller_args})
+                     --peer $<TARGET_FILE:pty_peer>)
             set_tests_properties(pty_peers PROPERTIES TIMEOUT 20)
             add_test(NAME udp_messages COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/UdpMessagesTest.py"
@@ -265,7 +223,7 @@ if(BUILD_TESTING)
             set_tests_properties(udp_messages PROPERTIES TIMEOUT 15)
             add_test(NAME pty_agents COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/PtyAgentsTest.py"
-                     --agent $<TARGET_FILE:pty_agent> ${pty_controller_args})
+                     --agent $<TARGET_FILE:pty_agent>)
             set_tests_properties(pty_agents PROPERTIES TIMEOUT 30)
             add_test(NAME serial_messages COMMAND ${Python3_EXECUTABLE}
                      "${CMAKE_CURRENT_SOURCE_DIR}/pprzlink/tests/SerialMessagesTest.py"
