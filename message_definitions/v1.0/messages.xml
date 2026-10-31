@@ -3479,6 +3479,15 @@
       <field name="button4" type="uint8" unit="bool">button 4 status</field>
     </message>
 
+    <message name="AIRCRAFT_REBOOT" id="42">
+      <description>
+        Sent by the server when an aircraft rebooted with the same build, or started a new log file.
+        A GCS should reset the state it keeps for this aircraft, such as the pre-flight checklist.
+      </description>
+      <field name="ac_id" type="string"/>
+      <field name="reason" type="string" values="CPU_TIME|DATALINK_COUNTERS|NEW_LOG_FILE">How it was detected</field>
+    </message>
+
     <message name="PLUMES" id="100">
       <field name="ids" type="string" format="csv"/>
       <field name="lats" type="string" format="csv"/>
