@@ -25,13 +25,15 @@
       <field name="cpu_time" type="uint16" unit="s"></field>
     </message>
 
+    <!-- 5 is free -->
+
     <message name="ATTITUDE" id="6">
       <field name="phi"   type="float" unit="rad" alt_unit="deg"/>
       <field name="psi"   type="float" unit="rad" alt_unit="deg"/>
       <field name="theta" type="float" unit="rad" alt_unit="deg"/>
     </message>
 
-    <!-- 7 is free-->
+    <!-- 7 is free -->
 
     <message name="GPS" id="8">
       <field name="mode"       type="uint8"  unit="byte_mask"/>
@@ -440,7 +442,7 @@
       <field name="scaled" type="float"/>
     </message>
 
-    <!-- 57 is free-->
+    <!-- 57 is free -->
 
     <message name="VISION_OUTBACK" id="58">
       <field name="status" type="uint8"/>
