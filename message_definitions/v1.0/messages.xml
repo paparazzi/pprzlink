@@ -25,38 +25,6 @@
       <field name="cpu_time" type="uint16" unit="s"></field>
     </message>
 
-    <message name="ARDRONE_NAVDATA" id="5">
-      <field name="taille" type="uint16" />
-      <field name="nu_trame" type="uint16" />
-      <field name="ax" type="uint16" />
-      <field name="ay" type="uint16" />
-      <field name="az" type="uint16" />
-      <field name="vx" type="int16" />
-      <field name="vy" type="int16" />
-      <field name="vz" type="int16" />
-      <field name="temperature_acc" type="uint16" />
-      <field name="temperature_gyro" type="uint16" />
-      <field name="ultrasound" type="uint16" />
-      <field name="us_debut_echo" type="uint16" />
-      <field name="us_fin_echo" type="uint16" />
-      <field name="us_association_echo" type="uint16" />
-      <field name="us_distance_echo" type="uint16" />
-      <field name="us_curve_time" type="uint16" />
-      <field name="us_curve_value" type="uint16" />
-      <field name="us_curve_ref" type="uint16" />
-      <field name="nb_echo" type="uint16" />
-      <field name="sum_echo" type="uint32" />
-      <field name="gradient" type="int16" />
-      <field name="flag_echo_ini" type="uint16" />
-      <field name="pressure" type="int32" />
-      <field name="temperature_pressure" type="uint16" />
-      <field name="mx" type="int16" />
-      <field name="my" type="int16" />
-      <field name="mz" type="int16" />
-      <field name="chksum" type="uint16" />
-      <field name="checksum_errors" type="uint32" />
-    </message>
-
     <message name="ATTITUDE" id="6">
       <field name="phi"   type="float" unit="rad" alt_unit="deg"/>
       <field name="psi"   type="float" unit="rad" alt_unit="deg"/>
@@ -1458,7 +1426,7 @@
       <field name="pdop"    type="uint16"/>
       <field name="numsv"   type="uint8"/>
       <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
-      <field name="comp_id" type="uint8" values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|ARDRONE2|SIM|MULTI|VECTORNAV|IMCU"/>
+      <field name="comp_id" type="uint8" values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|UNUSED|SIM|MULTI|VECTORNAV|IMCU"/>
     </message>
 
     <message name="AHRS_EULER_INT" id="156">
