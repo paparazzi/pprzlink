@@ -1907,6 +1907,35 @@
 
     <!-- 195 is free -->
 
+    <message name="EKF2_INPUT" id="195">
+      <description>
+        A sample given to the EKF2 (ins_ekf2 with INS_EKF2_LOG_INPUTS), logged on the SD card to replay
+        the EKF offline (sw/tools/ekf2_replay). The ints and values depend on the type:
+        IMU: ints delta angle and delta velocity integration time (us), values delta angle xyz (rad) and delta velocity xyz (m/s);
+        UPDATE: call of the EKF update;
+        MAG: values field xyz (gauss);
+        BARO: values height (m) and air density (kg/m3);
+        GNSS: ints lat, lon (1e-7 deg), fix type, satellites, flags (1 usable, 2 speed accuracy passes strict, 4 spoofed, 8 jammed),
+        values altitude (m), velocity NED (m/s), hacc, vacc (m), sacc (m/s), pdop, antenna position xyz (m);
+        GNSS_YAW: ints usable, values yaw, yaw accuracy, yaw offset (rad);
+        AIRSPEED: values true airspeed (m/s) and EAS to TAS factor;
+        RANGE: ints quality, values distance (m);
+        FLOW: ints quality, values flow rate xy and gyro rate xyz (rad/s);
+        EV: ints position frame, velocity frame, quality, reset counter, values position xyz, velocity xyz, quaternion,
+        position, velocity and orientation variances xyz;
+        FLAGS: ints bits armed, at rest, in air, fixed wing, ground effect, constant position, in transition;
+        ORIGIN: ints lat, lon (1e-7 deg), values altitude (m);
+        PARAMS: ints index of the first parameter, values the parameters from that index (generated parameter table);
+        CONFIG: values position and velocity correction time constants (s), GNSS yaw reset wait (s), range finder
+        minimum and maximum distance (m), optical flow maximum rate (rad/s);
+        OUTPUT: values position NED (m), velocity NED (m/s), quaternion, after an update.
+      </description>
+      <field name="time" type="uint32" unit="us">EKF time of the sample (lower 32 bits)</field>
+      <field name="type" type="uint8" values="IMU|UPDATE|MAG|BARO|GNSS|GNSS_YAW|AIRSPEED|RANGE|FLOW|EV|FLAGS|ORIGIN|PARAMS|CONFIG|OUTPUT">Kind of sample</field>
+      <field name="ints" type="int32[]">Integer values, depending on the type</field>
+      <field name="values" type="float[]">Float values, depending on the type</field>
+    </message>
+
     <message name="AIRSPEED_WIND_ESTIMATOR_EKF" id="196">
       <field name="u_est"     type="float" unit="m/s"/>
       <field name="v_est"     type="float" unit="m/s"/>
