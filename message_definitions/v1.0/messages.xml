@@ -225,6 +225,8 @@
       <field name="downlink_rate" type="uint16" unit="bytes/s"/>
       <field name="uplink_rate" type="uint16" unit="msgs/s"/>
       <field name="downlink_ovrn" type="uint8"/>
+      <field name="uplink_err" type="uint8">Uplink frames rejected by the parser (bad checksum or length, includes uplink_ovrn), wraps at 256</field>
+      <field name="uplink_ovrn" type="uint8">Uplink frames dropped because the previous one was not handled yet, wraps at 256</field>
     </message>
 
 <!-- Current value of one variable from the dl_settings (airframe.xml) -->
@@ -404,7 +406,33 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <!-- 51 is free -->
+    <message name="LINK_STATS" id="51">
+      <description>
+        Frame statistics of one node on the datalink path of an aircraft (autopilot, router, radio bridge), sent
+        with the aircraft id as sender. Down is towards the ground: down_rx is received from the aircraft side,
+        down_tx sent to the ground side, up the reverse. Counters are cumulative and wrap at 65536.
+      </description>
+      <field name="hop" type="uint8">Place of the node on the path, counted from the autopilot (0: autopilot, 1: next node, ...)</field>
+      <field name="uptime" type="uint16" unit="s">Time since the node started (a restart resets the counters)</field>
+      <field name="down_rx" type="uint16">Downlink frames received</field>
+      <field name="down_rx_err" type="uint16">Downlink frames rejected (bad checksum or length)</field>
+      <field name="down_tx" type="uint16">Downlink frames sent</field>
+      <field name="down_tx_err" type="uint16">Downlink frames that could not be sent</field>
+      <field name="up_rx" type="uint16">Uplink frames received</field>
+      <field name="up_rx_err" type="uint16">Uplink frames rejected (bad checksum or length)</field>
+      <field name="up_tx" type="uint16">Uplink frames sent</field>
+      <field name="up_tx_err" type="uint16">Uplink frames that could not be sent</field>
+      <field name="down_max_gap" type="uint16" unit="ms">Longest time without a downlink frame since the previous report</field>
+      <field name="up_max_gap" type="uint16" unit="ms">Longest time without an uplink frame since the previous report</field>
+      <field name="nb_peers" type="uint8">Peers known on the ground side (e.g. GCS computers found by a router)</field>
+      <field name="dropped" type="uint16">Frames not forwarded on purpose (e.g. uplink for another aircraft)</field>
+      <field name="rssi" type="int8" unit="dBm">Signal of the node's link towards the ground, 127 if not available</field>
+      <field name="down_rx_bytes" type="uint16">Bytes of the downlink frames received (wraps)</field>
+      <field name="up_rx_bytes" type="uint16">Bytes of the uplink frames received (wraps)</field>
+      <field name="rssi_ac" type="int8" unit="dBm">Signal of the node's link towards the aircraft, 127 if not available</field>
+      <field name="battery" type="uint8" unit="%">Battery charge of the node, 255 if it has no battery</field>
+      <field name="temperature" type="int8" unit="deg_celsius">Temperature of the node, 127 if not available</field>
+    </message>
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
@@ -3352,6 +3380,10 @@
       <field name="rx_msgs_rate" type="float" format="%.1f" unit="msgs/s"/>
       <field name="tx_msgs" type="uint32"/>
       <field name="ping_time" type="float" format="%.2f" unit="ms"/>
+      <field name="tx_err" type="uint32">Messages to this aircraft that could not be sent</field>
+      <field name="peer" type="string">Address the uplink to this aircraft is sent to (ip:port), none if not UDP</field>
+      <field name="rx_max_gap" type="uint32" unit="ms">Longest time without a frame from this aircraft since the previous report</field>
+      <field name="tx_bytes" type="uint32">Bytes of the frames sent to this aircraft</field>
     </message>
 
     <message name="INTRUDER" id="37">
