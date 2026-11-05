@@ -99,6 +99,7 @@ static void end_message(struct pprzlink_msg *msg, long fd)
   msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_a_tx);
   msg->dev->put_byte(msg->dev->periph, fd, get_pprz_trans(msg)->ck_b_tx);
   msg->dev->send_message(msg->dev->periph, fd);
+  msg->dev->nb_msgs++;
 }
 
 static void overrun(struct pprzlink_msg *msg)
