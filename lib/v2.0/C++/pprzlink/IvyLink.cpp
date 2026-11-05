@@ -17,564 +17,289 @@
  *
  */
 
-/** \file IvyLink.cpp
+/**
+ * @file IvyLink.cpp
+ * @brief Ivy bindings, request correlation and callback lifetime management.
+ * @ingroup ivy
  *
- *
+ * Ordinary messages use Receiver bindings. Request subscriptions are retained behind local IDs; replies are one-shot and correlated by a process-wide sequence.
  */
 
-
 #include <pprzlink/IvyLink.h>
+#include <pprzlink/IvyMessageCodec.h>
 #include <pprzlink/exceptions/pprzlink_exception.h>
-#include <ivy-c++/IvyApplication.h>
-#include <iostream>
-#include <regex>
+#include <boost/asio/post.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <algorithm>
+#include <system_error>
+#include <unistd.h>
 
 namespace pprzlink {
+  /// @brief Internal conversion of native Ivy expected-results into C++ exceptions.
+  /// @ingroup internals
+  namespace {
+    /// @brief Unwrap a native Ivy operation or throw its error with bus context.
+    /// @tparam T Native result value type, including void.
+    /// @param[in] result Move-owned expected value/error.
+    /// @return The successful value for non-void T; no value for void T.
+    /// @throws std::system_error The native operation reports an error.
+    template<class T>
+    T checked(std::expected<T, std::error_code> result)
+    {
+      if (!result) {
+        throw std::system_error(result.error(), "Ivy");
+      }
+      if constexpr (!std::is_void_v<T>) {
+        return std::move(*result);
+      }
+    }
 
-  IvyLink::IvyLink(MessageDictionary const & dict , std::string appName, std::string domain, bool threadedIvy)
-  : dictionary (dict), domain(domain), appName(appName), threaded(threadedIvy), requestNb(0)
+  }
+
+  // The gate protects queued closures borrowing the link, including during
+  // callback-side close(). Ivy never waits for application code on Asio.
+  struct IvyLink::DispatchState : std::enable_shared_from_this<DispatchState> {
+    explicit DispatchState(boost::asio::io_context *context) : context(context)
+    {
+      if (context) work.emplace(context->get_executor());
+    }
+    boost::asio::io_context *context;
+    std::optional<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work;
+    std::recursive_mutex mutex;
+    std::atomic<bool> open{true};
+
+    void submit(std::function<void()> callback)
+    {
+      if (!context) {
+        std::lock_guard lock(mutex);
+        if (open) callback();
+        return;
+      }
+      if (!open) return;
+      boost::asio::post(*context, [state = shared_from_this(), callback = std::move(callback)] {
+        std::lock_guard lock(state->mutex);
+        if (state->open) callback();
+      });
+    }
+    void close()
+    {
+      std::lock_guard lock(mutex);
+      open = false;
+      work.reset();
+    }
+  };
+
+  IvyLink::IvyLink(boost::asio::io_context &context, const MessageDictionary &dict,
+                   std::string appName, std::string domain, bool threadedIvy)
+    : IvyLink(&context, dict, std::move(appName), std::move(domain), threadedIvy) {}
+
+  IvyLink::IvyLink(const MessageDictionary &dict, std::string appName,
+                   std::string domain, bool threadedIvy)
+    : IvyLink(nullptr, dict, std::move(appName), std::move(domain), threadedIvy) {}
+
+  IvyLink::IvyLink(boost::asio::io_context *context, const MessageDictionary &dict,
+                   std::string appName, std::string domain, bool threadedIvy)
+    : Receiver(dict, Kind::Ivy), dispatchState(std::make_shared<DispatchState>(context)),
+      dictionary(dict), bus(checked(ivy::Bus::create(appName, appName + " ready")))
   {
-    bus = new Ivy(appName.c_str(), (appName + " ready").c_str(), this, threadedIvy);
-    bus->start(domain.c_str());
+    checked(bus.start(domain));
+    if (threadedIvy) {
+      loop.emplace(checked(ivy::LoopThread::create(bus)));
+    }
   }
 
   IvyLink::~IvyLink()
   {
-    bus->stop();
-    if (threaded)
-    {
-      auto thr = bus->getThread();
-      thr->detach();
-      delete (bus);
-    }
-    else
-    {
-      delete (bus);
-    }
+    dispatchState->close();
+    shutdown();
+    loop.reset(); // Stop and join before releasing any callback captures.
+    (void)bus.stop();
   }
 
-  void IvyLink::OnApplicationConnected(IvyApplication *app)
-  {(void)app;}
-
-  void IvyLink::OnApplicationDisconnected(IvyApplication *app)
-  {(void)app;}
-
-  void IvyLink::OnApplicationCongestion(IvyApplication *app)
-  {(void)app;}
-
-  void IvyLink::OnApplicationDecongestion(IvyApplication *app)
-  {(void)app;}
-
-  void IvyLink::OnApplicationFifoFull(IvyApplication *app)
-  {(void)app;}
-
-  long IvyLink::BindMessage(const MessageDefinition &def, messageCallback_t cb)
+  void IvyLink::run()
   {
-    auto mcb = new MessageCallback(dictionary, cb);
-    auto regexp = regexpForMessageDefinition(def);
-    //std::cout << "Binding to " << regexp << std::endl;
-    auto id = bus->BindMsg(regexp.c_str(), mcb);
-    messagesCallbackMap[id] = mcb;
-    return id;
+    if (loop) {
+      throw std::logic_error("This IvyLink already owns an event-loop thread");
+    }
+    start();
+    checked(bus.run());
+    checked(bus.take_callback_error());
   }
 
-  long IvyLink::BindOnSrcAc(std::string ac_id, messageCallback_t cb)
+  void IvyLink::stop()
   {
-  auto mcb = new AircraftCallback(dictionary, cb);
-    std::stringstream regexp;
-    regexp << "^(" << ac_id << ") " << "([^ ]*)( .*)?$";
-    //std::cout << "Binding to " << regexp.str() << std::endl;
-    auto id = bus->BindMsg(regexp.str().c_str(), mcb);
-    aircraftCallbackMap[id] = mcb;
-    return id;
+    auto lock = lockReceiver();
+    deactivate();
+    ++receptionGeneration;
+    receiverSubscriptions.clear();
   }
 
-  void IvyLink::UnbindMessage(long bindId)
+  void IvyLink::close()
   {
-    if (messagesCallbackMap.find(bindId) != messagesCallbackMap.end()) {
-      bus->UnbindMsg(bindId);
-      delete (messagesCallbackMap[bindId]);
-      messagesCallbackMap.erase(bindId);
-      return;
+    dispatchState->close();
+    {
+      std::lock_guard requestLock(dispatchState->mutex);
+      pendingRequests.clear();
+      requestHandlers.clear();
     }
-
-    if (aircraftCallbackMap.find(bindId) != aircraftCallbackMap.end()) {
-      bus->UnbindMsg(bindId);
-      delete (aircraftCallbackMap[bindId]);
-      aircraftCallbackMap.erase(bindId);
-      return;
-    }
-
-    if (requestCallbackMap.find(bindId) != requestCallbackMap.end()) {
-      bus->UnbindMsg(bindId);
-      delete (requestCallbackMap[bindId]);
-      requestCallbackMap.erase(bindId);
-      return;
-    }
+    auto lock = lockReceiver();
+    stop();
+    checked(bus.request_stop());
   }
 
-  std::string IvyLink::messageRegexp(const MessageDefinition &def)
+  void IvyLink::start()
   {
-    static const std::map<BaseType, std::string> typeRegex = {
-      {BaseType::CHAR,   "."},
-      {BaseType::INT8,   "-?\\d+"},
-      {BaseType::INT16,  "-?\\d+"},
-      {BaseType::INT32,  "-?\\d+"},
-      {BaseType::UINT8,  "\\d+"},
-      {BaseType::UINT16, "\\d+"},
-      {BaseType::UINT32, "\\d+"},
-      {BaseType::FLOAT,  "-?\\d+(?:\\.)?(?:\\d)*"},
-      {BaseType::STRING, "(?:\"[^\"]+\"|[^ ]+)"}
-    };
-    // ac_id MSG_NAME msgField*
-    std::stringstream sstr;
-    sstr << "(" << def.getName() << ")";
-
-    for (size_t i = 0; i < def.getNbFields(); ++i)
-    {
-      //std::cout << def.getField(i).getName() << " : " << def.getField(i).getType().toString() << std::endl;
-      auto iter = typeRegex.find(def.getField(i).getType().getBaseType());
-      if (iter == typeRegex.end())
-      {
-        throw wrong_message_format(
-          "IvyregexpForMessageDefinition found NOT_A_TYPE in message " + def.getField(i).getName());
-      }
-      std::string baseRegex = iter->second;
-
-      if (def.getField(i).getType().isArray())
-      {
-        if (def.getField(i).getType().getBaseType()==BaseType::CHAR)
-        {
-          sstr << " (\"[^\"]*\")";
-        }
-        else
-        {
-          if (def.getField(i).getType().getArraySize() == 0)
-          {
-            // Dynamic array
-            // s => s,s,s,s => (s(?:,s)*)
-            sstr << " (" << baseRegex << "(?:," << baseRegex << ")*)";
-          }
-          else
-          {
-            // Static array
-            // s => s,s,s => (s(?:,s){SIZE-1})
-            sstr << " (" << baseRegex << "(?:," << baseRegex << "){" << def.getField(i).getType().getArraySize() - 1
-                 << "})";
-          }
-        }
-      }
-      else
-      {
-          sstr << " (" << baseRegex << ")";
-      }
+    auto lock = lockReceiver();
+    if (!dispatchState->open || bus.state() == IVY_CTX_STOPPED) {
+      throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
     }
-    sstr << "$";
-
-    return sstr.str();
+    if (!activate()) return;
+    try { bindingsChanged(); }
+    catch (...) { deactivate(); throw; }
   }
 
-  std::string IvyLink::regexpForMessageDefinition(MessageDefinition const & def) {
-    std::stringstream sstr;
-    sstr << "^([^ ]*) " << messageRegexp(def);
-    return sstr.str();
-  }
-
-  void IvyLink::getMessageData(const Message& msg, std::string &ac_id, std::string &name, std::string &fields) {
-    std::stringstream fieldsStream;
-    if (msg.getSenderId().index()==0) // The variant holds a string
-    {
-      ac_id = std::get<std::string>(msg.getSenderId());
-    }
-    else
-    {
-      std::stringstream sstr;
-      sstr << (int)std::get<uint8_t>(msg.getSenderId());
-      ac_id = sstr.str();
-    }
-    const auto &def=msg.getDefinition();
-
-    for (size_t i=0;i<def.getNbFields();++i)
-    {
-      if (i!=0)
-        fieldsStream << " ";
-      auto val= msg.getRawValue(i);
-      val.setOutputInt8AsInt(true);
-      fieldsStream << val;
-    }
-
-    name = def.getName();
-    fields = fieldsStream.str();
-
-  }
-
-  void IvyLink::sendMessage(const Message& msg)
+  void IvyLink::bindingsChanged()
   {
-    const auto &def=msg.getDefinition();
-    if(def.isRequest()) {
-      throw message_is_request("Message " + def.getName() + " is a request message. Use sendRequest instead!");
+    if (!isRunning()) return;
+    const auto names = boundMessageNames();
+    // Stage new registrations first so a failed bind leaves the current set intact.
+    // Staged callbacks remain inert until the registry/subscription change commits.
+    decltype(receiverSubscriptions) additions;
+    for (const auto &name : names) {
+      if (!receiverSubscriptions.contains(name)) additions.emplace(name, bindReceiver(name));
     }
-
-    std::string ac_id;
-    std::string name;
-    std::string fields;
-
-    getMessageData(msg, ac_id, name, fields);
-
-
-    bus->SendMsg("%s %s %s",ac_id.c_str(), def.getName().c_str(), fields.c_str());
-
-  }
-
-
-
-  long IvyLink::sendRequest(const Message& msg, messageCallback_t cb) {
-    const auto &def=msg.getDefinition();
-
-    if(!def.isRequest()) {
-      throw message_is_not_request("Message " + def.getName() + " is not a request message. Use sendMessage instead!");
-    }
-
-    // remove last 4 characters (_REQ) from request name to get the answer message name
-    auto ansName = def.getName().substr(0, def.getName().size() - 4);
-    auto ansDef = dictionary.getDefinition(ansName);
-
-    std::string ac_id;
-    std::string name;
-    std::string fields;
-
-    getMessageData(msg, ac_id, name, fields);
-
-    std::stringstream requestIdStream;
-    requestIdStream << getpid() << "_" << requestNb++;
-    std::string requestId = requestIdStream.str();
-
-
-
-    auto mcb = new MessageCallback(dictionary, [=](std::string ac_id,Message msg) {
-      cb(std::move(ac_id), std::move(msg));
-
-      // find bind id, then unbind answer message
-      auto iter = requestBindId.left.find(requestId);
-      if (iter != requestBindId.left.end())
-      {
-        long id = iter->second;
-        UnbindMessage(id);
-        requestBindId.left.erase(requestId);
-
-      }
+    std::erase_if(receiverSubscriptions, [&](auto &entry) {
+      if (names.contains(entry.first)) return false;
+      *entry.second.active = false;
+      return true;
     });
+    for (auto &[name, subscription] : additions) *subscription.active = true;
+    receiverSubscriptions.merge(additions);
+  }
 
-    std::stringstream regexpStream;
-    regexpStream << "^" << requestId << " ([^ ]*) " << messageRegexp(ansDef);
-    auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
-    messagesCallbackMap[id] = mcb;
-    requestBindId.insert({requestId, id});
-    bus->SendMsg("%s %s %s %s",ac_id.c_str(), requestId.c_str(), def.getName().c_str(), fields.c_str());
+  IvyLink::ReceiverSubscription IvyLink::bindReceiver(const std::optional<std::string> &name)
+  {
+    auto active = std::make_shared<bool>(false);
+    auto notification = guarded([this, active, session = receptionGeneration](std::string_view sender, std::string_view body) {
+      if (!*active || session != receptionGeneration) return;
+      std::optional<Message> message;
+      try {
+        const MessageDefinition *definition;
+        try {
+          definition = &dictionary.getDefinition(std::string(body.substr(0, body.find(' '))));
+        } catch (const no_such_message &) {
+          // Other Ivy applications and request envelopes share this bus.
+          return;
+        }
+        message = ivy_codec::parseMessageBody(*definition, sender, body);
+      } catch (...) { reportError(std::current_exception(), ReceiveError::Kind::Decode); return; }
+      try { deliver(*message, ReceiveInfo{}); } catch (...) { stop(); throw; }
+    });
+    // Match the name boundary, but leave field validation local for onError().
+    const auto regexp = name ? "^([^ ]*) (" + ivy_codec::escapeRegexp(*name) + "(?: .*)?)$"
+                             : "^([^ ]*) (.*)$";
+    auto token = checked(bus.bind_raw(
+        [state = dispatchState, notification](IvyClientPtr, std::span<const std::string_view> arguments) mutable {
+          if (arguments.size() == 2) {
+            state->submit([notification, sender = std::string(arguments[0]), body = std::string(arguments[1])]() mutable {
+              notification(sender, body);
+            });
+          }
+        }, ivy::runtime_regexp(regexp)));
+    return {std::move(token), std::move(active)};
+  }
 
+  void IvyLink::cancelRequest(RequestId id)
+  {
+    std::lock_guard lock(dispatchState->mutex);
+    auto entry = pendingRequests.extract(id);
+    if (!entry.empty()) {
+      *entry.mapped().active = false;
+      checked(entry.mapped().token.unbind());
+    }
+  }
+
+  void IvyLink::unbindRequest(HandlerId id)
+  {
+    std::lock_guard lock(dispatchState->mutex);
+    auto entry = requestHandlers.extract(id);
+    if (!entry.empty()) {
+      *entry.mapped().active = false;
+      checked(entry.mapped().token.unbind());
+    }
+  }
+
+  void IvyLink::sendMessage(const Message &msg)
+  {
+    if (msg.getDefinition().isRequest()) {
+      throw message_is_request("Message " + msg.getDefinition().getName() +
+                               " is a request message. Use sendRequest instead!");
+    }
+    checked(bus.send(ivy_codec::serializeMessage(msg)));
+  }
+
+  RequestReply::RequestId IvyLink::sendRequestImpl(const Message &msg, ReplyCallback callback)
+  {
+    std::lock_guard lock(dispatchState->mutex);
+    if (!dispatchState->open) throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
+    const auto &def = msg.getDefinition();
+    if (!def.isRequest()) throw message_is_not_request("Message " + def.getName() + " is not a request message");
+    const auto answer = dictionary.getDefinition(def.getName().substr(0, def.getName().size() - 4));
+    static std::atomic<unsigned long long> requestNumber{0};
+    const auto requestId = std::to_string(getpid()) + "_" + std::to_string(requestNumber++);
+    const auto regexp = "^" + requestId + " ([^ ]*) " + ivy_codec::messageRegexp(answer);
+    const auto id = nextRequestId++;
+    auto active = std::make_shared<bool>(false);
+    auto token = checked(bus.bind_raw(
+      [this, state = dispatchState, answer, id, active, callback = std::move(callback)]
+      (IvyClientPtr, std::span<const std::string_view> args) {
+        if (args.empty()) throw wrong_message_format("Missing request answer sender");
+        auto reply = ivy_codec::parseFields(answer, args.front(), args.subspan(1));
+        state->submit([this, id, active, callback, reply = std::move(reply)] {
+          if (!*active) return;
+          cancelRequest(id); // First queued answer wins, even when the callback throws.
+          callback(reply, ReceiveInfo{});
+        });
+      }, ivy::runtime_regexp(regexp)));
+    pendingRequests.emplace(id, RequestSubscription{std::move(token), active});
+    *active = true;
+    try {
+      auto request = ivy_codec::serializeMessage(msg);
+      request.insert(request.find(' ') + 1, requestId + " ");
+      checked(bus.send(request));
+    } catch (...) { cancelRequest(id); throw; }
     return id;
   }
 
-
-
-
-  long IvyLink::registerRequestAnswerer(const MessageDefinition &def, answererCallback_t cb) {
-    if(!def.isRequest()) {
-      throw message_is_not_request("Message " + def.getName() + " is not a request message. Use sendMessage instead!");
-    }
-
-    // remove last 4 characters (_REQ) from request name to get the answer message name
-    auto ansName = def.getName().substr(0, def.getName().size() - 4);
-
-    std::stringstream regexpStream;
-    regexpStream << "^([^ ]*) ([^ ]*) " << messageRegexp(def);
-
-    auto mcb = new RequestCallback(dictionary, [=](std::string ac_id,Message msg) {
-      auto answerMsg = cb(std::move(ac_id), std::move(msg));
-      //check message name
-      if(ansName != answerMsg.getDefinition().getName()) {
-        throw wrong_answer_to_request("Wrong answer " + answerMsg.getDefinition().getName() + " to request " + def.getName());
-      }
-      sendMessage(answerMsg);
-    });
-    auto id = bus->BindMsg(regexpStream.str().c_str(), mcb);
-    requestCallbackMap[id] = mcb;
-
-  return 0;
-  }
-
-
-
-
-
-  MessageCallback::MessageCallback(const MessageDictionary &dictionary, const messageCallback_t &cb) : dictionary(
-    dictionary), cb(cb)
+  RequestReply::HandlerId IvyLink::bindRequestImpl(std::string_view name, AnswerCallback callback)
   {
-  }
-
-  void MessageCallback::OnMessage(IvyApplication *app, int argc, const char **argv)
-  {
-    (void)app;
-    MessageDefinition def = dictionary.getDefinition(argv[1]);
-    Message msg(def);
-    if (def.getNbFields() != (size_t)(argc - 2) )
-    {
-      std::stringstream sstr;
-      sstr << argv[1] << " message with wrong number of fields (expected " << def.getNbFields() << " / got " << argc - 2
-           << ")";
-      throw wrong_message_format(sstr.str());
-    }
-    for (int i = 2; i < argc; ++i)
-    {
-      const auto& field = def.getField(i - 2);
-      // Need deserializing string to build FieldValue
-
-      // For char arrays and strings remove possible quotes
-      if ((field.getType().getBaseType()==BaseType::STRING || (field.getType().getBaseType()==BaseType::CHAR && field.getType().isArray())) && argv[i][0]=='"')
-      {
-        std::string str(argv[i]);
-        //std::cout << str.substr(1,str.size()-2) << std::endl;
-        msg.addField(field.getName(),str.substr(1,str.size()-2));
-      }
-      else
-      {
-        std::stringstream sstr(argv[i]);
-        if (field.getType().isArray())
-        {
-          switch (field.getType().getBaseType())
-          {
-            case BaseType::NOT_A_TYPE:
-              throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
-              break;
-            case BaseType::CHAR:
-              throw wrong_message_format("Wrong field format for a char[] "+std::string(argv[i]));
-              break;
-            case BaseType::INT8:
-            case BaseType::INT16:
-            case BaseType::INT32:
-            case BaseType::UINT8:
-            case BaseType::UINT16:
-            case BaseType::UINT32:
-            case BaseType::FLOAT:
-            case BaseType::DOUBLE:
-            {
-              // Parse all numbers as a double
-              std::vector<double> values;
-              while (!sstr.eof())
-              {
-                double val;
-                char c;
-                sstr >> val >> c;
-                if (c!=',')
-                {
-                  throw wrong_message_format("Wrong format for array "+std::string(argv[i]));
-                }
-                values.push_back(val);
-              }
-              msg.addField(field.getName(), values); // The value will be statically cast to the right type
-            }
-              break;
-            case BaseType::STRING:
-              msg.addField(field.getName(), argv[i]);
-              break;
-          }
-        }
-        else
-        {
-          switch (field.getType().getBaseType())
-          {
-            case BaseType::NOT_A_TYPE:
-              throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
-              break;
-            case BaseType::CHAR:
-            {
-              char val;
-              sstr >> val;
-              msg.addField(field.getName(), val);
-            }
-              break;
-            case BaseType::INT8:
-            case BaseType::INT16:
-            case BaseType::INT32:
-            case BaseType::UINT8:
-            case BaseType::UINT16:
-            case BaseType::UINT32:
-            case BaseType::FLOAT:
-            case BaseType::DOUBLE:
-            {
-              // Parse all numbers as a double
-              double val;
-              sstr >> val;
-              msg.addField(field.getName(), val); // The value will be statically cast to the right type
-            }
-              break;
-            case BaseType::STRING:
-              msg.addField(field.getName(), argv[i]);
-              break;
-          }
-        }
-      }
-    }
-    std::string sender(argv[0]);
-    if (argv[0][0]=='"')
-    {
-      // Remove quotes from string if needed
-      sender=sender.substr(1,sender.size()-2);
-    }
-
-    cb(sender, msg);
-  }
-
-
-
-  RequestCallback::RequestCallback(const MessageDictionary &dictionary,const messageCallback_t &cb) : MessageCallback(dictionary, cb)
-  {
-  }
-
-
-  void RequestCallback::OnMessage(IvyApplication *app, int argc, const char **argv) {
-    (void)app;
-
-    if (argc < 3)
-    {
-      throw bad_message_file("Not enough fields to be a valid request!");
-    }
-
-    requestId = std::string(argv[1]);
-
-    MessageCallback::OnMessage(app, argc-1, argv+1);
-  }
-
-
-
-  AircraftCallback::AircraftCallback(const MessageDictionary &dictionary, const messageCallback_t &cb) : dictionary(dictionary), cb(cb)
-  {
-  }
-
-  void AircraftCallback::OnMessage(IvyApplication *app, int argc, const char **argv)
-  {
-    (void)app;
-    MessageDefinition def = dictionary.getDefinition(argv[1]);
-    Message msg(def);
-
-    if (argc==3) // If we have fields to parse
-    {
-      std::regex fieldRegex("([^ ]+|\"[^\"]+\")");
-
-      std::smatch results;
-      std::vector<std::string> fields;
-      std::string fieldsStr(argv[2]);
-      while (std::regex_search(fieldsStr, results, fieldRegex))
-      {
-        fields.push_back(results.str());
-        fieldsStr = results.suffix();
-      }
-
-      if (def.getNbFields()!=fields.size()) // check that the number of fields is correct
-      {
-        throw wrong_message_format("Wrong number of fields in message " + std::string(argv[1]));
-      }
-
-      for (size_t i = 0; i < def.getNbFields(); ++i)
-      {
-        const auto &field = def.getField(i);
-
-        // For char arrays and strings remove possible quotes
-        if ((field.getType().getBaseType() == BaseType::STRING ||
-             (field.getType().getBaseType() == BaseType::CHAR && field.getType().isArray())) && argv[i][0] == '"')
-        {
-          std::string &str(fields[i]);
-          //std::cout << str.substr(1,str.size()-2) << std::endl;
-          msg.addField(field.getName(), str.substr(1, str.size() - 2));
-        }
-        else
-        {
-          std::stringstream sstr(fields[i]);
-          if (field.getType().isArray())
-          {
-            switch (field.getType().getBaseType())
-            {
-              case BaseType::NOT_A_TYPE:
-                throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
-                break;
-              case BaseType::CHAR:
-                throw wrong_message_format("Wrong field format for a char[] " + fields[i]);
-                break;
-              case BaseType::INT8:
-              case BaseType::INT16:
-              case BaseType::INT32:
-              case BaseType::UINT8:
-              case BaseType::UINT16:
-              case BaseType::UINT32:
-              case BaseType::FLOAT:
-              case BaseType::DOUBLE:
-              {
-                // Parse all numbers as a double
-                std::vector<double> values;
-                while (!sstr.eof())
-                {
-                  double val;
-                  char c;
-                  sstr >> val >> c;
-                  if (c != ',')
-                  {
-                    throw wrong_message_format("Wrong format for array \"" + fields[i] + "\"");
-                  }
-                  values.push_back(val);
-                }
-                msg.addField(field.getName(), values); // The value will be statically cast to the right type
-              }
-                break;
-              case BaseType::STRING:
-                msg.addField(field.getName(), fields[i]);
-                break;
-            }
-          }
-          else
-          {
-            switch (field.getType().getBaseType())
-            {
-              case BaseType::NOT_A_TYPE:
-                throw std::logic_error("NOT_A_TYPE for field " + field.getName() + " in message " + argv[1]);
-                break;
-              case BaseType::CHAR:
-              {
-                char val;
-                sstr >> val;
-                msg.addField(field.getName(), val);
-              }
-                break;
-              case BaseType::INT8:
-              case BaseType::INT16:
-              case BaseType::INT32:
-              case BaseType::UINT8:
-              case BaseType::UINT16:
-              case BaseType::UINT32:
-              case BaseType::FLOAT:
-              case BaseType::DOUBLE:
-              {
-                // Parse all numbers as a double
-                double val;
-                sstr >> val;
-                msg.addField(field.getName(), val); // The value will be statically cast to the right type
-              }
-                break;
-              case BaseType::STRING:
-                msg.addField(field.getName(), fields[i]);
-                break;
-            }
-          }
-        }
-      }
-    }
-    std::string sender(argv[0]);
-    if (argv[0][0]=='"')
-    {
-      // Remove quotes from string if needed
-      sender=sender.substr(1,sender.size()-2);
-    }
-    msg.setSenderId(sender);
-
-    cb(sender, msg);
+    std::lock_guard lock(dispatchState->mutex);
+    if (!dispatchState->open) throw std::system_error(ivy::make_error_code(IVY_ESTOPPED), "Ivy");
+    const auto def = dictionary.getDefinition(std::string(name));
+    if (!def.isRequest()) throw message_is_not_request("Message " + def.getName() + " is not a request message");
+    const auto answerName = def.getName().substr(0, def.getName().size() - 4);
+    (void)dictionary.getDefinition(answerName);
+    const auto regexp = "^([^ ]*) ([^ ]*) " + ivy_codec::messageRegexp(def);
+    const auto id = nextRequestId++;
+    auto active = std::make_shared<bool>(false);
+    auto token = checked(bus.bind_raw(
+      [this, state = dispatchState, def, answerName, active,
+       callback = std::make_shared<AnswerCallback>(std::move(callback))]
+      (IvyClientPtr, std::span<const std::string_view> args) {
+        if (args.size() < 2) throw wrong_message_format("Missing request sender or ID");
+        auto request = ivy_codec::parseFields(def, args[0], args.subspan(2));
+        state->submit([this, state, answerName, callback, active,
+                       requestId = std::string(args[1]), request = std::move(request)] {
+          if (!*active) return;
+          auto answer = (*callback)(request, ReceiveInfo{});
+          if (!state->open) return;
+          if (answer.getDefinition().getName() != answerName)
+            throw wrong_answer_to_request("Wrong answer " + answer.getDefinition().getName() + " to request " + answerName + "_REQ");
+          checked(bus.send(requestId + " " + ivy_codec::serializeMessage(answer)));
+        });
+      }, ivy::runtime_regexp(regexp)));
+    requestHandlers.emplace(id, RequestSubscription{std::move(token), active});
+    *active = true;
+    return id;
   }
 }

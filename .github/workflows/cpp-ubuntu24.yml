@@ -1,0 +1,72 @@
+name: C++ on Ubuntu 24.04 / GCC 13
+
+on:
+  push:
+    paths: ['lib/v2.0/C++/**', 'third_party/**', '.gitmodules', '.github/workflows/cpp-ubuntu24.yml']
+  pull_request:
+    paths: ['lib/v2.0/C++/**', 'third_party/**', '.gitmodules', '.github/workflows/cpp-ubuntu24.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gcc13:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install Noble dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 cmake pkg-config python3 \
+            libboost-dev libtinyxml2-dev libpcre2-dev libglib2.0-dev libx11-dev
+      - name: Build the pinned Ivy source with GCC 13
+        run: |
+          git init "$RUNNER_TEMP/ivy-src"
+          git -C "$RUNNER_TEMP/ivy-src" remote add origin https://github.com/alex31/libivy-c.git
+          git -C "$RUNNER_TEMP/ivy-src" fetch --depth=1 origin b0bf831702c5bfd1313e83ded62eb14d17198534
+          git -C "$RUNNER_TEMP/ivy-src" checkout --detach FETCH_HEAD
+          make -C "$RUNNER_TEMP/ivy-src/src" -j4 cpp installliblinks includes installpkgconf install-cpp \
+            CC=gcc-13 CXX=g++-13 CPP=g++-13 X86_64_CFLAGS= PREFIX="$RUNNER_TEMP/ivy" LIB=/lib
+          echo "PKG_CONFIG_PATH=$RUNNER_TEMP/ivy/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$RUNNER_TEMP/ivy/lib" >> "$GITHUB_ENV"
+      - name: Build library and examples
+        run: |
+          cmake -S lib/v2.0/C++ -B build/gcc13 \
+            -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON
+          cmake --build build/gcc13 -j4
+      - name: Test codecs, transports and examples
+        run: ctest --test-dir build/gcc13 --output-on-failure
+      - name: Check the installed targets and historical Makefile
+        run: |
+          cmake --install build/gcc13 --prefix "$RUNNER_TEMP/pprzlink"
+          make -C lib/v2.0/C++ -j4 libpprzlink++ CXX=g++-13 \
+            OBJ_DIR="$RUNNER_TEMP/pprzlink-make" CXXFLAGS='-O2 -Werror'
+      - name: Build and exercise clients outside the repository
+        run: |
+          cp -R lib/v2.0/C++/examples/clients "$RUNNER_TEMP/pprzlink-clients"
+          cmake -S "$RUNNER_TEMP/pprzlink-clients" -B "$RUNNER_TEMP/clients-build" \
+            -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/pprzlink"
+          cmake --build "$RUNNER_TEMP/clients-build" -j4
+          python3 lib/v2.0/C++/tests/ClientExamplesTest.py \
+            --serial "$RUNNER_TEMP/clients-build/serial_aircraft" \
+            --udp "$RUNNER_TEMP/clients-build/udp_recorder" \
+            --ivy "$RUNNER_TEMP/clients-build/ivy_receiver" --bus build/gcc13/link_test_bus
+          cmake -S "$RUNNER_TEMP/pprzlink-clients" -B "$RUNNER_TEMP/clients-io" \
+            -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/pprzlink" \
+            -DCLIENTS_WITH_IVY=OFF -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=TRUE
+          cmake --build "$RUNNER_TEMP/clients-io" -j4
+          if ldd "$RUNNER_TEMP/clients-io/udp_recorder" | grep -q libivy; then exit 1; fi
+      - name: Build and test without Ivy
+        run: |
+          cmake -S lib/v2.0/C++ -B build/no-ivy \
+            -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_TESTING=ON -DPPRZLINK_BUILD_EXAMPLES=ON \
+            -DPPRZLINK_WITH_IVY=OFF \
+            -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=TRUE
+          cmake --build build/no-ivy -j4
+          env -u LD_LIBRARY_PATH -u PKG_CONFIG_PATH ctest --test-dir build/no-ivy --output-on-failure

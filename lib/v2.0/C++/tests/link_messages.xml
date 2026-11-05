@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<protocol>
+  <msg_class name="telemetry" id="1">
+    <message name="PONG" id="5"/>
+    <message name="LINK_TEST" id="42">
+      <field name="mode" type="uint8"/>
+      <field name="value" type="float" format="%.2f"/>
+    </message>
+    <message name="LINK_ARRAYS" id="43">
+      <field name="values" type="int16[]"/>
+      <field name="label" type="char[5]"/>
+      <field name="text" type="string"/>
+      <field name="latitude" type="double" format="%.7f"/>
+    </message>
+    <message name="LINK_WIDE" id="44">
+      <field name="signed" type="int64"/><field name="unsigned" type="uint64"/>
+      <field name="values" type="int64[]"/>
+    </message>
+  </msg_class>
+  <msg_class name="datalink" id="2">
+    <message name="PING" id="8"/>
+    <message name="SETTING" id="4" link="forwarded">
+      <field name="index" type="uint8"/>
+      <field name="ac_id" type="uint8"/>
+      <field name="value" type="float"/>
+    </message>
+    <message name="ACINFO" id="1" link="broadcasted"><field name="ac_id" type="uint8"/></message>
+    <message name="ACINFO_LLA" id="14" link="broadcasted"><field name="ac_id" type="uint8"/></message>
+    <message name="LINK_BROADCAST" id="44" link="broadcasted"><field name="value" type="int16"/></message>
+    <message name="LINK_UNROUTED" id="45"><field name="ac_id" type="uint8"/></message>
+  </msg_class>
+  <msg_class name="ground" id="3">
+    <message name="LINK_REPORT" id="36">
+      <field name="ac_id" type="string"/><field name="link_id" type="string"/>
+      <field name="run_time" type="uint32"/><field name="rx_lost_time" type="uint32"/>
+      <field name="rx_bytes" type="uint32"/><field name="rx_msgs" type="uint32"/>
+      <field name="rx_err" type="uint32"/>
+      <field name="rx_bytes_rate" type="float" format="%.1f"/>
+      <field name="rx_msgs_rate" type="float" format="%.1f"/>
+      <field name="tx_msgs" type="uint32"/><field name="ping_time" type="float" format="%.2f"/>
+    </message>
+  </msg_class>
+</protocol>

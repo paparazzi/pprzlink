@@ -281,7 +281,7 @@ class IvyMessagesInterface(object):
 
         :return: Number of clients this message was sent to.
         :rtype: int
-        :param class_name: Message class, the same as :ref:`PprzMessage.__init__`
+        :param class_name: Message class, the same as :class:`pprzlink.message.PprzMessage`
         :param request_name: Request name (without the _REQ suffix)
         :param callback: Callback function that accepts two parameters: 1. aircraft id as int 2. The response message
         :param request_extra_data: Payload that will be sent with the request if any
