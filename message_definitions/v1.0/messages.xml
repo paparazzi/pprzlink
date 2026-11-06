@@ -1625,13 +1625,28 @@
     </message>
 
     <message name="INS_EKF2_EXT" id="170">
+      <description>
+        Extended status of the EKF2: GNSS drift checks, estimated accuracies, height biases,
+        emergency yaw estimate and magnetometer checks.
+      </description>
       <field name="gps_drift_h" type="float" unit="m/s">Horizontal position drift rate (m/s)</field>
       <field name="gps_drift_v" type="float" unit="m/s">Vertical position drift rate (m/s)</field>
       <field name="gps_drift_h_filt" type="float" unit="m/s">Filtered horizontal velocity (m/s)</field>
       <field name="gps_drift_blocked" type="uint8">The GPS drift calculation is blocked</field>
-      <field name="gyro_vibe_coning" type="float">Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)</field>
-      <field name="gyro_vibe_hf" type="float">Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)</field>
-      <field name="accel_vibe_hf" type="float">Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)</field>
+      <field name="control_mode_upper" type="uint32">Upper 32 bits of the control status (bitfields from common.h)</field>
+      <field name="pos_acc_h" type="float" unit="m">1-sigma horizontal position accuracy</field>
+      <field name="pos_acc_v" type="float" unit="m">1-sigma vertical position accuracy</field>
+      <field name="vel_acc_h" type="float" unit="m/s">1-sigma horizontal velocity accuracy</field>
+      <field name="vel_acc_v" type="float" unit="m/s">1-sigma vertical velocity accuracy</field>
+      <field name="hagl" type="float" unit="m">Height above ground from the terrain estimate (NaN when not valid)</field>
+      <field name="baro_bias" type="float" unit="m">Estimated barometer height bias</field>
+      <field name="gnss_hgt_bias" type="float" unit="m">Estimated GNSS height bias</field>
+      <field name="yaw_gsf" type="float" unit="rad" alt_unit="deg">Yaw of the EKF-GSF emergency yaw estimator (NaN when not available)</field>
+      <field name="yaw_gsf_std" type="float" unit="rad" alt_unit="deg">1-sigma accuracy of the EKF-GSF yaw</field>
+      <field name="mag_inclination" type="float" unit="deg">Measured magnetic field inclination</field>
+      <field name="mag_inclination_ref" type="float" unit="deg">Magnetic field inclination of the world magnetic model</field>
+      <field name="mag_strength" type="float" unit="gauss">Measured magnetic field strength</field>
+      <field name="mag_strength_ref" type="float" unit="gauss">Magnetic field strength of the world magnetic model</field>
     </message>
 
     <message name="AHRS_BIAS" id="171">
