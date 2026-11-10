@@ -269,13 +269,6 @@
       <field name="utm_zone" type="uint8"/>
     </message>
 
-    <message name="MKK" id="36">
-      <field name="nr" type="uint8"/>
-      <field name="rpm" type="uint8" unit="Poles/s"/>
-      <field name="current" type="uint8" unit="mA"/>
-      <field name="temp" type="int8" unit="deg"/>
-    </message>
-
     <message name="GUIDANCE_INDI_HYBRID" id="37">
       <field name="sp_accel_x" type="float"/>
       <field name="sp_accel_y" type="float"/>
@@ -472,19 +465,6 @@
 
     <!-- 57 is free -->
 
-    <message name="VISION_OUTBACK" id="58">
-      <field name="status" type="uint8"/>
-      <field name="het_moment" type="uint8"/>
-      <field name="timeoutcount" type="uint8"/>
-      <field name="vision_timeout" type="uint8"/>
-      <field name="height" type="float"/>
-      <field name="out_of_range" type="float"/>
-      <field name="marker_enu_x" type="float"/>
-      <field name="marker_enu_y" type="float"/>
-      <field name="flow_x" type="float"/>
-      <field name="flow_y" type="float"/>
-    </message>
-
     <message name="GPS_LLA" id="59">
       <field name="lat"        type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
       <field name="lon"        type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -641,13 +621,6 @@
       <field name="timing2" type="uint32"/>
       <field name="bind_mfg_id" type="uint32"/>
       <field name="mfg_id" type="uint8[]"/>
-    </message>
-
-    <message name="GX3_INFO" id="73">
-      <field name="GX3_freq"  type="float"    unit="hz"/>
-      <field name="chksm_error"   type="uint32"/>
-      <field name="hdr_error"     type="uint32"/>
-      <field name="GX3_chksm"	type="uint16"/>
     </message>
 
     <message name="UBLOX_INFO" id="74">
@@ -860,17 +833,6 @@
       <field name="flight_time" type="uint16">Flight time</field>
     </message>
 
-    <message name="MOTOR_BENCH_STATUS" id="94">
-      <field name="time_ticks" type="uint32"/>
-      <field name="throttle" type="float" format="%.3f"/>
-      <field name="rpm" type="float"/>
-      <field name="current" type="float"/>
-      <field name="thrust" type="float"/>
-      <field name="torque" type="float"/>
-      <field name="time_s" type="uint16"/>
-      <field name="mode" type="uint8"/>
-    </message>
-
     <message name="TARGET_POS_INFO" id="95">
       <description>
         Global position, speed and ID of a target for functions like 'Follow Me'
@@ -937,11 +899,6 @@
 
     <message name="ACTUATORS_RAW" id="105">
       <field name="values" type="int16[]" unit="none"/>
-    </message>
-
-    <message name="BLUEGIGA" id="106">
-      <field name="data_rate" type="uint32" unit="bytes/s"/>
-      <field name="A2A_msg_rate" type="uint32"/>
     </message>
 
   <!-- Not used yet? -->
@@ -1178,25 +1135,6 @@
       <field name="mx"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="my"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="mz"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
-    </message>
-
-    <message name="FILTER" id="134">
-      <field name="phi"              type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="theta"            type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="psi"              type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="measure_phi"      type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="measure_theta"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="measure_psi"      type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_phi"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_theta"  type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_psi"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="correction_phi"   type="int32"/>
-      <field name="correction_theta" type="int32"/>
-      <field name="correction_psi"   type="int32"/>
-      <field name="bp"               type="int32"/>
-      <field name="bq"               type="int32"/>
-      <field name="br"               type="int32"/>
-      <field name="comp_id"          type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <message name="IMU_HEATER" id="135">
@@ -1672,32 +1610,6 @@
       <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="AHRS_MEASUREMENT_EULER" id="174">
-      <field name="phi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-      <field name="theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-      <field name="psi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-    </message>
-
-  <!-- Do we need this? Only in airborne/firmwares/wind_tunnel/main_mb.c-->
-    <message name="WT" id="175">
-      <field name="rpm"      type="float"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="CSC_CAN_DEBUG" id="176">
-      <field name="err_nb"      type="uint32"/>
-      <field name="err_code"    type="uint32"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log and airborne/test/test_math_trig_compressed.c-->
-    <message name="CSC_CAN_MSG" id="177">
-      <field name="frame"   type="uint32"/>
-      <field name="id"      type="uint32"/>
-      <field name="data_a"  type="uint32"/>
-      <field name="data_b"  type="uint32"/>
-    </message>
-
     <message name="AHRS_GYRO_BIAS_INT" id="178">
       <field name="bp"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="bq"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
@@ -1717,13 +1629,6 @@
       <field name="dynamic_p"  type="int32"  unit="Pa"/>
       <field name="static_p"   type="int32"  unit="Pa"/>
       <field name="checksum"   type="uint8"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="FMS_TIME" id="180">
-      <field name="tv_sec"   type="uint32"/>
-      <field name="tv_nsec"  type="uint32"/>
-      <field name="delay_ns" type="uint32"/>
     </message>
 
     <message name="ROTATING_WING_STATE" id="181">
@@ -1812,15 +1717,6 @@
       <field name="u_min"               type="float[]"  />
       <field name="u_max"               type="float[]"  />
       <field name="u"                   type="float[]"  />
-    </message>
-
-    <message name="MISSION_ITEM" id="189">
-      <field name="count" type="uint8"/>
-      <field name="seq"   type="uint16"/>
-      <field name="cmd"   type="uint16"/>
-      <field name="lat"   type="int32"/>
-      <field name="lon"   type="int32"/>
-      <field name="alt"   type="float"/>
     </message>
 
     <message name= "ACTUATORS_T4_IN" id="190">
@@ -2088,18 +1984,6 @@
       <field name="bus_number" type="uint8"/>
     </message>
 
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="IMU_GYRO_LP" id="209">
-      <field name="gp" type="float" unit="rad/s"/>
-      <field name="gq" type="float" unit="rad/s"/>
-      <field name="gr" type="float" unit="rad/s"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="IMU_PRESSURE" id="210">
-      <field name="p" type="float" unit="pascal"/>
-    </message>
-
     <message name="WINDTUNNEL_MEAS" id="211">
       <field name="aoa" type="float" unit="deg">Angle of attack</field>
       <field name="airspeed" type="float" unit="m/s">Airspeed measured</field>
@@ -2246,19 +2130,10 @@
       <field name="front_divergence" type="float"> divergence from front cam </field>
     </message>
 
-    <!-- Do we need this? -->
-    <message name="VIDEO_SYNC" id="225">
-      <field name="id" type="uint8"/>
-    </message>
-
     <message name="PERIODIC_TELEMETRY_ERR" id="226">
       <field name="process" type="uint8"/>
       <field name="mode" type="uint8"/>
       <field name="id" type="uint8"/>
-    </message>
-
-    <message name="TIME" id="227">
-      <field name="t" type="uint32">an integral value representing the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC</field>
     </message>
 
     <message name="OPTIC_FLOW_EST" id="228">
@@ -2480,15 +2355,6 @@
       <field name="bal2_trans_stat"  type="uint8" values="Pending|Running|Success|Failed|Done">Cell bank 2 monitor i2c transaction status</field>
       <field name="bal2_cells" type="uint16[]" unit="mV">Cell bank 2 voltage</field>
       <field name="safety_plug"   type="uint16" values="mV">Safety plug voltage</field>
-    </message>
-
-    <message name="GPS_RXMRTCM" id="249">
-      <field name="Msg1005"      type="uint32" />
-      <field name="Msg1077"  	 type="uint32" />
-      <field name="Msg1087"      type="uint32" />
-      <field name="Crc1005"      type="uint32" />
-      <field name="Crc1077"      type="uint32" />
-      <field name="Crc1087"      type="uint32"  />
     </message>
 
     <message name="GROUND_DETECT" id="250">
