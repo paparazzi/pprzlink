@@ -327,11 +327,6 @@
       <field name="phi_sp" type="float"/>
     </message>
 
-    <message name="BARO_MS5534A" id="44">
-      <field name="pressure" type="uint32" unit="P"/>
-      <field name="temp" type="uint16" unit="dC"/>
-      <field name="alt" type="float" unit="m"/>
-    </message>
 
     <message name="CHIRP" id="45">
       <field name="active"              type="uint8">Chirp is active</field>
@@ -457,11 +452,6 @@
       <field name="airspeed" type="float" unit="m/s">calibrated airspeed</field>
     </message>
 
-    <message name="BARO_ETS" id="56">
-      <field name="adc" type="uint16"/>
-      <field name="offset" type="uint16"/>
-      <field name="scaled" type="float"/>
-    </message>
 
     <!-- 57 is free -->
 
@@ -547,23 +537,7 @@
       <field name="shutter" type="uint8" unit="decisec" alt_unit="sec" alt_unit_coef="0.1"/>
     </message>
 
-    <message name="AMSYS_BARO" id="65">
-      <field name="pBaroRaw" type="uint16"></field>
-      <field name="pBaro" type="float" unit="Pa"> </field>
-      <field name="pHomePressure" type="float" unit="Pa"></field>
-      <field name="AltOffset" type="float" unit="m"></field>
-      <field name="aktuell" type="float" unit="m"></field>
-      <field name="Over_Ground" type="float" unit="m"></field>
-      <field name="tempBaro" type="float" unit="°C"></field>
-    </message>
 
-    <message name="AMSYS_AIRSPEED" id="66">
-      <field name="asRaw" type="uint16"></field>
-      <field name="asPresure" type="float" unit="Pa"></field>
-      <field name="asAirspeed" type="float" unit="m/s"></field>
-      <field name="asAirsFilt" type="float" unit="m/s"></field>
-      <field name="asTemp" type="float" unit="°C"></field>
-    </message>
 
     <message name="FLIGHT_BENCHMARK" id="67">
       <field name="SE_As" type="float"></field>
@@ -574,11 +548,6 @@
       <field name="Err_Pos" type="float"></field>
     </message>
 
-    <message name="MPL3115_BARO" id="68">
-      <field name="pressure" type="uint32" alt_unit="Pa" alt_unit_coef="0.25"/>
-      <field name="temp" type="int16" alt_unit="degC" alt_unit_coef="0.0625"/>
-      <field name="alt" type="float" unit="m"/>
-    </message>
 
     <message name="AOA" id="69">
       <field name="raw" type="uint32"/>
@@ -776,10 +745,6 @@
       <field name="airspeed" type="float" unit="m/s">local airspeed norm</field>
     </message>
 
-    <message name="SCP_STATUS" id="88">
-      <field name="press" type="uint32" unit="Pa"/>
-      <field name="temp"  type="int16" unit="100x_deg_celsius"/>
-    </message>
 
     <message name="SHT_STATUS" id="89">
       <field name="ihumid" type="uint16"/>
@@ -961,12 +926,6 @@
       <field name="temp"   type="float" unit="deg_celsius" format="%.2f"/>
     </message>
 
-    <message name="BARO_MS5611" id="116">
-      <field name="d1"       type="uint32"/>
-      <field name="d2"       type="uint32"/>
-      <field name="pressure" type="float" unit="hPa" format="%.2f"/>
-      <field name="temp"     type="float" unit="deg_celsius" format="%.2f"/>
-    </message>
 
     <message name="MS5611_COEFF" id="117">
       <field name="c0" type="uint16"/>
@@ -2100,8 +2059,12 @@
     </message>
 
     <message name="BARO_RAW" id="221">
-      <field name="abs"          type="float"/>
-      <field name="diff"         type="float"/>
+      <description>Barometer of air_data, one sensor per message</description>
+      <field name="sensor_id" type="uint8">ABI sender id of the barometer</field>
+      <field name="raw" type="float" unit="Pa">uncalibrated static pressure</field>
+      <field name="pressure" type="float" unit="Pa">calibrated static pressure</field>
+      <field name="offset" type="float" unit="Pa">calibration offset</field>
+      <field name="temperature" type="float" unit="deg_celcius">temperature of the sensor (NaN if unknown)</field>
     </message>
 
     <message name="AIR_DATA" id="222">
@@ -2112,6 +2075,8 @@
       <field name="amsl_baro" type="float" unit="m">barometric altitude above mean sea level</field>
       <field name="airspeed" type="float" unit="m/s">Equivalent Air Speed (or Calibrated Air Speed at low speed/altitude)</field>
       <field name="tas" type="float">True Air Speed (when P, T and P_diff are available)</field>
+      <field name="baro_id" type="uint8">ABI sender id of the barometer in use (0 if none)</field>
+      <field name="airspeed_id" type="uint8">ABI sender id of the airspeed sensor in use (0 if none)</field>
     </message>
 
     <message name="AMSL" id="223">
