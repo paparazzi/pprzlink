@@ -708,13 +708,6 @@
       <field name="status" type="uint8"/>
     </message>
 
-    <message name="BMP_STATUS" id="84">
-      <field name="UP"    type="int32"/>
-      <field name="UT"    type="int32"/>
-      <field name="press" type="int32" unit="Pa"/>
-      <field name="temp"  type="int32" unit="10x_deg_celsius"/>
-    </message>
-
     <message name="MLX_STATUS" id="85">
       <field name="itemp_case" type="uint16"/>
       <field name="temp_case"  type="float" unit="deg_celsius" format="%.2f"/>
@@ -926,17 +919,6 @@
       <field name="temp"   type="float" unit="deg_celsius" format="%.2f"/>
     </message>
 
-
-    <message name="MS5611_COEFF" id="117">
-      <field name="c0" type="uint16"/>
-      <field name="c1" type="uint16"/>
-      <field name="c2" type="uint16"/>
-      <field name="c3" type="uint16"/>
-      <field name="c4" type="uint16"/>
-      <field name="c5" type="uint16"/>
-      <field name="c6" type="uint16"/>
-      <field name="c7" type="uint16"/>
-    </message>
 
     <message name="ATMOSPHERE_CHARGE" id="118">
       <field name="t0" type="uint16"/>
