@@ -2475,6 +2475,12 @@
       <field name="ac_id" type="uint8"/>
     </message>
 
+    <message name="TIME_SYNC" id="6">
+      <description>Ground UTC time, to sync the aircraft time without GPS</description>
+      <field name="unix_time" type="uint32" unit="s">Ground UTC unix time, corrected by the sender with half the round trip</field>
+      <field name="unix_ms" type="uint16" unit="ms">Milliseconds part of unix_time</field>
+    </message>
+
     <message name="PING" id="8"/>
 
     <message name="FORMATION_SLOT" id="9" link="broadcasted">
