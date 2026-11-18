@@ -33,7 +33,22 @@
       <field name="theta" type="float" unit="rad" alt_unit="deg"/>
     </message>
 
-    <!-- 7 is free -->
+    <message name="SERVO_TELEMETRY" id="7">
+      <description>
+        Latest telemetry of all servos (actuators with position, speed or force feedback) in one message:
+        element i of each array is the same servo.
+        An array is empty when none of the servos reports that value, and 0 for a servo that doesn't report it.
+      </description>
+      <field name="idx"         type="uint8[]">Actuator index (order of the airframe actuators)</field>
+      <field name="age"         type="uint8[]" alt_unit="s" alt_unit_coef="0.01">Age of the latest telemetry, 255 when older than 2.54 s</field>
+      <field name="position"    type="int16[]" alt_unit="rad" alt_unit_coef="0.001">Position, in 0.001 rad</field>
+      <field name="speed"       type="int16[]" alt_unit="rad/s" alt_unit_coef="0.01">Speed, in 0.01 rad/s (or m/s)</field>
+      <field name="force"       type="int16[]" alt_unit="N" alt_unit_coef="0.01">Force or torque (load), in 0.01 N (or Nm)</field>
+      <field name="current"     type="int16[]" alt_unit="A" alt_unit_coef="0.01">Current, in 0.01 A</field>
+      <field name="voltage"     type="uint16[]" alt_unit="V" alt_unit_coef="0.01">Voltage, in 0.01 V</field>
+      <field name="temperature" type="int8[]" unit="deg_celsius">Temperature</field>
+      <field name="errors"      type="uint16[]">Error count or error flags of the servo (vendor specific)</field>
+    </message>
 
     <message name="GPS" id="8">
       <field name="mode"       type="uint8"  unit="byte_mask"/>
@@ -90,7 +105,21 @@
       <field name="energy"    type="float" unit="Wh">Accumulated consumed energy</field>
     </message>
 
-    <!-- 13 is free -->
+    <message name="ESC_TELEMETRY" id="13">
+      <description>
+        Latest telemetry of all ESCs in one message: element i of each array is the same ESC.
+        An array is empty when none of the ESCs reports that value, and 0 for an ESC that doesn't report it.
+      </description>
+      <field name="idx"               type="uint8[]">Actuator index (order of the airframe actuators)</field>
+      <field name="age"               type="uint8[]" alt_unit="s" alt_unit_coef="0.01">Age of the latest telemetry, 255 when older than 2.54 s</field>
+      <field name="rpm"               type="int16[]" alt_unit="rpm" alt_unit_coef="10">Motor rotation speed, in 10 rpm</field>
+      <field name="current"           type="int16[]" alt_unit="A" alt_unit_coef="0.01">Current, in 0.01 A</field>
+      <field name="voltage"           type="uint16[]" alt_unit="V" alt_unit_coef="0.01">Voltage, in 0.01 V</field>
+      <field name="temperature"       type="int8[]" unit="deg_celsius">ESC temperature</field>
+      <field name="motor_temperature" type="int8[]" unit="deg_celsius">Motor temperature</field>
+      <field name="output"            type="uint8[]" unit="%">Output duty cycle of the ESC to the motor</field>
+      <field name="errors"            type="uint16[]">Error count or error flags of the ESC (vendor specific)</field>
+    </message>
 
     <message name="CALIBRATION" id="14">
       <field name="climb_sum_err" type="float" format="%.1f"/>
@@ -131,7 +160,6 @@
       <field name="current" type="float"/>
       <field name="voltage" type="float"/>
     </message>
-
 
     <message name="CAM" id="20">
       <field name="pan" type="int16" unit="deg"/>
@@ -253,10 +281,7 @@
       <field name="cpu_time"  type="float" unit="s"/>
     </message>
 
-    <message name="MOTOR" id="34">
-      <field name="rpm" type="uint16" unit="Hz"/>
-      <field name="current" type="float" unit="A"/>
-    </message>
+    <!-- 34 is free -->
 
     <message name="WP_MOVED" id="35">
     <description>
@@ -2307,21 +2332,7 @@
       <field name="vz"   type="float" unit="m/s"/>
     </message>
 
-    <message name="ESC" id="245">
-      <description>
-        Electronic Speed Controller data
-      </description>
-      <field name="amps"        type="float" unit="A">Current consumption</field>
-      <field name="bat_volts"   type="float" unit="V">Input battery voltage</field>
-      <field name="power"       type="float" unit="W">Electrical power</field>
-      <field name="rpm"         type="float" unit="rpm">Motor rotation speed</field>
-      <field name="motor_volts" type="float" unit="V">Motor voltage</field>
-      <field name="energy"      type="float" unit="Wh">Accumulated consumed energy</field>
-      <field name="temperature" type="float" unit="C">Temperature</field>
-      <field name="temperature_dev" type="float" unit="C">Device temperature</field>
-      <field name="node_id"     type="uint8">Node ID</field>
-      <field name="motor_id"    type="uint8">Motor ID</field>
-    </message>
+    <!-- 245 is free -->
 
     <message name="RTOS_MON" id="246">
       <description>
@@ -3018,7 +3029,6 @@
     
   </msg_class>
 
-
   <msg_class name="ground" id="3">
     <message name="NEW_AIRCRAFT" id="1">
       <field name="ac_id" type="string"/>
@@ -3495,7 +3505,6 @@
       <field name="numsv"   type="uint8"/>
       <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
     </message>
-
 
     <message name="STEREOCAM_ARRAY" id="80">
       <description>Raw data fromt the stereocamera. Type defines what kind of data it is. This can be raw image, disparity map, obstacle histogram, ect.</description>
