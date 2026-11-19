@@ -2077,6 +2077,12 @@
       <field name="front_divergence" type="float"> divergence from front cam </field>
     </message>
 
+    <message name="MODULE_SPECIFIC" id="225">
+      <field name="module_id" type="uint16">Unique module ID defined in Paparazzi</field>
+      <field name="reserved" type="uint16">Reserved for future use</field>
+      <field name="data" type="uint8[]">Raw data, module-specific</field>
+    </message>
+
     <message name="PERIODIC_TELEMETRY_ERR" id="226">
       <field name="process" type="uint8"/>
       <field name="mode" type="uint8"/>
@@ -2961,6 +2967,13 @@
       <field name="ac_id" type="uint8"/>
       <field name="fd" type="uint8" values="ALL|FLIGHT_RECORDER|PPRZLOG">where the message will be logged</field>
       <field name="msg" type="char[]"/>
+    </message>
+
+    <message name="MODULE_SPECIFIC_UP" id="161">
+      <field name="ac_id" type="uint8"/>
+      <field name="module_id" type="uint16">Unique module ID defined in Paparazzi</field>
+      <field name="reserved" type="uint16">Reserved for future use</field>
+      <field name="data" type="uint8[]">Raw data, module-specific</field>
     </message>
     
   </msg_class>
