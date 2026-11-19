@@ -189,7 +189,8 @@ class PprzMessage(object):
                     str_value += c
                 fields.append('"' + str_value + '"')
             elif '[' in t:
-                fields.append(','.join([str(x) for x in self.fieldvalues[idx]]))
+                # an empty array is a lone ',' so that it stays one field
+                fields.append(','.join([str(x) for x in self.fieldvalues[idx]]) or ',')
             else:
                 fields.append(str(self.fieldvalues[idx]))
             ivy_str = sep.join(fields)

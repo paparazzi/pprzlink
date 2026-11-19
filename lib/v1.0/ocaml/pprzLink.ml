@@ -185,6 +185,8 @@ let rec string_of_value = function
   | String s -> s
   | Array a ->
       let l = (Array.to_list (Array.map string_of_value a)) in
+      (* an empty array is a lone separator, so it stays one field and parses back to an empty array *)
+      if Array.length a = 0 then separator else
       match a.(0) with
       | Char _ -> "\""^(String.concat "" l)^"\""
       | _ -> String.concat separator l
@@ -201,6 +203,8 @@ let rec formatted_string_of_value = fun format v ->
     | String x ->sprintf "%s" x
     | Array a ->
         let l = (Array.to_list (Array.map (formatted_string_of_value format) a)) in
+        (* an empty array is a lone separator, so it stays one field and parses back to an empty array *)
+        if Array.length a = 0 then separator else
         match a.(0) with
         | Char _ -> "\""^(String.concat "" l)^"\""
         | _ -> String.concat separator l
