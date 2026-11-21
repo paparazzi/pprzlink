@@ -17,11 +17,13 @@
  *
  */
 
-/** \file PprzTransport.h
+/**
+ * @file PprzTransport.h
+ * @brief PPRZLINK v2 messages exchanged through an owned byte stream.
+ * @ingroup transports
  *
- *
+ * The transport borrows its dictionary, retains incomplete input and exposes complete messages together with frame statistics.
  */
-
 
 #ifndef PPRZLINKCPP_PPRZTRANSPORT_H
 #define PPRZLINKCPP_PPRZTRANSPORT_H
@@ -44,25 +46,38 @@
  */
 
 #include "Transport.h"
+#include "PprzFrameCodec.h"
 
+/// @brief Start delimiter of a PPRZLINK v2 serial frame.
 #define PPRZ_STX (0x99)
 
 namespace pprzlink {
+  /// Frame Messages as PprzLink v2 bytes and decode incoming frames from its owned Device.
+  /// @ingroup transports
   class PprzTransport : public Transport {
   public:
-    PprzTransport(Device *device, const MessageDictionary &dictionary);
+    /// @brief Own a byte stream and create an incremental frame decoder.
+    /// @param[in] device Non-null stream transferred to the transport.
+    /// @param[in] dictionary Borrowed schemas that must outlive the transport.
+    /// @throws std::invalid_argument The device pointer is null.
+    PprzTransport(std::unique_ptr<Device> device, const MessageDictionary &dictionary);
 
-    bool hasMessage() override;
+    /// @brief Disable pending notifications before releasing decoder state.
+    ~PprzTransport() override;
 
-    std::unique_ptr<Message> getMessage() override;
+    /// @brief Encode and synchronously write one complete serial frame.
+    /// @param[in] msg Fully populated message compatible with the peer's XML.
+    /// @return Written frame bytes; no remote delivery acknowledgement is implied.
+    /// @throws std::exception Message validation, encoding or device I/O fails.
+    size_t sendMessage(const Message &msg) override;
 
-    size_t sendMessage(Message const &msg) override;
   protected:
-    bool decodeMessage();
+    /// @brief Decode and distribute every complete frame following an input notification.
+    void receiveAvailable() override;
+    /// @brief Schedule buffered-frame delivery on the device executor after a restart.
+    void receptionStarted() override;
 
-
-    BytesBuffer transportBuffer;
-    std::unique_ptr<Message> currentMessage;
+    PprzFrameDecoder decoder; ///< Incremental decoder borrowing the same dictionary.
   };
 }
-#endif //PPRZLINKCPP_PPRZTRANSPORT_H
+#endif // PPRZLINKCPP_PPRZTRANSPORT_H

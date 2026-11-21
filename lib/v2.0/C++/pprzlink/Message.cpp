@@ -17,386 +17,176 @@
  *
  */
 
-/** \file Message.cpp
+/**
+ * @file Message.cpp
+ * @brief Field access, message diagnostics and binary payload sizing.
+ * @ingroup messages
  *
- *
+ * Unknown fields and unset values remain distinct errors. Binary reads store a complete decoded field before committing the caller offset.
  */
 
-#include <iostream>
 #include <pprzlink/Message.h>
+#include <pprzlink/BinaryCodec.h>
+#include <pprzlink/TextCodec.h>
 
 namespace pprzlink {
+  Message::Message() = default;
+  Message::Message(const MessageDefinition &definition) : def(definition) {}
 
-  Message::Message() : sender_id(static_cast<uint8_t>(0)),receiver_id(static_cast<uint8_t>(0)),component_id(static_cast<uint8_t>(0))
+  size_t Message::getNbValues() const { return fieldValues.size(); }
+  const MessageDefinition &Message::getDefinition() const { return def; }
+
+  const Message &Message::setFieldSI(const std::string &name, double value)
   {
+    const auto &field = def.getField(name);
+    if (field.getType().isArray()) throw field_type_mismatch(
+      std::format("message '{}' field '{}': SI scalar supplied to XML array {}",
+                  def.getName(), name, field.getType().toString()));
+    auto converted = detail::visitBaseType(field.getType().getBaseType(), [&]<class Target>() -> FieldValue {
+      if constexpr (Arithmetic<Target>) return FieldValue(field, field.fromSI<Target>(value));
+      else throw field_type_mismatch(std::format("message '{}' field '{}': SI conversion requires a numeric field",
+                                                 def.getName(), name));
+    });
+    fieldValues.insert_or_assign(name, std::move(converted));
+    return *this;
   }
 
-  Message::Message(const MessageDefinition &def) : def(def),sender_id(static_cast<uint8_t>(0)),receiver_id(static_cast<uint8_t>(0)),component_id(static_cast<uint8_t>(0))
+  const Message &Message::setFieldSI(const std::string &name, std::span<const double> values)
   {
+    const auto &field = def.getField(name);
+    if (!field.getType().isArray()) throw field_type_mismatch(
+      std::format("message '{}' field '{}': SI array supplied to XML scalar {}",
+                  def.getName(), name, field.getType().toString()));
+    if (field.getType().getBaseType() == BaseType::STRING) throw field_type_mismatch(
+      std::format("message '{}' field '{}': SI conversion requires numeric elements", def.getName(), name));
+    // Check metadata for empty arrays too: no element may otherwise request a conversion.
+    if (!field.canConvertSI()) throw field_unit_error(std::format(
+      "message '{}' field '{}' (XML unit '{}'): SI conversion is unavailable", def.getName(), name, field.getUnit()));
+    auto converted = detail::visitBaseType(field.getType().getBaseType(), [&]<class Target>() -> FieldValue {
+      if constexpr (Arithmetic<Target>) {
+        std::vector<Target> native;
+        native.reserve(values.size());
+        for (const double value : values) native.push_back(field.fromSI<Target>(value));
+        return FieldValue(field, native);
+      } else throw field_type_mismatch(std::format("message '{}' field '{}': SI conversion requires numeric elements",
+                                                   def.getName(), name));
+    });
+    fieldValues.insert_or_assign(name, std::move(converted));
+    return *this;
   }
 
-  size_t Message::getNbValues() const
+  double Message::getFieldSI(const std::string &name) const
   {
-    return fieldValues.size();
+    const auto &value = fieldWithValue(name);
+    const auto &field = value.getField();
+    if (field.getType().isArray()) throw field_type_mismatch(
+      std::format("message '{}' field '{}': XML array requires getFieldArraySI()", def.getName(), name));
+    return std::visit([&]<class Stored>(const Stored &raw) -> double {
+      if constexpr (Arithmetic<Stored>) return field.toSI(raw);
+      else throw field_type_mismatch(std::format("message '{}' field '{}': SI conversion requires a numeric field",
+                                                 def.getName(), name));
+    }, value.getValue());
   }
 
-  const MessageDefinition &Message::getDefinition() const
+  std::vector<double> Message::getFieldArraySI(const std::string &name) const
   {
-    return def;
-  }
-
-  template<typename StreamType>
-  void addFieldToStream(StreamType &stream,const MessageField &field,std::any value, bool uint8_as_int=false)
-  {
-    switch (field.getType().getBaseType())
-    {
-      case BaseType::CHAR :
-        stream << std::any_cast<char>(value);
-        break;
-      case BaseType::INT8:
-        if (uint8_as_int)
-        {
-          stream << (int)std::any_cast<int8_t>(value);
+    const auto &value = fieldWithValue(name);
+    const auto &field = value.getField();
+    if (!field.getType().isArray()) throw field_type_mismatch(
+      std::format("message '{}' field '{}': XML scalar requires getFieldSI()", def.getName(), name));
+    if (field.getType().getBaseType() == BaseType::STRING) throw field_type_mismatch(
+      std::format("message '{}' field '{}': SI conversion requires numeric elements", def.getName(), name));
+    if (!field.canConvertSI()) throw field_unit_error(std::format(
+      "message '{}' field '{}' (XML unit '{}'): SI conversion is unavailable", def.getName(), name, field.getUnit()));
+    return std::visit([&]<class Stored>(const Stored &raw) -> std::vector<double> {
+      if constexpr (requires { typename Stored::value_type; }) {
+        if constexpr (Arithmetic<typename Stored::value_type>) {
+          std::vector<double> result;
+          result.reserve(raw.size());
+          for (const auto &element : raw) result.push_back(field.toSI(element));
+          return result;
         }
-        else
-        {
-          stream << std::any_cast<int8_t>(value);
-        }
-        break;
-      case BaseType::INT16:
-        stream << std::any_cast<int16_t>(value);
-        break;
-      case BaseType::INT32:
-        stream << std::any_cast<int32_t>(value);
-        break;
-      case BaseType::UINT8:
-        if (uint8_as_int)
-        {
-          stream << (int)std::any_cast<uint8_t>(value);
-        }
-        else
-        {
-          stream << std::any_cast<uint8_t>(value);
-        }
-        break;
-      case BaseType::UINT16:
-        stream << std::any_cast<uint16_t>(value);
-        break;
-      case BaseType::UINT32:
-        stream << std::any_cast<uint32_t>(value);
-        break;
-      case BaseType::FLOAT:
-        stream << std::any_cast<float>(value);
-        break;
-      case BaseType::DOUBLE:
-        stream << std::any_cast<double>(value);
-        break;
-      case BaseType::STRING:
-          stream << std::any_cast<std::string>(value);
-          break;
-      case BaseType::NOT_A_TYPE:
-        // THIS SHOULD NOT HAPPEN !!!!
-        throw std::logic_error(" field "+ field.getName() +"as type NOT_A_TYPE !");
-        break;
-    }
-  }
-
-  template<typename StreamType>
-  void addVectorToStream([[maybe_unused]] StreamType &stream,const Message &msg,int index, [[maybe_unused]] bool uint8_as_int=false)
-  {
-    const auto& value = msg.getRawValue(index);
-    switch (value.getType().getBaseType())
-    {
-      case BaseType::CHAR :
-      {
-        std::vector<char> vec;
-
       }
-        break;
-      case BaseType::INT8:
-        break;
-      case BaseType::INT16:
-        break;
-      case BaseType::INT32:
-        break;
-      case BaseType::UINT8:
-        break;
-      case BaseType::UINT16:
-        break;
-      case BaseType::UINT32:
-        break;
-      case BaseType::FLOAT:
-        break;
-      case BaseType::STRING:
-        break;
-      case BaseType::NOT_A_TYPE:
-        // THIS SHOULD NOT HAPPEN !!!!
-        throw std::logic_error(" field " + value.getName() + "as type NOT_A_TYPE !");
-        break;
-    }
+      throw field_type_mismatch(std::format("message '{}' field '{}': SI conversion requires numeric elements",
+                                            def.getName(), name));
+    }, value.getValue());
+  }
+
+  void Message::getFieldSI(const std::string &name, std::vector<double> &values) const
+  {
+    values = getFieldArraySI(name);
   }
 
   std::string Message::toString() const
   {
-    std::stringstream sstr;
-
-    sstr << def.getName() << " [";
-    if (def.getNbFields())
-    for (size_t i=0;i<def.getNbFields();++i)
-    {
-      if (i != 0)
-      {
-        sstr << "; ";
-      }
-      auto name = def.getField(i).getName();
-
-      sstr << name << "=";
-      auto found = fieldValues.find(name);
-      if (found == fieldValues.end())
-      {
-        sstr << "NOTSET";
-      }
-      else
-      {
-        if (found->second.getType().isArray() && found->second.getType().getBaseType()!=BaseType::CHAR)
-          sstr << "{";
-        auto val =found->second;
-        val.setOutputInt8AsInt(true);
-          sstr << val;
-        if (found->second.getType().isArray() && found->second.getType().getBaseType()!=BaseType::CHAR)
-          sstr << "}";
-      }
+    std::ostringstream stream;
+    stream << def.getName() << " [";
+    for (size_t i = 0; i < def.getNbFields(); ++i) {
+      if (i != 0) stream << "; ";
+      const auto &name = def.getField(i).getName();
+      stream << name << '=';
+      const auto found = fieldValues.find(name);
+      if (found == fieldValues.end()) stream << "NOTSET";
+      else writeDebugField(stream, found->second);
     }
-    sstr << "]";
+    stream << ']';
+    return stream.str();
+  }
 
-    return sstr.str();
+  const FieldValue &Message::fieldWithValue(const std::string &name) const
+  {
+    (void)def.getField(name); // Distinguish unknown fields from unset fields.
+    const auto found = fieldValues.find(name);
+    if (found == fieldValues.end()) {
+      throw field_has_no_value(std::format("In message {} field {} has no value", def.getName(), name));
+    }
+    return found->second;
   }
 
   const FieldValue &Message::getRawValue(const std::string &name) const
   {
-    auto found = fieldValues.find(name);
-    if (found==fieldValues.end())
-    {
-      throw pprzlink::no_such_field("No value for field "+name);
-    }
-    return found->second;
+    return fieldWithValue(name);
   }
 
-  const FieldValue &Message::getRawValue(int index) const
+  const FieldValue &Message::getRawValue(size_t index) const
   {
-    auto name = def.getField(index).getName();
-    auto found = fieldValues.find(name);
-    if (found==fieldValues.end())
-    {
-      throw pprzlink::no_such_field("No value for field "+name);
-    }
-    return found->second;
+    return getRawValue(def.getField(index).getName());
   }
 
-  const std::variant<std::string, uint8_t> &Message::getSenderId() const
-  {
-    return sender_id;
-  }
+  const Message::SenderId &Message::getSenderId() const { return sender_id; }
+  uint8_t Message::getReceiverId() const { return receiver_id; }
+  uint8_t Message::getComponentId() const { return component_id; }
+  uint8_t Message::getClassId() const { return def.getClassId(); }
+  void Message::setSenderId(const SenderId &senderId) { sender_id = senderId; }
+  void Message::setReceiverId(uint8_t receiverId) { receiver_id = receiverId; }
+  void Message::setComponentId(uint8_t componentId) { component_id = componentId; }
 
-  uint8_t Message::getReceiverId() const
-  {
-    return receiver_id;
-  }
-
-  uint8_t Message::getComponentId() const
-  {
-    return component_id;
-  }
-
-  uint8_t Message::getClassId() const
-  {
-    return def.getClassId();
-  }
-
-  void Message::setSenderId(const std::variant<std::string, uint8_t> &senderId)
-  {
-    sender_id = senderId;
-  }
-
-  void Message::setReceiverId(uint8_t receiverId)
-  {
-    receiver_id = receiverId;
-  }
-
-  void Message::setComponentId(uint8_t componentId)
-  {
-    component_id = componentId;
-  }
-
-  unsigned long long makeValue(BytesBuffer const &buffer, size_t offset, size_t elemSize)
-  {
-    unsigned long long value=0;
-
-    for (size_t byteIndex=0; byteIndex < elemSize; ++byteIndex)
-    {
-      value |= buffer[offset + byteIndex] << (byteIndex * 8u);
-    }
-    return value;
-  }
-
-  template<typename BASE_TYPE>
-  std::vector<BASE_TYPE> makeVector(BytesBuffer const &buffer, size_t offset, size_t nbElem, size_t elemSize)
-  {
-    std::vector<BASE_TYPE> vec;
-    for (size_t elemIndex=0; elemIndex < nbElem; ++elemIndex)
-    {
-      vec.push_back((BASE_TYPE)makeValue(buffer,offset+elemSize*elemIndex,elemSize));
-    }
-    return vec;
-  }
   size_t Message::addFieldToBuffer(size_t index, BytesBuffer &buffer) const
   {
-    {
-      auto name = def.getField(index).getName();
-      auto const &it = fieldValues.find(name);
-      if (it == fieldValues.end())
-      {
-        throw field_has_no_value("In message " + def.getName() + " field " + name + " has not value !");
-      }
-      return it->second.addToBuffer(buffer);
-    }
+    return binary::writeField(buffer, fieldWithValue(def.getField(index).getName()));
   }
 
-  void Message::addFieldFromBuffer(size_t index, BytesBuffer const &buffer, size_t& offset)
+  void Message::addFieldFromBuffer(size_t index, const BytesBuffer &buffer, size_t &offset)
   {
-    auto const & field =  getDefinition().getField(index);
-    auto const & fieldType = field.getType();
-    auto size = field.getSize();
-    unsigned long long value=0;
+    addFieldFromBuffer(index, std::span<const uint8_t>(buffer), offset);
+  }
 
-    // For arrays
-    if (fieldType.isArray())
-    {
-      auto elemSize = sizeofBaseType(field.getType().getBaseType());
-      if (size==0) // Variable length array
-      {
-        size = elemSize * makeValue(buffer,offset,1); // Read the length of the array
-        offset++;
-      }
-      switch (fieldType.getBaseType())
-      {
-        case BaseType::CHAR:
-        {
-          auto vec = makeVector<char>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::INT8:
-        {
-          auto vec = makeVector<int8_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::INT16:
-        {
-          auto vec = makeVector<int16_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::INT32:
-        {
-          auto vec = makeVector<int32_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::UINT8:
-        {
-          auto vec = makeVector<uint8_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::UINT16:
-        {
-          auto vec = makeVector<uint16_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::UINT32:
-        {
-          auto vec = makeVector<uint32_t>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        case BaseType::FLOAT:
-        {
-          auto vec = makeVector<float>(buffer,offset,size/elemSize,elemSize);
-          addField(field.getName(),vec);
-          break;
-        }
-        default:
-          throw std::logic_error("Type "+ fieldType.toString()+ " is not correct for PPRZ Transport.");
-          break;
-      }
-      offset+=size;
-    }
-      // If not an array and not a string (last case should not occur as strings are for Ivy only...)
-    else if (!fieldType.isArray() && size)
-    {
-      value = makeValue(buffer,offset,size);
-      offset+=size;
-
-      switch (fieldType.getBaseType())
-      {
-        case BaseType::CHAR:
-          addField(field.getName(),(char)value);
-          break;
-        case BaseType::INT8:
-          addField(field.getName(),(int8_t)value);
-          break;
-        case BaseType::INT16:
-          addField(field.getName(),(int16_t)value);
-          break;
-        case BaseType::INT32:
-          addField(field.getName(),(int32_t)value);
-          break;
-        case BaseType::UINT8:
-          addField(field.getName(),(uint8_t)value);
-          break;
-        case BaseType::UINT16:
-          addField(field.getName(),(uint16_t)value);
-          break;
-        case BaseType::UINT32:
-          addField(field.getName(),(uint32_t)value);
-          break;
-        case BaseType::FLOAT:
-        {
-          float *vf = (float*) &value;
-          addField(field.getName(), (float) *vf);
-          break;
-        }
-        case BaseType::STRING:
-        {
-          // A string is like a variable size array of char (char[])
-          size = makeValue(buffer,offset,1); // Read the length of the string
-          offset++;
-          auto vec = makeVector<char>(buffer,offset,size,1);
-          addField(field.getName(),vec);
-          break;
-        }
-        default:
-          throw std::logic_error("Type "+ fieldType.toString()+ " is not correct for PPRZ Transport.");
-          break;
-      }
-    }
+  void Message::addFieldFromBuffer(size_t index, std::span<const uint8_t> buffer, size_t &offset)
+  {
+    const auto &field = def.getField(index);
+    auto cursor = offset;
+    auto value = binary::readField(field, buffer, cursor);
+    fieldValues.insert_or_assign(field.getName(), std::move(value));
+    offset = cursor;
   }
 
   size_t Message::getByteSize() const
   {
-    size_t size= 0;
-    if (fieldValues.size() != getDefinition().getNbFields())
-    {
-      throw pprzlink::field_has_no_value("Cannot get size of an incomplete message.");
+    if (fieldValues.size() != def.getNbFields()) {
+      throw field_has_no_value("Cannot get size of an incomplete message");
     }
-    for (auto value : fieldValues)
-    {
-      size+=value.second.getByteSize();
-    }
-
+    size_t size = 0;
+    for (const auto &[name, value] : fieldValues) size += binary::fieldSize(value);
     return size;
   }
 }

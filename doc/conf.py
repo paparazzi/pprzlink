@@ -14,20 +14,18 @@
 
 import sys
 import os
+from pathlib import Path
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../lib/v2.0/python'))
-sys.path.append( "/usr/lib/python2.7/dist-packages/breathe" )
+# Import the in-tree Python package independently of the launch directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'lib/v2.0/python/src'))
 
-# hack for readthedocs to cause it to run doxygen first
-# https://github.com/rtfd/readthedocs.org/issues/388
+# Read the Docs also includes the existing generated C reference.
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 if read_the_docs_build:
     import subprocess
-    subprocess.call('mkdir -p _xml/c/v2.0', shell=True)
-    subprocess.call('doxygen C_lib_v2.0.doxyconf', shell=True)
+    doc_directory = Path(__file__).resolve().parent
+    (doc_directory / '_xml/c/v2.0').mkdir(parents=True, exist_ok=True)
+    subprocess.run(['doxygen', 'C_lib_v2.0.doxyconf'], cwd=doc_directory, check=True)
 
 # -- General configuration ------------------------------------------------
 
@@ -43,6 +41,8 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'breathe',
+    'myst_parser',
+    'sphinxcontrib.mermaid',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,8 +50,10 @@ templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {'.rst': 'restructuredtext', '.md': 'markdown'}
+# Preserve the GitHub-style heading links used by the C++ Markdown manuals.
+myst_heading_anchors = 6
+myst_fence_as_directive = ['mermaid']
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -84,7 +86,7 @@ release = u'0.1.0'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -95,7 +97,21 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'build', 'Thumbs.db', '.DS_Store', 'C/v1.0']
+# C reference pages need the separately generated Doxygen XML. The existing
+# Read the Docs hook generates it there; local manual builds can omit it.
+if not os.path.isfile(os.path.join(os.path.dirname(__file__), '_xml/c/v2.0/index.xml')):
+    exclude_patterns.append('C')
+
+
+def _include_c_reference(app, docname, source):
+    """Include the C reference in navigation when its generated XML is present."""
+    if docname == 'index' and 'C' not in exclude_patterns:
+        source[0] += '\nC API reference\n===============\n\n.. toctree::\n   :maxdepth: 2\n\n   C/C\n'
+
+
+def setup(app):
+    app.connect('source-read', _include_c_reference)
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -158,7 +174,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

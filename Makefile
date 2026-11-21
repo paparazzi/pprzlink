@@ -58,7 +58,6 @@ libpprzlink++:
 
 libpprzlink++-install: libpprzlink++ 
 	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ install
-	$(Q)Q=$(Q) DESTDIR=$(DESTDIR)/C++ $(MAKE) -C lib/v$(PPRZLINK_LIB_VERSION)/C++ copy-ivyqt
 
 
 libpprzlink:
