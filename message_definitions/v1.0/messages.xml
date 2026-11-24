@@ -33,7 +33,22 @@
       <field name="theta" type="float" unit="rad" alt_unit="deg"/>
     </message>
 
-    <!-- 7 is free -->
+    <message name="SERVO_TELEMETRY" id="7">
+      <description>
+        Latest telemetry of all servos (actuators with position, speed or force feedback) in one message:
+        element i of each array is the same servo.
+        An array is empty when none of the servos reports that value, and 0 for a servo that doesn't report it.
+      </description>
+      <field name="idx"         type="uint8[]">Actuator index (order of the airframe actuators)</field>
+      <field name="age"         type="uint8[]" alt_unit="s" alt_unit_coef="0.01">Age of the latest telemetry, 255 when older than 2.54 s</field>
+      <field name="position"    type="int16[]" alt_unit="rad" alt_unit_coef="0.001">Position, in 0.001 rad</field>
+      <field name="speed"       type="int16[]" alt_unit="rad/s" alt_unit_coef="0.01">Speed, in 0.01 rad/s (or m/s)</field>
+      <field name="force"       type="int16[]" alt_unit="N" alt_unit_coef="0.01">Force or torque (load), in 0.01 N (or Nm)</field>
+      <field name="current"     type="int16[]" alt_unit="A" alt_unit_coef="0.01">Current, in 0.01 A</field>
+      <field name="voltage"     type="uint16[]" alt_unit="V" alt_unit_coef="0.01">Voltage, in 0.01 V</field>
+      <field name="temperature" type="int8[]" unit="deg_celsius">Temperature</field>
+      <field name="errors"      type="uint16[]">Error count or error flags of the servo (vendor specific)</field>
+    </message>
 
     <message name="GPS" id="8">
       <field name="mode"       type="uint8"  unit="byte_mask"/>
@@ -90,7 +105,21 @@
       <field name="energy"    type="float" unit="Wh">Accumulated consumed energy</field>
     </message>
 
-    <!-- 13 is free -->
+    <message name="ESC_TELEMETRY" id="13">
+      <description>
+        Latest telemetry of all ESCs in one message: element i of each array is the same ESC.
+        An array is empty when none of the ESCs reports that value, and 0 for an ESC that doesn't report it.
+      </description>
+      <field name="idx"               type="uint8[]">Actuator index (order of the airframe actuators)</field>
+      <field name="age"               type="uint8[]" alt_unit="s" alt_unit_coef="0.01">Age of the latest telemetry, 255 when older than 2.54 s</field>
+      <field name="rpm"               type="int16[]" alt_unit="rpm" alt_unit_coef="10">Motor rotation speed, in 10 rpm</field>
+      <field name="current"           type="int16[]" alt_unit="A" alt_unit_coef="0.01">Current, in 0.01 A</field>
+      <field name="voltage"           type="uint16[]" alt_unit="V" alt_unit_coef="0.01">Voltage, in 0.01 V</field>
+      <field name="temperature"       type="int8[]" unit="deg_celsius">ESC temperature</field>
+      <field name="motor_temperature" type="int8[]" unit="deg_celsius">Motor temperature</field>
+      <field name="output"            type="uint8[]" unit="%">Output duty cycle of the ESC to the motor</field>
+      <field name="errors"            type="uint16[]">Error count or error flags of the ESC (vendor specific)</field>
+    </message>
 
     <message name="CALIBRATION" id="14">
       <field name="climb_sum_err" type="float" format="%.1f"/>
@@ -131,7 +160,6 @@
       <field name="current" type="float"/>
       <field name="voltage" type="float"/>
     </message>
-
 
     <message name="CAM" id="20">
       <field name="pan" type="int16" unit="deg"/>
@@ -225,6 +253,8 @@
       <field name="downlink_rate" type="uint16" unit="bytes/s"/>
       <field name="uplink_rate" type="uint16" unit="msgs/s"/>
       <field name="downlink_ovrn" type="uint8"/>
+      <field name="uplink_err" type="uint8">Uplink frames rejected by the parser (bad checksum or length, includes uplink_ovrn), wraps at 256</field>
+      <field name="uplink_ovrn" type="uint8">Uplink frames dropped because the previous one was not handled yet, wraps at 256</field>
     </message>
 
 <!-- Current value of one variable from the dl_settings (airframe.xml) -->
@@ -251,10 +281,7 @@
       <field name="cpu_time"  type="float" unit="s"/>
     </message>
 
-    <message name="MOTOR" id="34">
-      <field name="rpm" type="uint16" unit="Hz"/>
-      <field name="current" type="float" unit="A"/>
-    </message>
+    <!-- 34 is free -->
 
     <message name="WP_MOVED" id="35">
     <description>
@@ -265,13 +292,6 @@
       <field name="utm_north" type="float" unit="m"/>
       <field name="alt" type="float" unit="m">Height above Mean Sea Level (geoid)</field>
       <field name="utm_zone" type="uint8"/>
-    </message>
-
-    <message name="MKK" id="36">
-      <field name="nr" type="uint8"/>
-      <field name="rpm" type="uint8" unit="Poles/s"/>
-      <field name="current" type="uint8" unit="mA"/>
-      <field name="temp" type="int8" unit="deg"/>
     </message>
 
     <message name="GUIDANCE_INDI_HYBRID" id="37">
@@ -332,11 +352,6 @@
       <field name="phi_sp" type="float"/>
     </message>
 
-    <message name="BARO_MS5534A" id="44">
-      <field name="pressure" type="uint32" unit="P"/>
-      <field name="temp" type="uint16" unit="dC"/>
-      <field name="alt" type="float" unit="m"/>
-    </message>
 
     <message name="CHIRP" id="45">
       <field name="active"              type="uint8">Chirp is active</field>
@@ -404,7 +419,33 @@
       <field name="cycle_time" type="uint32" unit="ms"/>
     </message>
 
-    <!-- 51 is free -->
+    <message name="LINK_STATS" id="51">
+      <description>
+        Frame statistics of one node on the datalink path of an aircraft (autopilot, router, radio bridge), sent
+        with the aircraft id as sender. Down is towards the ground: down_rx is received from the aircraft side,
+        down_tx sent to the ground side, up the reverse. Counters are cumulative and wrap at 65536.
+      </description>
+      <field name="hop" type="uint8">Place of the node on the path, counted from the autopilot (0: autopilot, 1: next node, ...)</field>
+      <field name="uptime" type="uint16" unit="s">Time since the node started (a restart resets the counters)</field>
+      <field name="down_rx" type="uint16">Downlink frames received</field>
+      <field name="down_rx_err" type="uint16">Downlink frames rejected (bad checksum or length)</field>
+      <field name="down_tx" type="uint16">Downlink frames sent</field>
+      <field name="down_tx_err" type="uint16">Downlink frames that could not be sent</field>
+      <field name="up_rx" type="uint16">Uplink frames received</field>
+      <field name="up_rx_err" type="uint16">Uplink frames rejected (bad checksum or length)</field>
+      <field name="up_tx" type="uint16">Uplink frames sent</field>
+      <field name="up_tx_err" type="uint16">Uplink frames that could not be sent</field>
+      <field name="down_max_gap" type="uint16" unit="ms">Longest time without a downlink frame since the previous report</field>
+      <field name="up_max_gap" type="uint16" unit="ms">Longest time without an uplink frame since the previous report</field>
+      <field name="nb_peers" type="uint8">Peers known on the ground side (e.g. GCS computers found by a router)</field>
+      <field name="dropped" type="uint16">Frames not forwarded on purpose (e.g. uplink for another aircraft)</field>
+      <field name="rssi" type="int8" unit="dBm">Signal of the node's link towards the ground, 127 if not available</field>
+      <field name="down_rx_bytes" type="uint16">Bytes of the downlink frames received (wraps)</field>
+      <field name="up_rx_bytes" type="uint16">Bytes of the uplink frames received (wraps)</field>
+      <field name="rssi_ac" type="int8" unit="dBm">Signal of the node's link towards the aircraft, 127 if not available</field>
+      <field name="battery" type="uint8" unit="%">Battery charge of the node, 255 if it has no battery</field>
+      <field name="temperature" type="int8" unit="deg_celsius">Temperature of the node, 127 if not available</field>
+    </message>
 
     <message name="MPPT" id="52">
       <field name="values" type="int16[]" alt_unit_coef="1e-3"/>
@@ -436,26 +477,8 @@
       <field name="airspeed" type="float" unit="m/s">calibrated airspeed</field>
     </message>
 
-    <message name="BARO_ETS" id="56">
-      <field name="adc" type="uint16"/>
-      <field name="offset" type="uint16"/>
-      <field name="scaled" type="float"/>
-    </message>
 
     <!-- 57 is free -->
-
-    <message name="VISION_OUTBACK" id="58">
-      <field name="status" type="uint8"/>
-      <field name="het_moment" type="uint8"/>
-      <field name="timeoutcount" type="uint8"/>
-      <field name="vision_timeout" type="uint8"/>
-      <field name="height" type="float"/>
-      <field name="out_of_range" type="float"/>
-      <field name="marker_enu_x" type="float"/>
-      <field name="marker_enu_y" type="float"/>
-      <field name="flow_x" type="float"/>
-      <field name="flow_y" type="float"/>
-    </message>
 
     <message name="GPS_LLA" id="59">
       <field name="lat"        type="int32"  unit="1e7deg" alt_unit="deg" alt_unit_coef="0.0000001"/>
@@ -539,23 +562,7 @@
       <field name="shutter" type="uint8" unit="decisec" alt_unit="sec" alt_unit_coef="0.1"/>
     </message>
 
-    <message name="AMSYS_BARO" id="65">
-      <field name="pBaroRaw" type="uint16"></field>
-      <field name="pBaro" type="float" unit="Pa"> </field>
-      <field name="pHomePressure" type="float" unit="Pa"></field>
-      <field name="AltOffset" type="float" unit="m"></field>
-      <field name="aktuell" type="float" unit="m"></field>
-      <field name="Over_Ground" type="float" unit="m"></field>
-      <field name="tempBaro" type="float" unit="°C"></field>
-    </message>
 
-    <message name="AMSYS_AIRSPEED" id="66">
-      <field name="asRaw" type="uint16"></field>
-      <field name="asPresure" type="float" unit="Pa"></field>
-      <field name="asAirspeed" type="float" unit="m/s"></field>
-      <field name="asAirsFilt" type="float" unit="m/s"></field>
-      <field name="asTemp" type="float" unit="°C"></field>
-    </message>
 
     <message name="FLIGHT_BENCHMARK" id="67">
       <field name="SE_As" type="float"></field>
@@ -566,11 +573,6 @@
       <field name="Err_Pos" type="float"></field>
     </message>
 
-    <message name="MPL3115_BARO" id="68">
-      <field name="pressure" type="uint32" alt_unit="Pa" alt_unit_coef="0.25"/>
-      <field name="temp" type="int16" alt_unit="degC" alt_unit_coef="0.0625"/>
-      <field name="alt" type="float" unit="m"/>
-    </message>
 
     <message name="AOA" id="69">
       <field name="raw" type="uint32"/>
@@ -613,13 +615,6 @@
       <field name="timing2" type="uint32"/>
       <field name="bind_mfg_id" type="uint32"/>
       <field name="mfg_id" type="uint8[]"/>
-    </message>
-
-    <message name="GX3_INFO" id="73">
-      <field name="GX3_freq"  type="float"    unit="hz"/>
-      <field name="chksm_error"   type="uint32"/>
-      <field name="hdr_error"     type="uint32"/>
-      <field name="GX3_chksm"	type="uint16"/>
     </message>
 
     <message name="UBLOX_INFO" id="74">
@@ -738,13 +733,6 @@
       <field name="status" type="uint8"/>
     </message>
 
-    <message name="BMP_STATUS" id="84">
-      <field name="UP"    type="int32"/>
-      <field name="UT"    type="int32"/>
-      <field name="press" type="int32" unit="Pa"/>
-      <field name="temp"  type="int32" unit="10x_deg_celsius"/>
-    </message>
-
     <message name="MLX_STATUS" id="85">
       <field name="itemp_case" type="uint16"/>
       <field name="temp_case"  type="float" unit="deg_celsius" format="%.2f"/>
@@ -777,10 +765,6 @@
       <field name="temp" type="float" unit="deg_celsius">local temperature</field>
     </message>
 
-    <message name="SCP_STATUS" id="88">
-      <field name="press" type="uint32" unit="Pa"/>
-      <field name="temp"  type="int16" unit="100x_deg_celsius"/>
-    </message>
 
     <message name="SHT_STATUS" id="89">
       <field name="ihumid" type="uint16"/>
@@ -832,17 +816,6 @@
       <field name="nav_block"   type="uint8">Current navigation block</field>
       <field name="gps_mode"    type="uint8">GPS fix flag</field>
       <field name="flight_time" type="uint16">Flight time</field>
-    </message>
-
-    <message name="MOTOR_BENCH_STATUS" id="94">
-      <field name="time_ticks" type="uint32"/>
-      <field name="throttle" type="float" format="%.3f"/>
-      <field name="rpm" type="float"/>
-      <field name="current" type="float"/>
-      <field name="thrust" type="float"/>
-      <field name="torque" type="float"/>
-      <field name="time_s" type="uint16"/>
-      <field name="mode" type="uint8"/>
     </message>
 
     <message name="TARGET_POS_INFO" id="95">
@@ -913,11 +886,6 @@
       <field name="values" type="int16[]" unit="none"/>
     </message>
 
-    <message name="BLUEGIGA" id="106">
-      <field name="data_rate" type="uint32" unit="bytes/s"/>
-      <field name="A2A_msg_rate" type="uint32"/>
-    </message>
-
   <!-- Not used yet? -->
     <message name="THROTTLE_CURVE" id="107">
       <field name="curve" type="uint8"/>
@@ -978,23 +946,6 @@
       <field name="temp"   type="float" unit="deg_celsius" format="%.2f"/>
     </message>
 
-    <message name="BARO_MS5611" id="116">
-      <field name="d1"       type="uint32"/>
-      <field name="d2"       type="uint32"/>
-      <field name="pressure" type="float" unit="hPa" format="%.2f"/>
-      <field name="temp"     type="float" unit="deg_celsius" format="%.2f"/>
-    </message>
-
-    <message name="MS5611_COEFF" id="117">
-      <field name="c0" type="uint16"/>
-      <field name="c1" type="uint16"/>
-      <field name="c2" type="uint16"/>
-      <field name="c3" type="uint16"/>
-      <field name="c4" type="uint16"/>
-      <field name="c5" type="uint16"/>
-      <field name="c6" type="uint16"/>
-      <field name="c7" type="uint16"/>
-    </message>
 
     <message name="ATMOSPHERE_CHARGE" id="118">
       <field name="t0" type="uint16"/>
@@ -1152,25 +1103,6 @@
       <field name="mx"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="my"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
       <field name="mz"    type="int32" alt_unit="1" alt_unit_coef="0.0004883"/>
-    </message>
-
-    <message name="FILTER" id="134">
-      <field name="phi"              type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="theta"            type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="psi"              type="int32" alt_unit="deg" alt_unit_coef="0.0139882"/>
-      <field name="measure_phi"      type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="measure_theta"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="measure_psi"      type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_phi"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_theta"  type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="corrected_psi"    type="int32" alt_unit="deg" alt_unit_coef="0.0000273"/>
-      <field name="correction_phi"   type="int32"/>
-      <field name="correction_theta" type="int32"/>
-      <field name="correction_psi"   type="int32"/>
-      <field name="bp"               type="int32"/>
-      <field name="bq"               type="int32"/>
-      <field name="br"               type="int32"/>
-      <field name="comp_id"          type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
     <message name="IMU_HEATER" id="135">
@@ -1599,13 +1531,28 @@
     </message>
 
     <message name="INS_EKF2_EXT" id="170">
+      <description>
+        Extended status of the EKF2: GNSS drift checks, estimated accuracies, height biases,
+        emergency yaw estimate and magnetometer checks.
+      </description>
       <field name="gps_drift_h" type="float" unit="m/s">Horizontal position drift rate (m/s)</field>
       <field name="gps_drift_v" type="float" unit="m/s">Vertical position drift rate (m/s)</field>
       <field name="gps_drift_h_filt" type="float" unit="m/s">Filtered horizontal velocity (m/s)</field>
       <field name="gps_drift_blocked" type="uint8">The GPS drift calculation is blocked</field>
-      <field name="gyro_vibe_coning" type="float">Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)</field>
-      <field name="gyro_vibe_hf" type="float">Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)</field>
-      <field name="accel_vibe_hf" type="float">Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)</field>
+      <field name="control_mode_upper" type="uint32">Upper 32 bits of the control status (bitfields from common.h)</field>
+      <field name="pos_acc_h" type="float" unit="m">1-sigma horizontal position accuracy</field>
+      <field name="pos_acc_v" type="float" unit="m">1-sigma vertical position accuracy</field>
+      <field name="vel_acc_h" type="float" unit="m/s">1-sigma horizontal velocity accuracy</field>
+      <field name="vel_acc_v" type="float" unit="m/s">1-sigma vertical velocity accuracy</field>
+      <field name="hagl" type="float" unit="m">Height above ground from the terrain estimate (NaN when not valid)</field>
+      <field name="baro_bias" type="float" unit="m">Estimated barometer height bias</field>
+      <field name="gnss_hgt_bias" type="float" unit="m">Estimated GNSS height bias</field>
+      <field name="yaw_gsf" type="float" unit="rad" alt_unit="deg">Yaw of the EKF-GSF emergency yaw estimator (NaN when not available)</field>
+      <field name="yaw_gsf_std" type="float" unit="rad" alt_unit="deg">1-sigma accuracy of the EKF-GSF yaw</field>
+      <field name="mag_inclination" type="float" unit="deg">Measured magnetic field inclination</field>
+      <field name="mag_inclination_ref" type="float" unit="deg">Magnetic field inclination of the world magnetic model</field>
+      <field name="mag_strength" type="float" unit="gauss">Measured magnetic field strength</field>
+      <field name="mag_strength_ref" type="float" unit="gauss">Magnetic field strength of the world magnetic model</field>
     </message>
 
     <message name="AHRS_BIAS" id="171">
@@ -1631,32 +1578,6 @@
       <field name="comp_id" type="uint8" values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN"/>
     </message>
 
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="AHRS_MEASUREMENT_EULER" id="174">
-      <field name="phi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-      <field name="theta" type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-      <field name="psi"   type="float" unit="rad" alt_unit="deg" alt_unit_coef="57.29578" />
-    </message>
-
-  <!-- Do we need this? Only in airborne/firmwares/wind_tunnel/main_mb.c-->
-    <message name="WT" id="175">
-      <field name="rpm"      type="float"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="CSC_CAN_DEBUG" id="176">
-      <field name="err_nb"      type="uint32"/>
-      <field name="err_code"    type="uint32"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log and airborne/test/test_math_trig_compressed.c-->
-    <message name="CSC_CAN_MSG" id="177">
-      <field name="frame"   type="uint32"/>
-      <field name="id"      type="uint32"/>
-      <field name="data_a"  type="uint32"/>
-      <field name="data_b"  type="uint32"/>
-    </message>
-
     <message name="AHRS_GYRO_BIAS_INT" id="178">
       <field name="bp"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
       <field name="bq"     type="int32" alt_unit="deg/s" alt_unit_coef="0.0139882"/>
@@ -1676,13 +1597,6 @@
       <field name="dynamic_p"  type="int32"  unit="Pa"/>
       <field name="static_p"   type="int32"  unit="Pa"/>
       <field name="checksum"   type="uint8"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="FMS_TIME" id="180">
-      <field name="tv_sec"   type="uint32"/>
-      <field name="tv_nsec"  type="uint32"/>
-      <field name="delay_ns" type="uint32"/>
     </message>
 
     <message name="ROTATING_WING_STATE" id="181">
@@ -1771,15 +1685,6 @@
       <field name="u_min"               type="float[]"  />
       <field name="u_max"               type="float[]"  />
       <field name="u"                   type="float[]"  />
-    </message>
-
-    <message name="MISSION_ITEM" id="189">
-      <field name="count" type="uint8"/>
-      <field name="seq"   type="uint16"/>
-      <field name="cmd"   type="uint16"/>
-      <field name="lat"   type="int32"/>
-      <field name="lon"   type="int32"/>
-      <field name="alt"   type="float"/>
     </message>
 
     <message name= "ACTUATORS_T4_IN" id="190">
@@ -1893,6 +1798,35 @@
     </message>
 
     <!-- 195 is free -->
+
+    <message name="EKF2_INPUT" id="195">
+      <description>
+        A sample given to the EKF2 (ins_ekf2 with INS_EKF2_LOG_INPUTS), logged on the SD card to replay
+        the EKF offline (sw/tools/ekf2_replay). The ints and values depend on the type:
+        IMU: ints delta angle and delta velocity integration time (us), values delta angle xyz (rad) and delta velocity xyz (m/s);
+        UPDATE: call of the EKF update;
+        MAG: values field xyz (gauss);
+        BARO: values height (m) and air density (kg/m3);
+        GNSS: ints lat, lon (1e-7 deg), fix type, satellites, flags (1 usable, 2 speed accuracy passes strict, 4 spoofed, 8 jammed),
+        values altitude (m), velocity NED (m/s), hacc, vacc (m), sacc (m/s), pdop, antenna position xyz (m);
+        GNSS_YAW: ints usable, values yaw, yaw accuracy, yaw offset (rad);
+        AIRSPEED: values true airspeed (m/s) and EAS to TAS factor;
+        RANGE: ints quality, values distance (m);
+        FLOW: ints quality, values flow rate xy and gyro rate xyz (rad/s);
+        EV: ints position frame, velocity frame, quality, reset counter, values position xyz, velocity xyz, quaternion,
+        position, velocity and orientation variances xyz;
+        FLAGS: ints bits armed, at rest, in air, fixed wing, ground effect, constant position, in transition;
+        ORIGIN: ints lat, lon (1e-7 deg), values altitude (m);
+        PARAMS: ints index of the first parameter, values the parameters from that index (generated parameter table);
+        CONFIG: values position and velocity correction time constants (s), GNSS yaw reset wait (s), range finder
+        minimum and maximum distance (m), optical flow maximum rate (rad/s);
+        OUTPUT: values position NED (m), velocity NED (m/s), quaternion, after an update.
+      </description>
+      <field name="time" type="uint32" unit="us">EKF time of the sample (lower 32 bits)</field>
+      <field name="type" type="uint8" values="IMU|UPDATE|MAG|BARO|GNSS|GNSS_YAW|AIRSPEED|RANGE|FLOW|EV|FLAGS|ORIGIN|PARAMS|CONFIG|OUTPUT">Kind of sample</field>
+      <field name="ints" type="int32[]">Integer values, depending on the type</field>
+      <field name="values" type="float[]">Float values, depending on the type</field>
+    </message>
 
     <message name="AIRSPEED_WIND_ESTIMATOR_EKF" id="196">
       <field name="u_est"     type="float" unit="m/s"/>
@@ -2018,18 +1952,6 @@
       <field name="bus_number" type="uint8"/>
     </message>
 
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="IMU_GYRO_LP" id="209">
-      <field name="gp" type="float" unit="rad/s"/>
-      <field name="gq" type="float" unit="rad/s"/>
-      <field name="gr" type="float" unit="rad/s"/>
-    </message>
-
-  <!-- Do we need this? Used only in misc/log_parser/09_05_13__14_38_13.log -->
-    <message name="IMU_PRESSURE" id="210">
-      <field name="p" type="float" unit="pascal"/>
-    </message>
-
     <message name="WINDTUNNEL_MEAS" id="211">
       <field name="aoa" type="float" unit="deg">Angle of attack</field>
       <field name="airspeed" type="float" unit="m/s">Airspeed measured</field>
@@ -2146,8 +2068,12 @@
     </message>
 
     <message name="BARO_RAW" id="221">
-      <field name="abs"          type="float"/>
-      <field name="diff"         type="float"/>
+      <description>Barometer of air_data, one sensor per message</description>
+      <field name="sensor_id" type="uint8">ABI sender id of the barometer</field>
+      <field name="raw" type="float" unit="Pa">uncalibrated static pressure</field>
+      <field name="pressure" type="float" unit="Pa">calibrated static pressure</field>
+      <field name="offset" type="float" unit="Pa">calibration offset</field>
+      <field name="temperature" type="float" unit="deg_celcius">temperature of the sensor (NaN if unknown)</field>
     </message>
 
     <message name="AIR_DATA" id="222">
@@ -2158,6 +2084,8 @@
       <field name="amsl_baro" type="float" unit="m">barometric altitude above mean sea level</field>
       <field name="airspeed" type="float" unit="m/s">Equivalent Air Speed (or Calibrated Air Speed at low speed/altitude)</field>
       <field name="tas" type="float">True Air Speed (when P, T and P_diff are available)</field>
+      <field name="baro_id" type="uint8">ABI sender id of the barometer in use (0 if none)</field>
+      <field name="airspeed_id" type="uint8">ABI sender id of the airspeed sensor in use (0 if none)</field>
     </message>
 
     <message name="AMSL" id="223">
@@ -2176,19 +2104,10 @@
       <field name="front_divergence" type="float"> divergence from front cam </field>
     </message>
 
-    <!-- Do we need this? -->
-    <message name="VIDEO_SYNC" id="225">
-      <field name="id" type="uint8"/>
-    </message>
-
     <message name="PERIODIC_TELEMETRY_ERR" id="226">
       <field name="process" type="uint8"/>
       <field name="mode" type="uint8"/>
       <field name="id" type="uint8"/>
-    </message>
-
-    <message name="TIME" id="227">
-      <field name="t" type="uint32">an integral value representing the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC</field>
     </message>
 
     <message name="OPTIC_FLOW_EST" id="228">
@@ -2362,21 +2281,7 @@
       <field name="vz"   type="float" unit="m/s"/>
     </message>
 
-    <message name="ESC" id="245">
-      <description>
-        Electronic Speed Controller data
-      </description>
-      <field name="amps"        type="float" unit="A">Current consumption</field>
-      <field name="bat_volts"   type="float" unit="V">Input battery voltage</field>
-      <field name="power"       type="float" unit="W">Electrical power</field>
-      <field name="rpm"         type="float" unit="rpm">Motor rotation speed</field>
-      <field name="motor_volts" type="float" unit="V">Motor voltage</field>
-      <field name="energy"      type="float" unit="Wh">Accumulated consumed energy</field>
-      <field name="temperature" type="float" unit="C">Temperature</field>
-      <field name="temperature_dev" type="float" unit="C">Device temperature</field>
-      <field name="node_id"     type="uint8">Node ID</field>
-      <field name="motor_id"    type="uint8">Motor ID</field>
-    </message>
+    <!-- 245 is free -->
 
     <message name="RTOS_MON" id="246">
       <description>
@@ -2410,15 +2315,6 @@
       <field name="bal2_trans_stat"  type="uint8" values="Pending|Running|Success|Failed|Done">Cell bank 2 monitor i2c transaction status</field>
       <field name="bal2_cells" type="uint16[]" unit="mV">Cell bank 2 voltage</field>
       <field name="safety_plug"   type="uint16" values="mV">Safety plug voltage</field>
-    </message>
-
-    <message name="GPS_RXMRTCM" id="249">
-      <field name="Msg1005"      type="uint32" />
-      <field name="Msg1077"  	 type="uint32" />
-      <field name="Msg1087"      type="uint32" />
-      <field name="Crc1005"      type="uint32" />
-      <field name="Crc1077"      type="uint32" />
-      <field name="Crc1087"      type="uint32"  />
     </message>
 
     <message name="GROUND_DETECT" id="250">
@@ -2539,6 +2435,12 @@
     <message name="BLOCK" id="5" link="forwarded">
       <field name="block_id" type="uint8"/>
       <field name="ac_id" type="uint8"/>
+    </message>
+
+    <message name="TIME_SYNC" id="6">
+      <description>Ground UTC time, to sync the aircraft time without GPS</description>
+      <field name="unix_time" type="uint32" unit="s">Ground UTC unix time, corrected by the sender with half the round trip</field>
+      <field name="unix_ms" type="uint16" unit="ms">Milliseconds part of unix_time</field>
     </message>
 
     <message name="PING" id="8"/>
@@ -3078,7 +2980,6 @@
     
   </msg_class>
 
-
   <msg_class name="ground" id="3">
     <message name="NEW_AIRCRAFT" id="1">
       <field name="ac_id" type="string"/>
@@ -3356,6 +3257,10 @@
       <field name="rx_msgs_rate" type="float" format="%.1f" unit="msgs/s"/>
       <field name="tx_msgs" type="uint32"/>
       <field name="ping_time" type="float" format="%.2f" unit="ms"/>
+      <field name="tx_err" type="uint32">Messages to this aircraft that could not be sent</field>
+      <field name="peer" type="string">Address the uplink to this aircraft is sent to (ip:port), none if not UDP</field>
+      <field name="rx_max_gap" type="uint32" unit="ms">Longest time without a frame from this aircraft since the previous report</field>
+      <field name="tx_bytes" type="uint32">Bytes of the frames sent to this aircraft</field>
     </message>
 
     <message name="INTRUDER" id="37">
@@ -3551,7 +3456,6 @@
       <field name="numsv"   type="uint8"/>
       <field name="fix"     type="uint8" values="NONE|NA|2D|3D|DGPS|RTK"/>
     </message>
-
 
     <message name="STEREOCAM_ARRAY" id="80">
       <description>Raw data fromt the stereocamera. Type defines what kind of data it is. This can be raw image, disparity map, obstacle histogram, ect.</description>
