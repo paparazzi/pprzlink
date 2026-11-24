@@ -28,10 +28,25 @@
 #include <ivy-c++/IvyApplication.h>
 #include <iostream>
 #include <regex>
+#include <cstdlib>
+#include <cmath>
 
 namespace pprzlink {
 
-  /** Parse a comma separated array of numbers, a lone ',' is an empty array */
+  /** Number of a message, also nan, -nan, inf, -inf and with an exponent (std::stream does not take nan) */
+  static double parseNumber(const std::string &str)
+  {
+    const char *begin = str.c_str();
+    char *end = nullptr;
+    double val = std::strtod(begin, &end);
+    if (end == begin || *end != '\0')
+    {
+      throw wrong_message_format("Wrong format for number \"" + str + "\"");
+    }
+    return val;
+  }
+
+  /** Parse a comma separated array of numbers, a lone ',' is an empty array (a trailing ',' is accepted) */
   static std::vector<double> parseNumberArray(const std::string &str)
   {
     std::vector<double> values;
@@ -39,24 +54,16 @@ namespace pprzlink {
     {
       return values;
     }
-    std::stringstream sstr(str);
-    while (true)
+    size_t start = 0;
+    while (start < str.size())
     {
-      double val;
-      char c;
-      if (!(sstr >> val))
+      size_t comma = str.find(',', start);
+      if (comma == std::string::npos)
       {
-        throw wrong_message_format("Wrong format for array \"" + str + "\"");
+        comma = str.size();
       }
-      values.push_back(val);
-      if (!(sstr >> c) || (c == ',' && sstr.peek() == EOF))
-      {
-        break; // end of the array (a trailing ',' is accepted)
-      }
-      if (c != ',')
-      {
-        throw wrong_message_format("Wrong format for array \"" + str + "\"");
-      }
+      values.push_back(parseNumber(str.substr(start, comma - start)));
+      start = comma + 1;
     }
     return values;
   }
@@ -153,7 +160,9 @@ namespace pprzlink {
       {BaseType::UINT8,  "\\d+"},
       {BaseType::UINT16, "\\d+"},
       {BaseType::UINT32, "\\d+"},
-      {BaseType::FLOAT,  "-?\\d+(?:\\.)?(?:\\d)*"},
+      // also nan, -nan, inf, -inf and exponents (1e-05, -2.5E+03)
+      {BaseType::FLOAT,  "[-+]?(?:\\d+(?:\\.\\d*)?(?:[eE][-+]?\\d+)?|[nN][aA][nN]|[iI][nN][fF])"},
+      {BaseType::DOUBLE, "[-+]?(?:\\d+(?:\\.\\d*)?(?:[eE][-+]?\\d+)?|[nN][aA][nN]|[iI][nN][fF])"},
       {BaseType::STRING, "(?:\"[^\"]+\"|[^ ]+)"}
     };
     // ac_id MSG_NAME msgField*
@@ -422,8 +431,7 @@ namespace pprzlink {
             case BaseType::DOUBLE:
             {
               // Parse all numbers as a double
-              double val;
-              sstr >> val;
+              double val = parseNumber(sstr.str());
               msg.addField(field.getName(), val); // The value will be statically cast to the right type
             }
               break;
@@ -562,8 +570,7 @@ namespace pprzlink {
               case BaseType::DOUBLE:
               {
                 // Parse all numbers as a double
-                double val;
-                sstr >> val;
+                double val = parseNumber(sstr.str());
                 msg.addField(field.getName(), val); // The value will be statically cast to the right type
               }
                 break;
