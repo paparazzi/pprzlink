@@ -2984,9 +2984,17 @@
     <message name="SELECTED_REQ" id="6">
     </message>
 
-    <!-- 7 is free -->
+    <message name="WIND_CLEAR" id="7">
+      <field name="ac_id" type="string"/>
+    </message>
 
-    <!-- 8 is free -->
+    <message name="WIND" id="8">
+      <field name="ac_id" type="string"/>
+      <field name="dir" type="float"   unit="deg_wind"/>
+      <field name="wspeed" type="float" unit="m/s"/>
+      <field name="mean_aspeed" type="float" unit="m/s"/>
+      <field name="stddev" type="float" unit="m/s"/>
+    </message>
 
     <message name="CONFIG_REQ" id="9">
       <field name="ac_id" type="string"/>
