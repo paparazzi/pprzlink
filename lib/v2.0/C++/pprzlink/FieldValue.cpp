@@ -23,9 +23,31 @@
  */
 #include <pprzlink/FieldValue.h>
 #include <iomanip>
+#include <sstream>
 
 // FIXME This should go to a SERIALISER !
+static void printValue(std::ostream& o,const pprzlink::FieldValue& v);
+
 std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
+{
+  const auto& type=v.getType();
+  if (type.isArray() && type.getBaseType() != pprzlink::BaseType::CHAR)
+  {
+    // an empty array is a lone ',' so that it stays one field
+    std::ostringstream sstr;
+    sstr.copyfmt(o);
+    printValue(sstr, v);
+    const std::string str = sstr.str();
+    o << (str.empty() ? "," : str);
+  }
+  else
+  {
+    printValue(o, v);
+  }
+  return o;
+}
+
+static void printValue(std::ostream& o,const pprzlink::FieldValue& v)
 {
   const auto& type=v.getType();
   const auto& name=v.getName();
@@ -257,8 +279,6 @@ std::ostream& operator<<(std::ostream& o,const pprzlink::FieldValue& v)
         break;
     }
   }
-
-  return o;
 }
 namespace pprzlink {
   const MessageField &FieldValue::getField() const

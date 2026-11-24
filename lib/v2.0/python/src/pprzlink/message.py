@@ -197,7 +197,8 @@ class PprzMessageField(object):
                 if self.python_simple_type == list:
                     if not(isinstance(strval,list)):
                         # If not a list, suppose it is a string with elements separated by commas
-                        self.val = strval.split(',')
+                        # (an empty array is a lone ',')
+                        self.val = [x for x in strval.split(',') if x != '']
                     else:
                         self.val = strval                    
                     
@@ -490,7 +491,8 @@ class PprzMessage(object):
                         str_value = str(f.val)
                 fields.append('"' + str_value + '"')
             elif '[' in f.typestr:
-                fields.append(','.join([str(x) for x in f.val]))
+                # an empty array is a lone ',' so that it stays one field
+                fields.append(','.join([str(x) for x in f.val]) or ',')
             else:
                 fields.append(str(f.val))
         ivy_str = sep.join(fields)
