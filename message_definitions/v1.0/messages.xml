@@ -3053,14 +3053,6 @@
       <field name="dist_to_wp" type="float" unit="m"/>
     </message>
 
-    <message name="CAM_STATUS" id="14">
-      <field name="ac_id" type="string"/>
-      <field name="lats" type="string" format="csv"/>
-      <field name="longs" type="string" format="csv"/>
-      <field name="cam_target_lat" type="double" unit="deg" format="%.7f"/>
-      <field name="cam_target_long" type="double" unit="deg" format="%.7f"/>
-    </message>
-
     <message name="ENGINE_STATUS" id="15">
       <field name="ac_id" type="string"/>
       <field name="throttle" type="float" unit="%"  format="%.1f"/>
@@ -3093,13 +3085,6 @@
       <field name="rc_status" type="string" values="OK|LOST|REALLY_LOST"/>
       <field name="rc_mode" type="string" values="MANUAL|AUTO|FAILSAFE"/>
       <field name="rc_rate" type="uint8" unit="Hz"/>
-    </message>
-
-    <message name="INFLIGH_CALIB" id="19">
-      <field name="ac_id" type="string"/>
-      <field name="if_mode" type="string" values="OFF|DOWN|UP"></field>
-      <field name="if_value1" type="float"></field>
-      <field name="if_value2" type="float"></field>
     </message>
 
     <message name="WORLD_ENV" id="20">
@@ -3360,18 +3345,6 @@
       <field name="dest" type="string">ac_id:file_descriptor | ground_name | 0 (ground broadcast) | 0xFF (broadcast)</field>
       <field name="source" type="string">ground_name of the agent sending the message</field>
       <field name="msg" type="string"/>
-    </message>
-  </msg_class>
-
-  <msg_class name="alert" id="4">
-    <message name="BAT_LOW" id="1">
-      <field name="ac_id" type="string"/>
-      <field name="level" type="string" values="CATASTROPHIC|CRITIC|WARNING"/>
-      <field name="value" type="float"/>
-    </message>
-    <message name="AIR_PROX" id="2">
-      <field name="ac_id" type="string"/>
-      <field name="level" type="string" values="CATASTROPHIC|CRITIC|WARNING"/>
     </message>
   </msg_class>
 
