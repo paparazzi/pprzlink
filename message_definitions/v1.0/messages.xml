@@ -2965,7 +2965,7 @@
       <field name="msg" type="char[]"/>
     </message>
 
-    <message name="MODULE_SPECIFIC_UP" id="161">
+    <message name="MODULE_SPECIFIC_UP" id="161" link="forwarded">
       <field name="ac_id" type="uint8"/>
       <field name="module_id" type="uint16">Unique module ID defined in Paparazzi</field>
       <field name="reserved" type="uint16">Reserved for future use</field>
