@@ -90,12 +90,12 @@ namespace pprzlink {
           auto messageName = message->Attribute("NAME", nullptr);
           if (messageName == nullptr)
           {
-            messageName = msg_class->Attribute("name", nullptr);
+            messageName = message->Attribute("name", nullptr);
           }
           int messageId = message->IntAttribute("ID", -1);
           if (messageId == -1)
           {
-            messageId = msg_class->IntAttribute("id", -1);
+            messageId = message->IntAttribute("id", -1);
           }
           if (messageName == nullptr || messageId == -1)
           {

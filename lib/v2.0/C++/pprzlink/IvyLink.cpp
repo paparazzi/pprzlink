@@ -28,8 +28,45 @@
 #include <ivy-c++/IvyApplication.h>
 #include <iostream>
 #include <regex>
+#include <cstdlib>
+#include <cmath>
 
 namespace pprzlink {
+
+  /** Number of a message, also nan, -nan, inf, -inf and with an exponent (std::stream does not take nan) */
+  static double parseNumber(const std::string &str)
+  {
+    const char *begin = str.c_str();
+    char *end = nullptr;
+    double val = std::strtod(begin, &end);
+    if (end == begin || *end != '\0')
+    {
+      throw wrong_message_format("Wrong format for number \"" + str + "\"");
+    }
+    return val;
+  }
+
+  /** Parse a comma separated array of numbers, a lone ',' is an empty array (a trailing ',' is accepted) */
+  static std::vector<double> parseNumberArray(const std::string &str)
+  {
+    std::vector<double> values;
+    if (str == ",")
+    {
+      return values;
+    }
+    size_t start = 0;
+    while (start < str.size())
+    {
+      size_t comma = str.find(',', start);
+      if (comma == std::string::npos)
+      {
+        comma = str.size();
+      }
+      values.push_back(parseNumber(str.substr(start, comma - start)));
+      start = comma + 1;
+    }
+    return values;
+  }
 
   IvyLink::IvyLink(MessageDictionary const & dict , std::string appName, std::string domain, bool threadedIvy)
   : dictionary (dict), domain(domain), appName(appName), threaded(threadedIvy), requestNb(0)
@@ -123,7 +160,9 @@ namespace pprzlink {
       {BaseType::UINT8,  "\\d+"},
       {BaseType::UINT16, "\\d+"},
       {BaseType::UINT32, "\\d+"},
-      {BaseType::FLOAT,  "-?\\d+(?:\\.)?(?:\\d)*"},
+      // also nan, -nan, inf, -inf and exponents (1e-05, -2.5E+03)
+      {BaseType::FLOAT,  "[-+]?(?:\\d+(?:\\.\\d*)?(?:[eE][-+]?\\d+)?|[nN][aA][nN]|[iI][nN][fF])"},
+      {BaseType::DOUBLE, "[-+]?(?:\\d+(?:\\.\\d*)?(?:[eE][-+]?\\d+)?|[nN][aA][nN]|[iI][nN][fF])"},
       {BaseType::STRING, "(?:\"[^\"]+\"|[^ ]+)"}
     };
     // ac_id MSG_NAME msgField*
@@ -152,8 +191,8 @@ namespace pprzlink {
           if (def.getField(i).getType().getArraySize() == 0)
           {
             // Dynamic array
-            // s => s,s,s,s => (s(?:,s)*)
-            sstr << " (" << baseRegex << "(?:," << baseRegex << ")*)";
+            // s => s,s,s,s => (,|s(?:,s)*) (an empty array is a lone ',')
+            sstr << " (,|" << baseRegex << "(?:," << baseRegex << ")*)";
           }
           else
           {
@@ -359,18 +398,7 @@ namespace pprzlink {
             case BaseType::DOUBLE:
             {
               // Parse all numbers as a double
-              std::vector<double> values;
-              while (!sstr.eof())
-              {
-                double val;
-                char c;
-                sstr >> val >> c;
-                if (c!=',')
-                {
-                  throw wrong_message_format("Wrong format for array "+std::string(argv[i]));
-                }
-                values.push_back(val);
-              }
+              std::vector<double> values = parseNumberArray(sstr.str());
               msg.addField(field.getName(), values); // The value will be statically cast to the right type
             }
               break;
@@ -403,8 +431,7 @@ namespace pprzlink {
             case BaseType::DOUBLE:
             {
               // Parse all numbers as a double
-              double val;
-              sstr >> val;
+              double val = parseNumber(sstr.str());
               msg.addField(field.getName(), val); // The value will be statically cast to the right type
             }
               break;
@@ -510,18 +537,7 @@ namespace pprzlink {
               case BaseType::DOUBLE:
               {
                 // Parse all numbers as a double
-                std::vector<double> values;
-                while (!sstr.eof())
-                {
-                  double val;
-                  char c;
-                  sstr >> val >> c;
-                  if (c != ',')
-                  {
-                    throw wrong_message_format("Wrong format for array \"" + fields[i] + "\"");
-                  }
-                  values.push_back(val);
-                }
+                std::vector<double> values = parseNumberArray(sstr.str());
                 msg.addField(field.getName(), values); // The value will be statically cast to the right type
               }
                 break;
@@ -554,8 +570,7 @@ namespace pprzlink {
               case BaseType::DOUBLE:
               {
                 // Parse all numbers as a double
-                double val;
-                sstr >> val;
+                double val = parseNumber(sstr.str());
                 msg.addField(field.getName(), val); // The value will be statically cast to the right type
               }
                 break;
