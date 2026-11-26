@@ -3346,6 +3346,38 @@
       <field name="reason" type="string" values="CPU_TIME|DATALINK_COUNTERS|NEW_LOG_FILE">How it was detected</field>
     </message>
 
+    <message name="RECORD_STATUS" id="43">
+      <description>
+        Sent about once per second by a ground recorder (e.g. PprzGCS recording the pilots' microphones and
+        cameras), for the GCSs to show that it records, the level of each microphone channel and its problems.
+      </description>
+      <field name="recorder" type="string">Name of the recorder (several can run)</field>
+      <field name="state" type="uint8" values="IDLE|RECORDING|ERROR"/>
+      <field name="unix_time" type="double" unit="s">UTC start of the current recording, 0 when idle</field>
+      <field name="labels" type="string">Label of each microphone channel, separated by ';' (e.g. Pilot;Safety_pilot)</field>
+      <field name="levels" type="float[]" unit="dB">Peak level of each microphone channel since the last status, in dBFS</field>
+      <field name="cameras" type="string">Label of each camera being recorded, separated by ';'</field>
+      <field name="files" type="string">Files being written (audio and video), separated by ';', relative to var/logs</field>
+      <field name="info" type="string">Errors or warnings (e.g. a microphone not connected, a camera without video), empty if none</field>
+    </message>
+
+    <message name="RECORD_CMD" id="44">
+      <description>Start or stop a ground recorder (its microphones and cameras)</description>
+      <field name="recorder" type="string">Name of the recorder, empty for all</field>
+      <field name="command" type="uint8" values="STOP|START"/>
+    </message>
+
+    <message name="LOG_MARK" id="45">
+      <description>
+        A mark set by an operator (e.g. a button in the GCS) at a moment to look at later.
+        Logged by the server, to find it back in the flight log, the recordings and the transcript.
+      </description>
+      <field name="unix_time" type="double" unit="s">UTC time of the mark</field>
+      <field name="source" type="string">Who set it (e.g. the name of the GCS)</field>
+      <field name="ac_id" type="string">Selected aircraft, empty if none</field>
+      <field name="text" type="string">Short label, empty for a plain mark</field>
+    </message>
+
     <message name="PLUMES" id="100">
       <field name="ids" type="string" format="csv"/>
       <field name="lats" type="string" format="csv"/>

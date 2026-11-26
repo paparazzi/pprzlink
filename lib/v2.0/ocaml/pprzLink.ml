@@ -733,6 +733,8 @@ module MessagesOfXml(Class:CLASS_Xml) = struct
     let rec loop = fun fields ->
       match fields with
       | [] -> []
+      (* "" is an empty string *)
+      | (Str.Delim "\"")::((Str.Delim "\"")::xs) -> "" :: (loop xs)
       | (Str.Delim "\"")::((Str.Text l)::[Str.Delim "\""]) | (Str.Delim "|")::((Str.Text l)::[Str.Delim "|"]) -> [l]
       | (Str.Delim "\"")::((Str.Text l)::((Str.Delim "\"")::xs)) | (Str.Delim "|")::((Str.Text l)::((Str.Delim "|")::xs)) -> [l] @ (loop xs)
       | [Str.Text x] -> Str.split space x
